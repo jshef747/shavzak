@@ -1,0 +1,121 @@
+export type Lang = 'en' | 'he';
+
+export function langFromDir(dir: 'ltr' | 'rtl'): Lang {
+  return dir === 'rtl' ? 'he' : 'en';
+}
+
+const strings: Record<string, { en: string; he: string }> = {
+  selectSchedule: { en: '-- Select Schedule --', he: '-- בחר לוח --' },
+  newBtn: { en: '+ New', he: '+ חדש' },
+  delete: { en: 'Delete', he: 'מחק' },
+  deleteScheduleConfirm: { en: 'Delete this schedule?', he: 'למחוק את הלוח הזה?' },
+  excel: { en: 'Excel', he: 'Excel' },
+  pdf: { en: 'PDF', he: 'PDF' },
+  quickStartTitle: { en: 'Quick Start Guide', he: 'מדריך התחלה מהירה' },
+  settingsTitle: { en: 'Settings', he: 'הגדרות' },
+  noSchedule: { en: 'No schedule selected', he: 'לא נבחר לוח' },
+  noScheduleHint: { en: 'Create a new schedule to get started.', he: 'צור לוח חדש כדי להתחיל.' },
+  newScheduleBtn: { en: '+ New Schedule', he: '+ לוח חדש' },
+  noPositions: { en: 'No positions defined', he: 'לא הוגדרו תפקידים' },
+  noPositionsHint: { en: 'Add positions in Settings to build your schedule.', he: 'הוסף תפקידים בהגדרות כדי לבנות את הלוח.' },
+  openSettings: { en: 'Open Settings', he: 'פתח הגדרות' },
+  newScheduleModalTitle: { en: 'New Schedule', he: 'לוח חדש' },
+  name: { en: 'Name', he: 'שם' },
+  weekOnePlaceholder: { en: 'Week 1', he: 'שבוע 1' },
+  cancel: { en: 'Cancel', he: 'ביטול' },
+  create: { en: 'Create', he: 'צור' },
+  dateStart: { en: 'Start:', he: 'התחלה:' },
+  dateEnd: { en: 'End:', he: 'סיום:' },
+  tabShifts: { en: 'Shifts', he: 'משמרות' },
+  tabPositions: { en: 'Positions', he: 'תפקידים' },
+  tabPeople: { en: 'People', he: 'אנשים' },
+  minBreakHoursLabel: { en: 'Minimum break between shifts (hours)', he: 'זמן מנוחה מינימלי בין משמרות (שעות)' },
+  currentShifts: { en: 'Current Shifts', he: 'משמרות קיימות' },
+  dragToReorder: { en: 'drag to reorder', he: 'גרור לסידור מחדש' },
+  noShifts: { en: 'No shifts defined.', he: 'לא הוגדרו משמרות.' },
+  shiftNamePlaceholder: { en: 'Shift name', he: 'שם משמרת' },
+  addShift: { en: 'Add Shift', he: 'הוסף משמרת' },
+  shiftNameLabel: { en: 'Name', he: 'שם' },
+  shiftExample: { en: 'e.g. Morning', he: 'לדוגמה: בוקר' },
+  startTime: { en: 'Start Time', he: 'שעת התחלה' },
+  durationH: { en: 'Duration (h)', he: "משך (שע')" },
+  currentPositions: { en: 'Current Positions', he: 'תפקידים קיימים' },
+  noPositionsYet: { en: 'No positions yet.', he: 'אין תפקידים עדיין.' },
+  addPosition: { en: 'Add Position', he: 'הוסף תפקיד' },
+  positionNamePlaceholder: { en: 'Position name', he: 'שם תפקיד' },
+  add: { en: 'Add', he: 'הוסף' },
+  noPeopleYet: { en: 'No people yet.', he: 'אין אנשים עדיין.' },
+  edit: { en: 'Edit', he: 'ערוך' },
+  personNamePlaceholder: { en: 'Person name', he: 'שם אדם' },
+  addPerson: { en: 'Add Person', he: 'הוסף אדם' },
+  qualifiedPositions: { en: 'Qualified Positions', he: 'תפקידים מורשים' },
+  noPositionsDefined: { en: 'No positions defined.', he: 'לא הוגדרו תפקידים.' },
+  oneTimeConstraints: { en: 'One-Time Constraints', he: 'אילוצים חד-פעמיים' },
+  oneTimeConstraintsHint: { en: 'Block a specific shift on a specific date', he: 'חסום משמרת ספציפית בתאריך ספציפי' },
+  dateCol: { en: 'Date', he: 'תאריך' },
+  repeatingConstraints: { en: 'Repeating Constraints', he: 'אילוצים חוזרים' },
+  allowedShifts: { en: 'Only these shifts (leave empty = any)', he: 'רק משמרות אלו (ריק = כל משמרת)' },
+  blockedShifts: { en: 'Never these shifts (leave empty = none)', he: 'לעולם לא משמרות אלו (ריק = ללא)' },
+  allowedDays: { en: 'Only these days (leave empty = any)', he: 'רק ימים אלו (ריק = כל יום)' },
+  blockedDays: { en: 'Never these days (leave empty = none)', he: 'לעולם לא ימים אלו (ריק = ללא)' },
+  maxPerWeek: { en: 'Max shifts / 7 days', he: "מקס' משמרות / 7 ימים" },
+  noLimit: { en: 'No limit', he: 'ללא הגבלה' },
+  maxTotal: { en: 'Max shifts total', he: 'מקס\' משמרות סה"כ' },
+  maxConsecutive: { en: 'Max consecutive days', he: "מקס' ימים רצופים" },
+  minRest: { en: 'Min rest days between shifts', he: "מינ' ימי מנוחה בין משמרות" },
+  deletePersonConfirm: { en: 'Delete this person?', he: 'למחוק אדם זה?' },
+  deletePerson: { en: 'Delete Person', he: 'מחק אדם' },
+  close: { en: 'Close', he: 'סגור' },
+  roster: { en: 'Roster', he: 'סגל' },
+  addPeopleHint: { en: 'Add people in Settings.', he: 'הוסף אנשים בהגדרות.' },
+  hours: { en: 'Hours', he: 'שעות' },
+  shiftCol: { en: 'Shift', he: 'משמרת' },
+  statusValid: { en: 'Valid', he: 'תקין' },
+  statusUnavailable: { en: 'Unavailable', he: 'לא זמין' },
+  statusDoubleBooked: { en: 'Double-booked', he: 'כפול' },
+  statusUnqualified: { en: 'Unqualified', he: 'לא מוסמך' },
+  statusInsufficientBreak: { en: 'Insufficient break', he: 'הפסקה קצרה מדי' },
+  statusConstraint: { en: 'Constraint violation', he: 'הפרת אילוץ' },
+  hideLegend: { en: 'Hide legend', he: 'הסתר מקרא' },
+  legend: { en: 'Legend', he: 'מקרא' },
+  tooltipValid: { en: 'Valid assignment', he: 'שיבוץ תקין' },
+  tooltipUnavailable: { en: 'Person marked unavailable for this slot', he: 'האדם סומן כלא זמין למשמרת זו' },
+  tooltipDoubleBooked: { en: 'Person already assigned to another position in this shift', he: 'האדם כבר שובץ לתפקיד אחר במשמרת זו' },
+  tooltipUnqualified: { en: 'Person not qualified for this position', he: 'האדם אינו מוסמך לתפקיד זה' },
+  tooltipBreak: { en: 'Less than 12h break from another shift', he: 'פחות מ-12 שעות הפסקה ממשמרת אחרת' },
+  tooltipConstraint: { en: 'Assignment violates repeating constraint', he: 'השיבוץ מפר אילוץ חוזר' },
+  deleteShiftConfirm: { en: 'Delete this shift? All assignments using it will be removed.', he: 'למחוק משמרת זו? כל השיבוצים בה יוסרו.' },
+  back: { en: '← Back', he: 'הקודם →' },
+  next: { en: 'Next →', he: '← הבא' },
+  done: { en: 'Done', he: 'סיום' },
+  prevMonth: { en: 'Previous month', he: 'חודש קודם' },
+  nextMonth: { en: 'Next month', he: 'חודש הבא' },
+};
+
+export function t(key: string, lang: Lang): string {
+  return strings[key]?.[lang] ?? strings[key]?.en ?? key;
+}
+
+export const tf = {
+  shiftNotAllowed: (lang: Lang, name: string) =>
+    lang === 'he' ? `משמרת "${name}" אינה ברשימת המשמרות המותרות` : `Shift "${name}" not in allowed shifts`,
+  blockedShift: (lang: Lang, name: string) =>
+    lang === 'he' ? `משמרת חסומה: ${name}` : `Blocked shift: ${name}`,
+  dayNotAllowed: (lang: Lang) =>
+    lang === 'he' ? 'היום אינו ברשימת הימים המותרים' : 'Day not in allowed days',
+  blockedDay: (lang: Lang, dayName: string) =>
+    lang === 'he' ? `יום חסום: ${dayName}` : `Blocked day: ${dayName}`,
+  maxWeek: (lang: Lang, n: number) =>
+    lang === 'he' ? `חריגה ממקס' ${n} משמרות לשבוע` : `Max ${n} shifts/week exceeded`,
+  maxTotal: (lang: Lang, n: number) =>
+    lang === 'he' ? `חריגה ממקס' ${n} משמרות בסה"כ` : `Max ${n} total shifts exceeded`,
+  maxConsecutive: (lang: Lang, n: number) =>
+    lang === 'he' ? `חריגה ממקס' ${n} ימים רצופים` : `Max ${n} consecutive days exceeded`,
+  minRest: (lang: Lang, n: number) =>
+    lang === 'he'
+      ? `נדרשים לפחות ${n} ימי מנוחה בין משמרות`
+      : `Min ${n} rest day${n > 1 ? 's' : ''} required between shifts`,
+};
+
+export const DAY_LABELS_HE = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'שבת'];
+export const DAY_HEADERS_HE = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'];
