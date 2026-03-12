@@ -8,15 +8,15 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange, labels }: TabsProps) {
   return (
-    <div className="flex border-b border-gray-200 mb-4">
+    <div className="flex gap-1 p-1 bg-gray-100 rounded-lg mb-6">
       {tabs.map((tab, i) => (
         <button
           key={tab}
           onClick={() => onChange(tab)}
-          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
             active === tab
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'bg-indigo-600 text-white shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >
           {labels?.[i] ?? tab}

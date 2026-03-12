@@ -15,7 +15,7 @@ export function Input({ label, className = '', id, ...props }: InputProps) {
       )}
       <input
         id={inputId}
-        className={`border border-gray-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 ${className}`}
+        className={`border border-gray-300 rounded-lg px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow ${className}`}
         {...props}
       />
     </div>

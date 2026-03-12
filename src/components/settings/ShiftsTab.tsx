@@ -63,51 +63,68 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex gap-2 items-center p-2 bg-gray-50 rounded border"
+      className="flex gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow"
     >
-      {/* Drag handle */}
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 px-1 touch-none"
+        className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 px-0.5 touch-none flex-shrink-0"
         title={t('dragToReorder', lang)}
         tabIndex={-1}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8h16M4 16h16" />
         </svg>
       </button>
 
-      <input
-        className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 min-w-0"
-        value={shift.name}
-        onChange={e => onUpdate(shift.id, { name: e.target.value })}
-        placeholder={t('shiftNamePlaceholder', lang)}
-      />
-      <input
-        type="time"
-        dir="ltr"
-        className="border border-gray-300 rounded px-2 py-1 text-sm w-28"
-        value={hourToTime(shift.startHour)}
-        onChange={e => onUpdate(shift.id, { startHour: timeToHour(e.target.value) })}
-      />
-      <input
-        type="number"
-        className="border border-gray-300 rounded px-2 py-1 text-sm w-20"
-        value={shift.durationHours}
-        min={0.5} max={24} step={0.5}
-        onChange={e => onUpdate(shift.id, { durationHours: parseFloat(e.target.value) || 0.5 })}
-      />
-      <span dir="ltr" className="text-xs text-gray-500 whitespace-nowrap">
-        h → {hourToTime(shift.startHour + shift.durationHours)}
-      </span>
+      <div className="flex-1 min-w-0">
+        <input
+          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+          value={shift.name}
+          onChange={e => onUpdate(shift.id, { name: e.target.value })}
+          placeholder={t('shiftNamePlaceholder', lang)}
+        />
+      </div>
+
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('startTime', lang)}</span>
+          <input
+            type="time"
+            dir="ltr"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+            value={hourToTime(shift.startHour)}
+            onChange={e => onUpdate(shift.id, { startHour: timeToHour(e.target.value) })}
+          />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('durationH', lang)}</span>
+          <input
+            type="number"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+            value={shift.durationHours}
+            min={0.5} max={24} step={0.5}
+            onChange={e => onUpdate(shift.id, { durationHours: parseFloat(e.target.value) || 0.5 })}
+          />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">End</span>
+          <span dir="ltr" className="text-sm text-gray-500 py-1 px-2">
+            {hourToTime(shift.startHour + shift.durationHours)}
+          </span>
+        </div>
+      </div>
+
       <Button
-        variant="danger"
+        variant="ghost"
         size="sm"
         disabled={!canDelete}
         onClick={handleDelete}
+        className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
       >
-        {t('delete', lang)}
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
       </Button>
     </div>
   );
@@ -139,43 +156,83 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">
-          {t('currentShifts', lang)}
-          {state.shifts.length > 1 && (
-            <span className="ml-2 text-xs font-normal text-gray-400">{t('dragToReorder', lang)}</span>
-          )}
-        </h3>
-        {state.shifts.length === 0 && <p className="text-sm text-gray-400">{t('noShifts', lang)}</p>}
+    <div className="space-y-5">
+      {/* Current Shifts */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {t('currentShifts', lang)}
+              {state.shifts.length > 0 && (
+                <span className="ml-2 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{state.shifts.length}</span>
+              )}
+            </h3>
+            <p className="text-xs text-gray-500 mt-0.5">{t('shiftsDesc', lang)}</p>
+          </div>
+        </div>
 
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={state.shifts.map(s => s.id)} strategy={verticalListSortingStrategy}>
-            <div className="space-y-2">
-              {state.shifts.map(shift => (
-                <SortableShiftRow
-                  key={shift.id}
-                  shift={shift}
-                  canDelete={state.shifts.length > 1}
-                  lang={lang}
-                  onUpdate={onUpdate}
-                  onDelete={onDelete}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        {state.shifts.length === 0 ? (
+          <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-gray-400">{t('noShiftsEmpty', lang)}</p>
+          </div>
+        ) : (
+          <>
+            {state.shifts.length > 1 && (
+              <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+                {t('dragToReorder', lang)}
+              </p>
+            )}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={state.shifts.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {state.shifts.map(shift => (
+                    <SortableShiftRow
+                      key={shift.id}
+                      shift={shift}
+                      canDelete={state.shifts.length > 1}
+                      lang={lang}
+                      onUpdate={onUpdate}
+                      onDelete={onDelete}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </>
+        )}
       </div>
 
-      <div className="border-t pt-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">{t('addShift', lang)}</h3>
-        <div className="flex gap-2 items-end flex-wrap">
+      {/* Add Shift */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">{t('addShift', lang)}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{t('addShiftDesc', lang)}</p>
+          </div>
+        </div>
+        <div className="flex gap-3 items-end flex-wrap">
           <Input
             label={t('shiftNameLabel', lang)}
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder={t('shiftExample', lang)}
-            className="w-32"
+            className="w-36"
             onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
           />
           <Input
@@ -192,7 +249,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             value={duration}
             min={0.5} max={24} step={0.5}
             onChange={e => setDuration(parseFloat(e.target.value) || 0.5)}
-            className="w-20"
+            className="w-24"
           />
           <Button onClick={handleAdd} variant="primary" size="sm" className="self-end">
             {t('addShift', lang)}
@@ -200,22 +257,33 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
         </div>
       </div>
 
-      <div className="border-t pt-4 flex items-center gap-3">
-        <label className="text-sm font-semibold text-gray-700 flex-1">
-          {t('minBreakHoursLabel', lang)}
-        </label>
-        <input
-          type="number"
-          dir="ltr"
-          className="border border-gray-300 rounded px-2 py-1 text-sm w-20"
-          value={state.minBreakHours}
-          min={1} max={48} step={0.5}
-          onChange={e => {
-            const v = parseFloat(e.target.value);
-            if (v >= 1) onUpdateMinBreakHours(v);
-          }}
-        />
-        <span className="text-sm text-gray-500">h</span>
+      {/* Min Break Hours */}
+      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-gray-900">{t('minBreakHoursLabel', lang)}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">{t('minBreakDesc', lang)}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <input
+              type="number"
+              dir="ltr"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+              value={state.minBreakHours}
+              min={1} max={48} step={0.5}
+              onChange={e => {
+                const v = parseFloat(e.target.value);
+                if (v >= 1) onUpdateMinBreakHours(v);
+              }}
+            />
+            <span className="text-sm font-medium text-gray-500">h</span>
+          </div>
+        </div>
       </div>
     </div>
   );
