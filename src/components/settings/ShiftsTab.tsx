@@ -63,7 +63,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow"
+      className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow"
     >
       <button
         {...attributes}
@@ -86,7 +86,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
         />
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('startTime', lang)}</span>
           <input
@@ -158,7 +158,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
   return (
     <div className="space-y-5">
       {/* Current Shifts */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -214,7 +214,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
       </div>
 
       {/* Add Shift */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -258,7 +258,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
       </div>
 
       {/* Min Break Hours */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
