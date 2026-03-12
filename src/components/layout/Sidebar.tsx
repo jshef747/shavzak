@@ -1,25 +1,74 @@
+import { useState, useEffect } from 'react';
 import type { AppState, Assignment } from '../../types';
 import { PeoplePool } from '../roster/PeoplePool';
 import { HoursTracker } from '../tracker/HoursTracker';
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 768 : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    setIsMobile(mq.matches);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  return isMobile;
+}
 
 interface Props {
   state: AppState;
   assignments: Assignment[];
   onEditPerson: (personId: string) => void;
   onDeletePerson: (personId: string) => void;
+  open: boolean;
+  onClose: () => void;
 }
 
-export function Sidebar({ state, assignments, onEditPerson, onDeletePerson }: Props) {
+function SidebarContent({ state, assignments, onEditPerson, onDeletePerson }: Omit<Props, 'open' | 'onClose'>) {
   const assignedPersonIds = new Set(assignments.map(a => a.personId));
-
   return (
-    <div className="no-print w-56 border-r rtl:border-r-0 rtl:border-l flex flex-col overflow-y-auto bg-white">
+    <>
       <div className="flex-1">
         <PeoplePool state={state} assignedPersonIds={assignedPersonIds} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
       </div>
       <div className="border-t">
         <HoursTracker state={state} assignments={assignments} />
       </div>
-    </div>
+    </>
+  );
+}
+
+export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open, onClose }: Props) {
+  const isMobile = useIsMobile();
+
+  if (!isMobile) {
+    return (
+      <aside className="no-print flex flex-col w-56 overflow-y-auto bg-white border-r rtl:border-r-0 rtl:border-l border-slate-200">
+        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+      </aside>
+    );
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className={`no-print fixed inset-0 z-20 bg-black/40 transition-opacity duration-300 ${
+          open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      {/* Drawer panel */}
+      <aside
+        className={`no-print fixed inset-y-0 left-0 rtl:left-auto rtl:right-0 z-30 w-64 flex flex-col overflow-y-auto bg-white border-r rtl:border-r-0 rtl:border-l border-slate-200 transition-transform duration-300 ease-in-out ${
+          open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
+        }`}
+      >
+        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+      </aside>
+    </>
   );
 }

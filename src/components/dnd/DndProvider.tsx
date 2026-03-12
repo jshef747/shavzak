@@ -20,9 +20,10 @@ interface Props {
   onAssign: (cell: CellAddress, personId: string) => void;
   onUnassign: (cell: CellAddress) => void;
   onMove: (source: CellAddress, target: CellAddress, personId: string) => void;
+  onDragStart?: () => void;
 }
 
-export function DndProvider({ state, assignments: _assignments, refDate: _refDate, children, onAssign, onUnassign, onMove }: Props) {
+export function DndProvider({ state, assignments: _assignments, refDate: _refDate, children, onAssign, onUnassign, onMove, onDragStart }: Props) {
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
 
   const sensors = useSensors(
@@ -32,6 +33,7 @@ export function DndProvider({ state, assignments: _assignments, refDate: _refDat
   function handleDragStart(event: DragStartEvent) {
     const data = event.active.data.current as DragData | undefined;
     setActiveDragData(data ?? null);
+    onDragStart?.();
   }
 
   function handleDragEnd(event: DragEndEvent) {

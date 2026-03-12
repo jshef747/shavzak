@@ -38,6 +38,7 @@ export function App() {
   const [settingsInitialTab, setSettingsInitialTab] = useState<string | undefined>(undefined);
   const [sidebarEditPersonId, setSidebarEditPersonId] = useState<string | null>(null);
   const [newScheduleOpen, setNewScheduleOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const lang = langFromDir(state.dir);
 
@@ -70,6 +71,7 @@ export function App() {
         onSetActiveSchedule={setActiveSchedule}
         onExportExcel={handleExportExcel}
         onOpenSettings={() => openSettings()}
+        onToggleSidebar={() => setSidebarOpen(v => !v)}
       />
 
       <DndProvider
@@ -79,14 +81,17 @@ export function App() {
         onAssign={assign}
         onUnassign={unassign}
         onMove={moveAssignment}
+        onDragStart={() => setSidebarOpen(false)}
       >
         <div className="flex flex-1 overflow-hidden">
           <Sidebar
-          state={state}
-          assignments={assignments}
-          onEditPerson={(id) => setSidebarEditPersonId(id)}
-          onDeletePerson={(id) => deletePerson(id)}
-        />
+            state={state}
+            assignments={assignments}
+            onEditPerson={(id) => setSidebarEditPersonId(id)}
+            onDeletePerson={(id) => deletePerson(id)}
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
 
           <main className="flex-1 overflow-hidden p-4 relative">
             {!activeSchedule ? (

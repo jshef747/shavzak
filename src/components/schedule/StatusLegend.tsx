@@ -19,7 +19,7 @@ export function StatusLegend({ dir }: Props) {
   ];
 
   return (
-    <div className="no-print fixed bottom-4 right-4 rtl:right-auto rtl:left-4 z-30">
+    <div className="no-print fixed bottom-4 right-4 rtl:right-auto rtl:left-4 z-40">
       <button
         onClick={() => setOpen(v => !v)}
         className="bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg hover:bg-slate-700 transition-colors"
@@ -27,7 +27,7 @@ export function StatusLegend({ dir }: Props) {
         {open ? t('hideLegend', lang) : t('legend', lang)}
       </button>
       {open && (
-        <div className="mt-1 bg-white border border-slate-200 rounded-lg shadow-xl p-3 space-y-1.5 min-w-[190px]">
+        <div className="absolute bottom-full mb-1 right-0 rtl:right-auto rtl:left-0 bg-white border border-slate-200 rounded-lg shadow-xl p-3 space-y-1.5 min-w-[190px]">
           {legendItems.map(item => (
             <div key={item.labelKey} className="flex items-center gap-2 text-xs text-slate-700">
               <span className={`w-4 h-4 rounded border-2 shrink-0 ${item.color}`} />
