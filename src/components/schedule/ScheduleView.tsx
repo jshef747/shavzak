@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { AppState, Assignment } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { DaySection } from './DaySection';
+import { OncallTable } from './OncallTable';
 
 interface Props {
   state: AppState;
@@ -45,6 +46,13 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
           ))}
         </tbody>
       </table>
+
+      <OncallTable
+        state={state}
+        dates={dates}
+        assignments={assignments}
+        refDate={refDate}
+      />
     </div>
   );
 });

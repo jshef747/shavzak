@@ -3,6 +3,8 @@ export interface Shift {
   name: string;
   startHour: number;
   durationHours: number;
+  isHalfShift?: boolean;  // two people share the shift, each working half the duration (manual only)
+  oncallSlots?: number;   // number of on-call (תקן קפיצה) slots per shift per day (0 = none)
 }
 
 export interface Position { id: string; name: string; }
@@ -35,6 +37,8 @@ export interface Assignment {
   date: string;
   shiftId: string;
   positionId: string;
+  halfSlot?: 1 | 2;   // which half of a half-shift (1=first half, 2=second half); undefined = full shift
+  isOncall?: boolean; // true = on-call (תקן קפיצה) assignment; positionId will be ONCALL_POSITION_ID
 }
 
 export interface Schedule {
@@ -47,7 +51,13 @@ export interface Schedule {
   updatedAt: string;
 }
 
-export interface CellAddress { date: string; shiftId: string; positionId: string; }
+export interface CellAddress {
+  date: string;
+  shiftId: string;
+  positionId: string;
+  halfSlot?: 1 | 2;   // which half-slot (mirrors Assignment.halfSlot)
+  isOncall?: boolean; // true = on-call cell (mirrors Assignment.isOncall)
+}
 
 export interface DragData {
   type: 'from-pool' | 'from-cell';
@@ -68,4 +78,5 @@ export interface AppState {
   activeScheduleId: string | null;
   dir: 'ltr' | 'rtl';
   minBreakHours: number;
+  oncallWeight: number; // fraction of hours counted for on-call assignments in fairness balance (default 0.5)
 }

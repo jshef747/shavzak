@@ -122,6 +122,16 @@ const strings: Record<string, { en: string; he: string }> = {
   suggestBreak: { en: 'Try reducing min break or adding more staff', he: 'נסה להפחית זמן מנוחה מינימלי או להוסיף אנשים' },
   suggestConstraint: { en: 'Review constraints in person settings', he: 'בדוק אילוצים בהגדרות האדם' },
   suggestInvalid: { en: 'Check availability, break times, and constraints', he: 'בדוק זמינות, זמני הפסקה ואילוצים' },
+  halfShift: { en: 'Half Shift', he: 'חצי משמרת' },
+  halfShiftDesc: { en: 'Two people share this shift, each working half the duration', he: 'שני אנשים חולקים משמרת זו, כל אחד עובד מחצית מהזמן' },
+  halfBadge: { en: '½', he: '½' },
+  oncallSlots: { en: 'On-Call Slots', he: 'תקני קפיצה' },
+  oncallSlotsDesc: { en: 'Standby (תקן קפיצה) positions per shift', he: 'עמדות כוננות (תקן קפיצה) למשמרת' },
+  oncallWeight: { en: 'On-Call Weight', he: 'משקל כוננות' },
+  oncallWeightDesc: { en: 'Fraction of hours counted for balance (e.g. 0.5 = half credit)', he: 'חלק מהשעות הנחשבות לאיזון (לדוגמה 0.5 = מחצית)' },
+  oncallBadge: { en: 'On-call', he: 'כוננות' },
+  oncallTableTitle: { en: 'On-Call (Jump Reserve)', he: 'תקן קפיצה' },
+  oncallTableDesc: { en: 'Standby soldiers who may be called in if needed', he: 'חיילים בכוננות שיוכלו להיקרא במידת הצורך' },
 };
 
 export function t(key: string, lang: Lang): string {

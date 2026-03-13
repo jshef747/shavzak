@@ -15,6 +15,7 @@ function loadState(): AppState {
       }));
       merged.dir = 'rtl';
       merged.minBreakHours = merged.minBreakHours ?? 12;
+      merged.oncallWeight = merged.oncallWeight ?? 0.5;
       return merged;
     }
   } catch {}

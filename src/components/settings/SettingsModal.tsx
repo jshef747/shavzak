@@ -13,11 +13,12 @@ interface Props {
   state: AppState;
   dates: string[];
   initialTab?: string;
-  onAddShift: (name: string, startHour: number, durationHours: number) => void;
+  onAddShift: (name: string, startHour: number, durationHours: number, isHalfShift?: boolean, oncallSlots?: number) => void;
   onUpdateShift: (id: string, updates: Partial<Omit<Shift, 'id'>>) => void;
   onDeleteShift: (id: string) => void;
   onReorderShifts: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
+  onUpdateOncallWeight: (weight: number) => void;
   onAddPosition: (name: string) => void;
   onUpdatePosition: (id: string, name: string) => void;
   onDeletePosition: (id: string) => void;
@@ -60,6 +61,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onDelete={handlers.onDeleteShift}
           onReorder={handlers.onReorderShifts}
           onUpdateMinBreakHours={handlers.onUpdateMinBreakHours}
+          onUpdateOncallWeight={handlers.onUpdateOncallWeight}
         />
       )}
       {activeTab === 'Positions' && (

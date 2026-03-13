@@ -55,6 +55,10 @@ export function App() {
     setState(prev => ({ ...prev, minBreakHours: hours }));
   }
 
+  function updateOncallWeight(weight: number) {
+    setState(prev => ({ ...prev, oncallWeight: weight }));
+  }
+
   function openSettings(tab?: string) {
     setSettingsInitialTab(tab);
     setSettingsOpen(true);
@@ -68,6 +72,7 @@ export function App() {
       state.shifts,
       state.positions,
       state.minBreakHours,
+      state.oncallWeight,
     );
     setAutoAssignResult(result);
     setAutoAssignOpen(true);
@@ -176,6 +181,7 @@ export function App() {
         onDeleteShift={deleteShift}
         onReorderShifts={reorderShifts}
         onUpdateMinBreakHours={updateMinBreakHours}
+        onUpdateOncallWeight={updateOncallWeight}
         onAddPosition={addPosition}
         onUpdatePosition={updatePosition}
         onDeletePosition={deletePosition}

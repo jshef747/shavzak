@@ -1,17 +1,26 @@
 import { getDay, parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
 import type { Assignment, CellAddress, CellStatus, Person, Shift, DayOfWeek } from '../types';
 import { type Lang, tf, DAY_LABELS_HE } from './i18n';
+import { ONCALL_POSITION_ID } from '../constants';
 
 // Shifts with startHour < 6 (00:00–05:59) are "night shifts": in this schedule's
 // convention they represent the overnight period of the PREVIOUS calendar day, so
 // they physically occur one calendar day AFTER the date they are labelled with.
-function shiftStartMins(date: string, shift: Shift, refDate: string): number {
+//
+// For half-shifts, the effective window is half the duration:
+//   halfSlot 1 → [shiftStart, shiftStart + dur/2)
+//   halfSlot 2 → [shiftStart + dur/2, shiftStart + dur)
+function shiftStartMins(date: string, shift: Shift, refDate: string, halfSlot?: 1 | 2): number {
   const dayOffset = differenceInCalendarDays(parseISO(date), parseISO(refDate));
   const nightOffset = shift.startHour < 6 ? 1 : 0;
-  return (dayOffset + nightOffset) * 1440 + shift.startHour * 60;
+  const baseStart = (dayOffset + nightOffset) * 1440 + shift.startHour * 60;
+  if (halfSlot === 2) return baseStart + (shift.durationHours / 2) * 60;
+  return baseStart;
 }
-function shiftEndMins(date: string, shift: Shift, refDate: string): number {
-  return shiftStartMins(date, shift, refDate) + shift.durationHours * 60;
+function shiftEndMins(date: string, shift: Shift, refDate: string, halfSlot?: 1 | 2): number {
+  const start = shiftStartMins(date, shift, refDate, halfSlot);
+  const effectiveDuration = halfSlot ? shift.durationHours / 2 : shift.durationHours;
+  return start + effectiveDuration * 60;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -45,11 +54,32 @@ export function computeCellStatus(
 
   const personAssignments = assignments.filter(a => a.personId === personId);
 
-  // 1. Double-booked: same person, same date, same shiftId, different position
-  const doubleBooked = personAssignments.some(
-    a => a.date === cell.date && a.shiftId === cell.shiftId && a.positionId !== cell.positionId
-  );
-  if (doubleBooked) return 'double-booked';
+  // 1. Double-booked checks
+  //    a) Same date+shiftId in a different regular position (or different halfSlot of same position)
+  //    b) On-call blocks regular: if assigning regular position, person can't be on-call same shift/date
+  //    c) Regular blocks on-call: if assigning on-call slot, person can't have a regular assignment same shift/date
+  for (const a of personAssignments) {
+    if (a.date !== cell.date || a.shiftId !== cell.shiftId) continue;
+
+    // Skip the exact same cell
+    if (
+      a.positionId === cell.positionId &&
+      (a.halfSlot ?? undefined) === (cell.halfSlot ?? undefined) &&
+      !!(a.isOncall) === !!(cell.isOncall)
+    ) continue;
+
+    // On-call mutual exclusion: on-call and regular assignments on same shift/date are incompatible
+    if (!!(a.isOncall) !== !!(cell.isOncall)) return 'double-booked';
+
+    // Different regular position → double-booked
+    if (!a.isOncall && !cell.isOncall && a.positionId !== cell.positionId) return 'double-booked';
+
+    // Same position, different halfSlot → double-booked (can't be in both halves)
+    if (
+      a.positionId === cell.positionId &&
+      (a.halfSlot ?? undefined) !== (cell.halfSlot ?? undefined)
+    ) return 'double-booked';
+  }
 
   // 2. Unavailable
   const unavailable = person.unavailability.some(
@@ -57,27 +87,30 @@ export function computeCellStatus(
   );
   if (unavailable) return 'unavailable';
 
-  // 3. Unqualified
-  if (!person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';
+  // 3. Unqualified (on-call slots use ONCALL_POSITION_ID — no position qualification needed)
+  if (!cell.isOncall && !person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';
 
   // 4. Insufficient break
-  const targetStart = shiftStartMins(cell.date, targetShift, refDate);
-  const targetEnd = shiftEndMins(cell.date, targetShift, refDate);
+  const targetStart = shiftStartMins(cell.date, targetShift, refDate, cell.halfSlot);
+  const targetEnd = shiftEndMins(cell.date, targetShift, refDate, cell.halfSlot);
 
   for (const a of personAssignments) {
-    if (a.date === cell.date && a.shiftId === cell.shiftId) continue; // same slot, skip
+    if (a.date === cell.date && a.shiftId === cell.shiftId) continue; // same shift, skip
     const existingShift = shifts.find(s => s.id === a.shiftId);
     if (!existingShift) continue;
-    const existingStart = shiftStartMins(a.date, existingShift, refDate);
-    const existingEnd = shiftEndMins(a.date, existingShift, refDate);
+    const existingStart = shiftStartMins(a.date, existingShift, refDate, a.halfSlot);
+    const existingEnd = shiftEndMins(a.date, existingShift, refDate, a.halfSlot);
 
     // gap between the two shifts (negative means overlap)
     const gap = Math.max(targetStart - existingEnd, existingStart - targetEnd);
-    if (gap < minBreakHours * 60) return 'insufficient-break';
+    // gap == 0: directly adjacent (allowed for back-to-back half shifts)
+    // gap < 0: overlap (always forbidden)
+    // 0 < gap < minBreak: too close but not overlapping (forbidden)
+    if (gap < 0 || (gap > 0 && gap < minBreakHours * 60)) return 'insufficient-break';
   }
 
-  // 5. Repeating constraint violation
-  if (person.constraints) {
+  // 5. Repeating constraint violation (not applied to on-call assignments — on-call is flexible by nature)
+  if (!cell.isOncall && person.constraints) {
     const c = person.constraints;
 
     // 5a. Allowed shifts
@@ -93,11 +126,12 @@ export function computeCellStatus(
       }
     }
 
-    // 5c. Max per week (rolling 7-day window)
+    // 5c. Max per week (rolling 7-day window) — count only regular assignments
     if (c.maxShiftsPerWeek != null) {
       const cellDate = parseISO(cell.date);
       const weekAssignments = personAssignments.filter(a => {
-        if (a.date === cell.date && a.shiftId === cell.shiftId) return false; // same slot
+        if (a.isOncall) return false; // on-call don't count toward weekly limit
+        if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
         const diff = Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate));
         return diff < 7;
       });
@@ -106,10 +140,10 @@ export function computeCellStatus(
       }
     }
 
-    // 5d. Max total
+    // 5d. Max total — count only regular assignments
     if (c.maxShiftsTotal != null) {
       const otherAssignments = personAssignments.filter(
-        a => !(a.date === cell.date && a.shiftId === cell.shiftId)
+        a => !a.isOncall && !(a.date === cell.date && a.shiftId === cell.shiftId)
       );
       if (otherAssignments.length >= c.maxShiftsTotal) {
         return 'constraint-violation';
@@ -134,7 +168,7 @@ export function computeCellStatus(
       const cellDate = parseISO(cell.date);
       const assignedDateSet = new Set(
         personAssignments
-          .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
+          .filter(a => !a.isOncall && !(a.date === cell.date && a.shiftId === cell.shiftId))
           .map(a => a.date)
       );
       assignedDateSet.add(cell.date);
@@ -148,6 +182,7 @@ export function computeCellStatus(
     if (c.minRestDays != null) {
       const cellDate = parseISO(cell.date);
       for (const a of personAssignments) {
+        if (a.isOncall) continue; // on-call don't trigger rest-day requirement
         if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
         const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
         if (gap > 0 && gap <= c.minRestDays) {
@@ -168,7 +203,7 @@ export function computeConstraintReason(
   shifts: Shift[],
   lang: Lang = 'en',
 ): string | null {
-  if (!person.constraints) return null;
+  if (!person.constraints || cell.isOncall) return null;
   const c = person.constraints;
   const personAssignments = assignments.filter(a => a.personId === personId);
 
@@ -200,6 +235,7 @@ export function computeConstraintReason(
   if (c.maxShiftsPerWeek != null) {
     const cellDate = parseISO(cell.date);
     const weekAssignments = personAssignments.filter(a => {
+      if (a.isOncall) return false;
       if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
       return Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7;
     });
@@ -210,7 +246,7 @@ export function computeConstraintReason(
 
   if (c.maxShiftsTotal != null) {
     const otherAssignments = personAssignments.filter(
-      a => !(a.date === cell.date && a.shiftId === cell.shiftId)
+      a => !a.isOncall && !(a.date === cell.date && a.shiftId === cell.shiftId)
     );
     if (otherAssignments.length >= c.maxShiftsTotal) {
       return tf.maxTotal(lang, c.maxShiftsTotal);
@@ -221,7 +257,7 @@ export function computeConstraintReason(
     const cellDate = parseISO(cell.date);
     const assignedDateSet = new Set(
       personAssignments
-        .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
+        .filter(a => !a.isOncall && !(a.date === cell.date && a.shiftId === cell.shiftId))
         .map(a => a.date)
     );
     assignedDateSet.add(cell.date);
@@ -234,6 +270,7 @@ export function computeConstraintReason(
   if (c.minRestDays != null) {
     const cellDate = parseISO(cell.date);
     for (const a of personAssignments) {
+      if (a.isOncall) continue;
       if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
       const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
       if (gap > 0 && gap <= c.minRestDays) {
@@ -244,3 +281,6 @@ export function computeConstraintReason(
 
   return null;
 }
+
+// Re-export ONCALL_POSITION_ID for convenience in components
+export { ONCALL_POSITION_ID };

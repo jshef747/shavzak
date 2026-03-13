@@ -1,4 +1,6 @@
 import { computeCellStatus } from './validation';
+import { matchesCellAddress } from './cellKey';
+import { ONCALL_POSITION_ID } from '../constants';
 import type { Assignment, CellAddress, Person, Position, Schedule, Shift } from '../types';
 
 export type SkipReason =
@@ -18,13 +20,25 @@ export interface AutoAssignResult {
   skipped: SkippedCell[];
 }
 
-/** Returns total shift hours a person has in the given assignments array. */
-function totalHours(personId: string, assignments: Assignment[], shifts: Shift[]): number {
+/**
+ * Returns total weighted shift hours a person has in the given assignments array.
+ * On-call assignments count at `oncallWeight` fraction of their hours.
+ * Half-shift assignments count at half their shift's durationHours.
+ */
+function totalHours(
+  personId: string,
+  assignments: Assignment[],
+  shifts: Shift[],
+  oncallWeight: number,
+): number {
   return assignments
     .filter(a => a.personId === personId)
     .reduce((sum, a) => {
       const shift = shifts.find(s => s.id === a.shiftId);
-      return sum + (shift?.durationHours ?? 0);
+      const hours = shift?.durationHours ?? 0;
+      const halfFactor = a.halfSlot ? 0.5 : 1;
+      const oncallFactor = a.isOncall ? oncallWeight : 1;
+      return sum + hours * halfFactor * oncallFactor;
     }, 0);
 }
 
@@ -32,10 +46,11 @@ function totalHours(personId: string, assignments: Assignment[], shifts: Shift[]
  * Auto-assigns people to all empty cells in the schedule.
  *
  * Strategy: fairness — always pick the qualified candidate with the fewest
- * total assigned hours. Tie-break: alphabetical by name.
+ * total weighted hours. On-call assignments count at `oncallWeight` fraction.
+ * Tie-break: alphabetical by name.
  *
- * When no valid candidate exists for a cell, it is skipped and a SkipReason
- * is recorded explaining why.
+ * Half-shift cells are EXCLUDED from auto-assign (manual only).
+ * On-call slots (shift.oncallSlots >= 1) are filled after all regular slots.
  *
  * Existing assignments are never removed or modified.
  */
@@ -45,6 +60,7 @@ export function autoAssign(
   shifts: Shift[],
   positions: Position[],
   minBreakHours: number,
+  oncallWeight: number,
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
@@ -79,24 +95,47 @@ export function autoAssign(
     return ha - hb;
   });
 
-  const emptyCells: CellAddress[] = [];
+  // Regular empty cells — skip half-shift positions entirely (manual only)
+  const regularCells: CellAddress[] = [];
   for (const date of dates) {
     for (const shift of sortedShifts) {
+      if (shift.isHalfShift) continue; // half shifts are manual only
       for (const position of positions) {
-        const occupied = working.some(
-          a => a.date === date && a.shiftId === shift.id && a.positionId === position.id,
-        );
+        const cell: CellAddress = { date, shiftId: shift.id, positionId: position.id };
+        const occupied = working.some(a => matchesCellAddress(a, cell));
         if (!occupied) {
-          emptyCells.push({ date, shiftId: shift.id, positionId: position.id });
+          regularCells.push(cell);
         }
       }
     }
   }
 
+  // On-call cells — one per shift (with oncallSlots >= 1) per day
+  const oncallCells: CellAddress[] = [];
+  for (const date of dates) {
+    for (const shift of sortedShifts) {
+      const slots = shift.oncallSlots ?? 0;
+      for (let i = 0; i < slots; i++) {
+        const cell: CellAddress = { date, shiftId: shift.id, positionId: ONCALL_POSITION_ID, isOncall: true };
+        // Use date+shiftId+slotIndex to allow multiple on-call slots; for now slots=1 is typical
+        const occupied = working.some(a => matchesCellAddress(a, cell));
+        if (!occupied) {
+          oncallCells.push(cell);
+        }
+      }
+    }
+  }
+
+  // Process regular cells first, then on-call cells
+  const emptyCells = [...regularCells, ...oncallCells];
+
   // Process each empty cell.
   for (const cell of emptyCells) {
     // Step 1: Qualified people for this position.
-    const qualified = people.filter(p => p.qualifiedPositions.includes(cell.positionId));
+    // For on-call cells, all people are "qualified" (no position restriction).
+    const qualified = cell.isOncall
+      ? [...people]
+      : people.filter(p => p.qualifiedPositions.includes(cell.positionId));
 
     if (qualified.length === 0) {
       skipped.push({ cell, reasonKey: 'no-qualified' });
@@ -130,10 +169,10 @@ export function autoAssign(
       continue;
     }
 
-    // Step 3: Sort valid candidates by fairness (ascending hours), then name.
+    // Step 3: Sort valid candidates by fairness (ascending weighted hours), then name.
     valid.sort((a, b) => {
-      const hoursA = totalHours(a.person.id, working, shifts);
-      const hoursB = totalHours(b.person.id, working, shifts);
+      const hoursA = totalHours(a.person.id, working, shifts, oncallWeight);
+      const hoursB = totalHours(b.person.id, working, shifts, oncallWeight);
       if (hoursA !== hoursB) return hoursA - hoursB;
       return a.person.name.localeCompare(b.person.name);
     });
@@ -144,6 +183,7 @@ export function autoAssign(
       date: cell.date,
       shiftId: cell.shiftId,
       positionId: cell.positionId,
+      isOncall: cell.isOncall || undefined,
     };
 
     proposed.push(newAssignment);

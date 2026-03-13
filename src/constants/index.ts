@@ -2,6 +2,8 @@ import type { AppState } from '../types';
 
 export const STORAGE_KEY = 'shift-manager-v1';
 export const MIN_BREAK_HOURS = 12;
+export const DEFAULT_ONCALL_WEIGHT = 0.5;
+export const ONCALL_POSITION_ID = '__oncall__';
 
 export const DEFAULT_SHIFTS = [
   { id: 'morning', name: 'Morning', startHour: 8, durationHours: 8 },
@@ -17,4 +19,5 @@ export const INITIAL_STATE: AppState = {
   activeScheduleId: null,
   dir: 'rtl',
   minBreakHours: 12,
+  oncallWeight: DEFAULT_ONCALL_WEIGHT,
 };

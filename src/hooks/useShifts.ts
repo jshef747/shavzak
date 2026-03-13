@@ -2,8 +2,15 @@ import type { Dispatch, SetStateAction } from 'react';
 import type { AppState, Shift } from '../types';
 
 export function useShifts(_state: AppState, setState: Dispatch<SetStateAction<AppState>>) {
-  function addShift(name: string, startHour: number, durationHours: number) {
-    const shift: Shift = { id: crypto.randomUUID(), name, startHour, durationHours };
+  function addShift(name: string, startHour: number, durationHours: number, isHalfShift?: boolean, oncallSlots?: number) {
+    const shift: Shift = {
+      id: crypto.randomUUID(),
+      name,
+      startHour,
+      durationHours,
+      isHalfShift: isHalfShift || undefined,
+      oncallSlots: oncallSlots || undefined,
+    };
     setState(prev => ({ ...prev, shifts: [...prev.shifts, shift] }));
   }
 

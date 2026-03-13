@@ -21,11 +21,12 @@ import { Input } from '../ui/Input';
 
 interface Props {
   state: AppState;
-  onAdd: (name: string, startHour: number, durationHours: number) => void;
+  onAdd: (name: string, startHour: number, durationHours: number, isHalfShift?: boolean, oncallSlots?: number) => void;
   onUpdate: (id: string, updates: Partial<Omit<Shift, 'id'>>) => void;
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
+  onUpdateOncallWeight: (weight: number) => void;
 }
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
@@ -63,7 +64,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow"
+      className="flex flex-wrap gap-2 sm:gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow"
     >
       <button
         {...attributes}
@@ -86,7 +87,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
         />
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+      <div className="flex items-center gap-2 flex-wrap">
         <div className="flex flex-col gap-0.5">
           <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('startTime', lang)}</span>
           <input
@@ -113,6 +114,38 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
             {hourToTime(shift.startHour + shift.durationHours)}
           </span>
         </div>
+
+        {/* Half Shift toggle */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('halfShift', lang)}</span>
+          <button
+            type="button"
+            onClick={() => onUpdate(shift.id, { isHalfShift: !shift.isHalfShift })}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+              shift.isHalfShift ? 'bg-indigo-500' : 'bg-gray-200'
+            }`}
+            title={t('halfShiftDesc', lang)}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                shift.isHalfShift ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* On-call slots */}
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('oncallSlots', lang)}</span>
+          <input
+            type="number"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-shadow"
+            value={shift.oncallSlots ?? 0}
+            min={0} max={5} step={1}
+            title={t('oncallSlotsDesc', lang)}
+            onChange={e => onUpdate(shift.id, { oncallSlots: parseInt(e.target.value) || 0 })}
+          />
+        </div>
       </div>
 
       <Button
@@ -130,10 +163,12 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   );
 }
 
-export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours }: Props) {
+export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, onUpdateOncallWeight }: Props) {
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState<number>(8);
+  const [addHalfShift, setAddHalfShift] = useState(false);
+  const [addOncallSlots, setAddOncallSlots] = useState(0);
   const lang = langFromDir(state.dir);
 
   const sensors = useSensors(
@@ -142,8 +177,10 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
 
   function handleAdd() {
     if (!name.trim()) return;
-    onAdd(name.trim(), timeToHour(startTime), duration);
+    onAdd(name.trim(), timeToHour(startTime), duration, addHalfShift || undefined, addOncallSlots || undefined);
     setName('');
+    setAddHalfShift(false);
+    setAddOncallSlots(0);
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -251,6 +288,39 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             onChange={e => setDuration(parseFloat(e.target.value) || 0.5)}
             className="w-24"
           />
+
+          {/* Half Shift toggle for new shift */}
+          <div className="flex flex-col gap-0.5 self-end pb-1">
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('halfShift', lang)}</span>
+            <button
+              type="button"
+              onClick={() => setAddHalfShift(v => !v)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                addHalfShift ? 'bg-indigo-500' : 'bg-gray-200'
+              }`}
+              title={t('halfShiftDesc', lang)}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  addHalfShift ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* On-call slots for new shift */}
+          <div className="flex flex-col gap-0.5 self-end pb-0.5">
+            <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('oncallSlots', lang)}</span>
+            <input
+              type="number"
+              className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-shadow"
+              value={addOncallSlots}
+              min={0} max={5} step={1}
+              title={t('oncallSlotsDesc', lang)}
+              onChange={e => setAddOncallSlots(parseInt(e.target.value) || 0)}
+            />
+          </div>
+
           <Button onClick={handleAdd} variant="primary" size="sm" className="self-end">
             {t('addShift', lang)}
           </Button>
@@ -282,6 +352,34 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
               }}
             />
             <span className="text-sm font-medium text-gray-500">h</span>
+          </div>
+        </div>
+      </div>
+
+      {/* On-Call Weight */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-gray-900">{t('oncallWeight', lang)} <span className="text-xs font-normal text-gray-400">(תקן קפיצה)</span></h3>
+            <p className="text-xs text-gray-500 mt-0.5">{t('oncallWeightDesc', lang)}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <input
+              type="number"
+              dir="ltr"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-shadow"
+              value={state.oncallWeight}
+              min={0.1} max={1} step={0.1}
+              onChange={e => {
+                const v = parseFloat(e.target.value);
+                if (v >= 0.1 && v <= 1) onUpdateOncallWeight(v);
+              }}
+            />
           </div>
         </div>
       </div>

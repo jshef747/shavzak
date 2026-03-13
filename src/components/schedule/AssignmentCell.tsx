@@ -1,6 +1,6 @@
 import { useDroppable, useDndContext } from '@dnd-kit/core';
 import type { AppState, Assignment, CellAddress, CellStatus, DragData } from '../../types';
-import { serializeCellAddress } from '../../utils/cellKey';
+import { serializeCellAddress, matchesCellAddress } from '../../utils/cellKey';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
 import { langFromDir, t } from '../../utils/i18n';
 import { PersonChip } from '../roster/PersonChip';
@@ -10,6 +10,10 @@ interface Props {
   state: AppState;
   assignments: Assignment[];
   refDate: string;
+  /** When true (default), wraps in a <td>. Set false to render as a <div> for half-shift stacked layout. */
+  asTd?: boolean;
+  /** Optional label shown in top-left corner (used for half-shift time range labels). */
+  slotLabel?: string;
 }
 
 const STATUS_CLASSES: Record<CellStatus, string> = {
@@ -26,15 +30,13 @@ const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation',
 ]);
 
-export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
+export function AssignmentCell({ cell, state, assignments, refDate, asTd = true, slotLabel }: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
   const { isOver, setNodeRef } = useDroppable({ id: cellKey });
   const { active } = useDndContext();
 
-  const assignment = assignments.find(
-    a => a.date === cell.date && a.shiftId === cell.shiftId && a.positionId === cell.positionId
-  );
+  const assignment = assignments.find(a => matchesCellAddress(a, cell));
 
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
@@ -52,9 +54,7 @@ export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
         const previewAssignments = dragData.type === 'from-cell' && dragData.sourceCell
           ? assignments.filter(a => !(
               a.personId === dragData.personId &&
-              a.date === dragData.sourceCell!.date &&
-              a.shiftId === dragData.sourceCell!.shiftId &&
-              a.positionId === dragData.sourceCell!.positionId
+              matchesCellAddress(a, dragData.sourceCell!)
             ))
           : assignments;
         const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours);
@@ -83,11 +83,15 @@ export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
         : statusTooltip[status])
     : '';
 
-  return (
-    <td
-      ref={setNodeRef}
-      className={`relative border px-2 py-1.5 min-w-[120px] h-10 transition-colors ${colorClass}`}
-    >
+  const inner = (
+    <>
+      {/* Slot label (e.g. half-shift time range) */}
+      {slotLabel && (
+        <span className="absolute top-0 left-0.5 rtl:left-auto rtl:right-0.5 text-[8px] font-semibold text-indigo-400 select-none leading-tight">
+          {slotLabel}
+        </span>
+      )}
+
       {person && (
         <PersonChip
           personId={person.id}
@@ -108,6 +112,26 @@ export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
           </span>
         </span>
       )}
+    </>
+  );
+
+  if (!asTd) {
+    return (
+      <div
+        ref={setNodeRef}
+        className={`relative border px-2 py-1.5 flex-1 min-h-[2.25rem] transition-colors ${colorClass}`}
+      >
+        {inner}
+      </div>
+    );
+  }
+
+  return (
+    <td
+      ref={setNodeRef}
+      className={`relative border px-2 py-1.5 min-w-[120px] h-10 transition-colors ${colorClass}`}
+    >
+      {inner}
     </td>
   );
 }
