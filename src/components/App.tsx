@@ -16,7 +16,9 @@ import { SettingsModal } from './settings/SettingsModal';
 import { PersonEditor } from './settings/PersonEditor';
 import { Modal } from './ui/Modal';
 import { NewScheduleModal } from './layout/NewScheduleModal';
+import { AutoAssignModal } from './layout/AutoAssignModal';
 import { exportToExcel } from '../utils/exportExcel';
+import { autoAssign, type AutoAssignResult } from '../utils/autoAssign';
 
 export function App() {
   const { state, setState } = useAppState();
@@ -31,7 +33,7 @@ export function App() {
     updateConstraintMaxWeek, updateConstraintMaxTotal,
     updateConstraintMaxConsecutive, updateConstraintMinRest,
   } = usePeople(state, setState);
-  const { assign, unassign, moveAssignment, assignments } = useAssignments(state, setState);
+  const { assign, unassign, moveAssignment, batchAssign, assignments } = useAssignments(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -39,6 +41,8 @@ export function App() {
   const [sidebarEditPersonId, setSidebarEditPersonId] = useState<string | null>(null);
   const [newScheduleOpen, setNewScheduleOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false);
+  const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
 
   const lang = langFromDir(state.dir);
 
@@ -54,6 +58,27 @@ export function App() {
   function openSettings(tab?: string) {
     setSettingsInitialTab(tab);
     setSettingsOpen(true);
+  }
+
+  function handleOpenAutoAssign() {
+    if (!activeSchedule) return;
+    const result = autoAssign(
+      activeSchedule,
+      state.people,
+      state.shifts,
+      state.positions,
+      state.minBreakHours,
+    );
+    setAutoAssignResult(result);
+    setAutoAssignOpen(true);
+  }
+
+  function handleApplyAutoAssign() {
+    if (autoAssignResult) {
+      batchAssign(autoAssignResult.proposed);
+    }
+    setAutoAssignOpen(false);
+    setAutoAssignResult(null);
   }
 
   return (
@@ -72,6 +97,7 @@ export function App() {
         onExportExcel={handleExportExcel}
         onOpenSettings={() => openSettings()}
         onToggleSidebar={() => setSidebarOpen(v => !v)}
+        onAutoAssign={handleOpenAutoAssign}
       />
 
       <DndProvider
@@ -203,6 +229,14 @@ export function App() {
         onClose={() => setNewScheduleOpen(false)}
         onCreateSchedule={createSchedule}
         dir={state.dir}
+      />
+
+      <AutoAssignModal
+        open={autoAssignOpen}
+        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); }}
+        result={autoAssignResult}
+        state={state}
+        onApply={handleApplyAutoAssign}
       />
     </div>
   );
