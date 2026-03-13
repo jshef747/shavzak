@@ -1,5 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { useReactToPrint } from 'react-to-print';
+import type { User } from '@supabase/supabase-js';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
@@ -16,6 +17,10 @@ interface Props {
   onExportExcel: () => void;
   onOpenSettings: () => void;
   onToggleSidebar: () => void;
+  user: User | null;
+  syncing?: boolean;
+  onOpenAuthModal: () => void;
+  onSignOut: () => void;
 }
 
 export function TopBar({
@@ -28,6 +33,10 @@ export function TopBar({
   onExportExcel,
   onOpenSettings,
   onToggleSidebar,
+  user,
+  syncing,
+  onOpenAuthModal,
+  onSignOut,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -102,6 +111,21 @@ export function TopBar({
               </Button>
             </>
           )}
+          {user && (
+            <span
+              className="hidden md:inline text-xs text-slate-400 truncate max-w-[120px]"
+              title={user.email}
+            >
+              {user.email}
+            </span>
+          )}
+          {syncing && <span className="text-slate-500 text-xs" title="Syncing">↑</span>}
+          <button
+            onClick={user ? onSignOut : onOpenAuthModal}
+            className="p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors text-xs font-medium px-2"
+          >
+            {user ? t('signOut', lang) : t('signIn', lang)}
+          </button>
           <button
             onClick={() => setGuideOpen(true)}
             title={t('quickStartTitle', lang)}

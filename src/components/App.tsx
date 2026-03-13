@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import { useAppState } from '../hooks/useAppState';
+import { useAuth } from '../contexts/AuthContext';
+import { AuthModal } from './auth/AuthModal';
 import { useSchedule } from '../hooks/useSchedule';
 import { useShifts } from '../hooks/useShifts';
 import { usePositions } from '../hooks/usePositions';
@@ -19,7 +21,8 @@ import { NewScheduleModal } from './layout/NewScheduleModal';
 import { exportToExcel } from '../utils/exportExcel';
 
 export function App() {
-  const { state, setState } = useAppState();
+  const { session, user, signOut, openAuthModal, authModalOpen, closeAuthModal, dir: authDir } = useAuth();
+  const { state, setState, syncing } = useAppState(session);
   const { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule } = useSchedule(state, setState);
   const { addShift, updateShift, deleteShift, reorderShifts } = useShifts(state, setState);
   const { addPosition, updatePosition, deletePosition } = usePositions(state, setState);
@@ -72,6 +75,10 @@ export function App() {
         onExportExcel={handleExportExcel}
         onOpenSettings={() => openSettings()}
         onToggleSidebar={() => setSidebarOpen(v => !v)}
+        user={user}
+        syncing={syncing}
+        onOpenAuthModal={openAuthModal}
+        onSignOut={signOut}
       />
 
       <DndProvider
@@ -204,6 +211,8 @@ export function App() {
         onCreateSchedule={createSchedule}
         dir={state.dir}
       />
+
+      <AuthModal open={authModalOpen} onClose={closeAuthModal} dir={authDir} />
     </div>
   );
 }
