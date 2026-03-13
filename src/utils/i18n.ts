@@ -107,6 +107,21 @@ const strings: Record<string, { en: string; he: string }> = {
   done: { en: 'Done', he: 'סיום' },
   prevMonth: { en: 'Previous month', he: 'חודש קודם' },
   nextMonth: { en: 'Next month', he: 'חודש הבא' },
+  autoAssign: { en: 'Auto Assign', he: 'שיבוץ אוטומטי' },
+  autoAssignTitle: { en: 'Auto Assignment Preview', he: 'תצוגה מקדימה – שיבוץ אוטומטי' },
+  autoAssignAllFilled: { en: 'All cells are already filled!', he: 'כל התאים כבר מאויישים!' },
+  autoAssignApply: { en: 'Apply', he: 'החל' },
+  autoAssignProposedHeader: { en: 'Proposed Assignments', he: 'שיבוצים מוצעים' },
+  autoAssignSkippedHeader: { en: 'Skipped Cells', he: 'תאים שדולגו' },
+  skipNoQualified: { en: 'No people qualified for this position', he: 'אין אנשים מורשים לתפקיד זה' },
+  skipAllUnavailable: { en: 'All qualified people are unavailable', he: 'כל האנשים המתאימים אינם זמינים' },
+  skipAllBreak: { en: 'All candidates need more rest (min break)', he: 'כל המועמדים זקוקים למנוחה נוספת' },
+  skipAllConstraint: { en: 'All candidates have constraint violations', he: 'כל המועמדים מפרים אילוצים' },
+  skipAllInvalid: { en: 'No valid candidate found', he: 'לא נמצא מועמד תקין' },
+  suggestNoQualified: { en: 'Add qualifications in Settings → People', he: 'הוסף הרשאות בהגדרות → אנשים' },
+  suggestBreak: { en: 'Try reducing min break or adding more staff', he: 'נסה להפחית זמן מנוחה מינימלי או להוסיף אנשים' },
+  suggestConstraint: { en: 'Review constraints in person settings', he: 'בדוק אילוצים בהגדרות האדם' },
+  suggestInvalid: { en: 'Check availability, break times, and constraints', he: 'בדוק זמינות, זמני הפסקה ואילוצים' },
 };
 
 export function t(key: string, lang: Lang): string {

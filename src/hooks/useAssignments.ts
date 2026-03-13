@@ -71,5 +71,17 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
     }));
   }
 
-  return { assign, unassign, moveAssignment, assignments: schedule?.assignments ?? [] };
+  function batchAssign(newAssignments: Assignment[]) {
+    if (!schedule || newAssignments.length === 0) return;
+    const now = new Date().toISOString();
+    setState(prev => ({
+      ...prev,
+      schedules: prev.schedules.map(s => {
+        if (s.id !== state.activeScheduleId) return s;
+        return { ...s, assignments: [...s.assignments, ...newAssignments], updatedAt: now };
+      }),
+    }));
+  }
+
+  return { assign, unassign, moveAssignment, batchAssign, assignments: schedule?.assignments ?? [] };
 }
