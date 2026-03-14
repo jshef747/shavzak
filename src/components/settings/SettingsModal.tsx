@@ -97,6 +97,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onUpdateConstraintMaxTotal={handlers.onUpdateConstraintMaxTotal}
           onUpdateConstraintMaxConsecutive={handlers.onUpdateConstraintMaxConsecutive}
           onUpdateConstraintMinRest={handlers.onUpdateConstraintMinRest}
+          onSetPersonHomeGroup={handlers.onSetPersonHomeGroup}
         />
       )}
       {activeTab === 'Groups' && (

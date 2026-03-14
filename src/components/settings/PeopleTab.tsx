@@ -22,6 +22,7 @@ interface Props {
   onUpdateConstraintMaxTotal: (personId: string, max: number | null) => void;
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
+  onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
 }
 
 export function PeopleTab({
@@ -31,11 +32,13 @@ export function PeopleTab({
   onToggleConstraintDay, onToggleConstraintBlockedDay,
   onUpdateConstraintMaxWeek, onUpdateConstraintMaxTotal,
   onUpdateConstraintMaxConsecutive, onUpdateConstraintMinRest,
+  onSetPersonHomeGroup,
 }: Props) {
   const [newName, setNewName] = useState('');
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [selectedPeople, setSelectedPeople] = useState<Set<string>>(new Set());
   const [showBulkRoles, setShowBulkRoles] = useState(false);
+  const [showBulkGroup, setShowBulkGroup] = useState(false);
   const lang = langFromDir(state.dir);
 
   const allSelected = state.people.length > 0 && state.people.every(p => selectedPeople.has(p.id));
@@ -59,6 +62,14 @@ export function PeopleTab({
 
   function closeBulkRoles() {
     setShowBulkRoles(false);
+    setSelectedPeople(new Set());
+  }
+
+  function handleBulkAssignGroup(groupId: string | null) {
+    for (const personId of selectedPeople) {
+      onSetPersonHomeGroup(personId, groupId);
+    }
+    setShowBulkGroup(false);
     setSelectedPeople(new Set());
   }
 
@@ -120,7 +131,7 @@ export function PeopleTab({
                 {someSelected ? `${selectedPeople.size} ${t('selected', lang)}` : t('selectAll', lang)}
               </span>
               {someSelected && (
-                <div className="flex items-center gap-2 ml-auto">
+                <div className="flex items-center gap-2 ml-auto rtl:mr-auto rtl:ml-0 flex-wrap">
                   <Button
                     variant="primary"
                     size="sm"
@@ -132,6 +143,19 @@ export function PeopleTab({
                     </svg>
                     {t('assignRolesToSelected', lang)}
                   </Button>
+                  {state.homeGroups.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowBulkGroup(true)}
+                      className="flex items-center gap-1.5 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
+                      {t('assignGroupToSelected', lang)}
+                    </Button>
+                  )}
                   <button
                     onClick={() => setSelectedPeople(new Set())}
                     className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
@@ -171,6 +195,11 @@ export function PeopleTab({
                   <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0">
                     {person.qualifiedPositions.length} {t('roles', lang)}
                   </span>
+                  {person.homeGroupId && (
+                    <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full flex-shrink-0">
+                      {state.homeGroups.find(g => g.id === person.homeGroupId)?.name ?? ''}
+                    </span>
+                  )}
                   <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0">
                     {t('edit', lang)}
                   </Button>
@@ -235,6 +264,38 @@ export function PeopleTab({
           />
         </Modal>
       )}
+
+      {/* Bulk Group Assignment Modal */}
+      <Modal
+        open={showBulkGroup}
+        onClose={() => setShowBulkGroup(false)}
+        title={`${t('assignGroupToSelected', lang)} — ${selectedPeople.size} ${t('selected', lang)}`}
+        size="sm"
+      >
+        <div className="space-y-2 py-1">
+          <p className="text-sm text-slate-500 mb-3">{t('assignGroupToSelectedDesc', lang)}</p>
+          <button
+            onClick={() => handleBulkAssignGroup(null)}
+            className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-slate-100 text-start rtl:text-end transition-colors"
+          >
+            <span className="w-5 h-5 rounded-full border-2 border-slate-300 flex-shrink-0" />
+            <span className="text-sm text-slate-500 italic">{t('noGroup', lang)}</span>
+          </button>
+          {state.homeGroups.map(group => (
+            <button
+              key={group.id}
+              onClick={() => handleBulkAssignGroup(group.id)}
+              className="w-full flex items-center gap-3 p-3 rounded-lg border border-blue-100 bg-blue-50 hover:bg-blue-100 text-start rtl:text-end transition-colors"
+            >
+              <span className="w-5 h-5 rounded-full bg-blue-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-blue-800">{group.name}</span>
+            </button>
+          ))}
+          <div className="flex justify-end pt-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowBulkGroup(false)}>{t('cancel', lang)}</Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Bulk Role Assignment Modal */}
       <Modal
