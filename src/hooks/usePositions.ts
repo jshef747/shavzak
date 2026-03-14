@@ -38,5 +38,13 @@ export function usePositions(_state: AppState, setState: Dispatch<SetStateAction
     }
   }
 
-  return { addPosition, updatePosition, deletePosition, toggleOnCall };
+  function reorderPositions(orderedIds: string[]) {
+    setState(prev => {
+      const map = new Map(prev.positions.map(p => [p.id, p]));
+      const reordered = orderedIds.map(id => map.get(id)).filter(Boolean) as typeof prev.positions;
+      return { ...prev, positions: reordered };
+    });
+  }
+
+  return { addPosition, updatePosition, deletePosition, toggleOnCall, reorderPositions };
 }

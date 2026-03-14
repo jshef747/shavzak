@@ -1,6 +1,21 @@
 import { useState } from 'react';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { AppState, Position } from '../../types';
-import { langFromDir, t } from '../../utils/i18n';
+import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
@@ -12,13 +27,112 @@ interface Props {
   onDelete: (id: string) => void;
   onToggleOnCall: (id: string) => void;
   onToggleQualification: (personId: string, positionId: string) => void;
+  onReorder: (orderedIds: string[]) => void;
 }
 
-export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification }: Props) {
+function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, onToggleOnCall, onAssign }: {
+  pos: Position;
+  qualifiedCount: number;
+  lang: Lang;
+  onUpdate: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+  onToggleOnCall: (id: string) => void;
+  onAssign: (pos: Position) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pos.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex gap-3 items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors group"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 px-0.5 touch-none flex-shrink-0"
+        title={t('dragToReorder', lang)}
+        tabIndex={-1}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8h16M4 16h16" />
+        </svg>
+      </button>
+
+      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+        <span className="text-xs font-bold text-indigo-600">{pos.name.charAt(0).toUpperCase()}</span>
+      </div>
+      <input
+        className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0 min-w-0"
+        value={pos.name}
+        onChange={e => onUpdate(pos.id, e.target.value)}
+      />
+
+      {/* On-Call toggle */}
+      <button
+        onClick={() => onToggleOnCall(pos.id)}
+        title={t('onCall', lang)}
+        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex-shrink-0 ${
+          pos.isOnCall
+            ? 'bg-orange-50 border-orange-300 text-orange-700'
+            : 'bg-gray-100 border-gray-200 text-gray-400 hover:border-orange-200 hover:text-orange-500'
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        {t('onCall', lang)}
+      </button>
+
+      {/* People count / single-role assign button */}
+      <button
+        onClick={() => onAssign(pos)}
+        className="flex items-center gap-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-indigo-100 transition-colors"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+        {qualifiedCount} {t('people', lang)}
+      </button>
+
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => onDelete(pos.id)}
+        className="text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </Button>
+    </div>
+  );
+}
+
+export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification, onReorder }: Props) {
   const [name, setName] = useState('');
   const [assigningPosition, setAssigningPosition] = useState<Position | null>(null);
   const [showBulkAssign, setShowBulkAssign] = useState(false);
   const lang = langFromDir(state.dir);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const ids = state.positions.map(p => p.id);
+    const oldIndex = ids.indexOf(active.id as string);
+    const newIndex = ids.indexOf(over.id as string);
+    onReorder(arrayMove(ids, oldIndex, newIndex));
+  }
 
   return (
     <div className="space-y-5">
@@ -58,61 +172,37 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
             <p className="text-sm text-gray-400">{t('noPositionsEmpty', lang)}</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {state.positions.map(pos => {
-              const qualifiedCount = state.people.filter(p => p.qualifiedPositions.includes(pos.id)).length;
-              return (
-                <div key={pos.id} className="flex gap-3 items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors group">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-indigo-600">{pos.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                  <input
-                    className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0 min-w-0"
-                    value={pos.name}
-                    onChange={e => onUpdate(pos.id, e.target.value)}
-                  />
-
-                  {/* On-Call toggle */}
-                  <button
-                    onClick={() => onToggleOnCall(pos.id)}
-                    title={t('onCall', lang)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex-shrink-0 ${
-                      pos.isOnCall
-                        ? 'bg-orange-50 border-orange-300 text-orange-700'
-                        : 'bg-gray-100 border-gray-200 text-gray-400 hover:border-orange-200 hover:text-orange-500'
-                    }`}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                    </svg>
-                    {t('onCall', lang)}
-                  </button>
-
-                  {/* People count / single-role assign button */}
-                  <button
-                    onClick={() => setAssigningPosition(pos)}
-                    className="flex items-center gap-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-indigo-100 transition-colors"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    {qualifiedCount} {t('people', lang)}
-                  </button>
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(pos.id)}
-                    className="text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </Button>
+          <>
+            {state.positions.length > 1 && (
+              <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                </svg>
+                {t('dragToReorder', lang)}
+              </p>
+            )}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={state.positions.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {state.positions.map(pos => {
+                    const qualifiedCount = state.people.filter(p => p.qualifiedPositions.includes(pos.id)).length;
+                    return (
+                      <SortablePositionRow
+                        key={pos.id}
+                        pos={pos}
+                        qualifiedCount={qualifiedCount}
+                        lang={lang}
+                        onUpdate={onUpdate}
+                        onDelete={onDelete}
+                        onToggleOnCall={onToggleOnCall}
+                        onAssign={setAssigningPosition}
+                      />
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </div>
 
