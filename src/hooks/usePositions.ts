@@ -14,6 +14,13 @@ export function usePositions(_state: AppState, setState: Dispatch<SetStateAction
     }));
   }
 
+  function toggleOnCall(id: string) {
+    setState(prev => ({
+      ...prev,
+      positions: prev.positions.map(p => p.id === id ? { ...p, isOnCall: !p.isOnCall } : p),
+    }));
+  }
+
   function deletePosition(id: string) {
     if (window.confirm('Delete this position? All assignments to it will be removed.')) {
       setState(prev => ({
@@ -31,5 +38,5 @@ export function usePositions(_state: AppState, setState: Dispatch<SetStateAction
     }
   }
 
-  return { addPosition, updatePosition, deletePosition };
+  return { addPosition, updatePosition, deletePosition, toggleOnCall };
 }

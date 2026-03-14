@@ -122,6 +122,11 @@ const strings: Record<string, { en: string; he: string }> = {
   suggestBreak: { en: 'Try reducing min break or adding more staff', he: 'נסה להפחית זמן מנוחה מינימלי או להוסיף אנשים' },
   suggestConstraint: { en: 'Review constraints in person settings', he: 'בדוק אילוצים בהגדרות האדם' },
   suggestInvalid: { en: 'Check availability, break times, and constraints', he: 'בדוק זמינות, זמני הפסקה ואילוצים' },
+  onCall: { en: 'On Call', he: 'כוננות' },
+  assignPeople: { en: 'Assign People', he: 'שבץ אנשים' },
+  assignPeopleTitle: { en: 'Assign People to Role', he: 'שיבוץ אנשים לתפקיד' },
+  noPeopleForRole: { en: 'No people added yet', he: 'אין אנשים עדיין' },
+  people: { en: 'people', he: 'אנשים' },
 };
 
 export function t(key: string, lang: Lang): string {
