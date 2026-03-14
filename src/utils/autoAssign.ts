@@ -1,5 +1,5 @@
 import { computeCellStatus } from './validation';
-import type { Assignment, CellAddress, Person, Position, Schedule, Shift } from '../types';
+import type { Assignment, CellAddress, HomeGroup, Person, Position, Schedule, Shift } from '../types';
 
 export type SkipReason =
   | 'no-qualified'
@@ -45,6 +45,7 @@ export function autoAssign(
   shifts: Shift[],
   positions: Position[],
   minBreakHours: number,
+  homeGroups: HomeGroup[] = [],
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
@@ -106,7 +107,7 @@ export function autoAssign(
     // Step 2: Check each qualified person's status.
     const statuses = qualified.map(person => ({
       person,
-      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours),
+      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, schedule.homeGroupPeriods ?? []),
     }));
 
     const valid = statuses.filter(s => s.status === 'valid');

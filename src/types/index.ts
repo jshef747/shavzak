@@ -22,9 +22,22 @@ export interface ShiftConstraint {
   minRestDays: number | null;              // min calendar days off between any two assignments
 }
 
+export interface HomeGroup {
+  id: string;
+  name: string;
+}
+
+export interface HomeGroupPeriod {
+  id: string;
+  groupId: string;
+  startDate: string; // departure day (ISO) — shifts with startHour >= 12 are blocked
+  endDate: string;   // return day (ISO)    — shifts with startHour < 12 are blocked
+}
+
 export interface Person {
   id: string;
   name: string;
+  homeGroupId: string | null;
   qualifiedPositions: string[];
   unavailability: UnavailabilityEntry[];
   constraints: ShiftConstraint | null;
@@ -43,6 +56,7 @@ export interface Schedule {
   startDate: string;
   endDate: string;
   assignments: Assignment[];
+  homeGroupPeriods: HomeGroupPeriod[];
   createdAt: string;
   updatedAt: string;
 }
@@ -56,7 +70,7 @@ export interface DragData {
 }
 
 export type CellStatus =
-  | 'empty' | 'valid' | 'unavailable'
+  | 'empty' | 'valid' | 'unavailable' | 'home-group'
   | 'double-booked' | 'unqualified' | 'insufficient-break'
   | 'constraint-violation';
 
@@ -64,6 +78,7 @@ export interface AppState {
   shifts: Shift[];
   positions: Position[];
   people: Person[];
+  homeGroups: HomeGroup[];
   schedules: Schedule[];
   activeScheduleId: string | null;
   dir: 'ltr' | 'rtl';

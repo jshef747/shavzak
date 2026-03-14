@@ -6,6 +6,7 @@ export function usePeople(_state: AppState, setState: Dispatch<SetStateAction<Ap
     const person: Person = {
       id: crypto.randomUUID(),
       name,
+      homeGroupId: null,
       qualifiedPositions: [],
       unavailability: [],
       constraints: null,

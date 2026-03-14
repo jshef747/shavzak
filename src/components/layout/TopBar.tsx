@@ -17,6 +17,7 @@ interface Props {
   onOpenSettings: () => void;
   onToggleSidebar: () => void;
   onAutoAssign: () => void;
+  onOpenHomePeriods: () => void;
 }
 
 export function TopBar({
@@ -30,6 +31,7 @@ export function TopBar({
   onOpenSettings,
   onToggleSidebar,
   onAutoAssign,
+  onOpenHomePeriods,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -97,6 +99,10 @@ export function TopBar({
               <Button variant="primary" size="sm" onClick={onAutoAssign}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white border-0">
                 {t('autoAssign', lang)}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={onOpenHomePeriods}
+                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-700 !text-white">
+                {t('homePeriods', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onExportExcel}
                 className="hidden md:inline-flex bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600">

@@ -13,6 +13,7 @@ export const INITIAL_STATE: AppState = {
   shifts: DEFAULT_SHIFTS,
   positions: [],
   people: [],
+  homeGroups: [],
   schedules: [],
   activeScheduleId: null,
   dir: 'rtl',

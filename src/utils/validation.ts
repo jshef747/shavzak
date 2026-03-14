@@ -1,6 +1,42 @@
 import { getDay, parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
-import type { Assignment, CellAddress, CellStatus, Person, Shift, DayOfWeek } from '../types';
+import type { Assignment, CellAddress, CellStatus, HomeGroup, HomeGroupPeriod, Person, Shift, DayOfWeek } from '../types';
 import { type Lang, tf, DAY_LABELS_HE } from './i18n';
+
+/**
+ * Returns true if the person (by homeGroupId) is blocked for the given date+shift
+ * based on their home group periods. Applies half-day rules:
+ *   - departure day: shifts starting at or after 12:00 are blocked
+ *   - return day: shifts starting before 12:00 are blocked
+ *   - middle days: always blocked
+ */
+export function isHomeGroupBlocked(
+  date: string,
+  shift: Shift,
+  homeGroupId: string | null,
+  homeGroups: HomeGroup[],
+  homeGroupPeriods: HomeGroupPeriod[],
+): boolean {
+  if (!homeGroupId) return false;
+  const group = homeGroups.find(g => g.id === homeGroupId);
+  if (!group) return false;
+
+  for (const period of homeGroupPeriods) {
+    if (period.groupId !== homeGroupId) continue;
+    if (date < period.startDate || date > period.endDate) continue;
+
+    if (date === period.startDate) {
+      // Departure day: shifts starting at or after 12 are blocked
+      if (shift.startHour >= 12) return true;
+    } else if (date === period.endDate) {
+      // Return day: shifts starting before 12 are blocked
+      if (shift.startHour < 12) return true;
+    } else {
+      // Full home day
+      return true;
+    }
+  }
+  return false;
+}
 
 // Shifts with startHour < 6 (00:00–05:59) are "night shifts": in this schedule's
 // convention they represent the overnight period of the PREVIOUS calendar day, so
@@ -39,6 +75,8 @@ export function computeCellStatus(
   shifts: Shift[],
   refDate: string,
   minBreakHours = 12,
+  homeGroups: HomeGroup[] = [],
+  homeGroupPeriods: HomeGroupPeriod[] = [],
 ): CellStatus {
   const targetShift = shifts.find(s => s.id === cell.shiftId);
   if (!targetShift) return 'empty';
@@ -56,6 +94,11 @@ export function computeCellStatus(
     u => u.date === cell.date && u.shiftId === cell.shiftId
   );
   if (unavailable) return 'unavailable';
+
+  // 2b. Home group
+  if (isHomeGroupBlocked(cell.date, targetShift, person.homeGroupId ?? null, homeGroups, homeGroupPeriods)) {
+    return 'home-group';
+  }
 
   // 3. Unqualified
   if (!person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';

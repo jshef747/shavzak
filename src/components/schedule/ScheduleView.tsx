@@ -1,16 +1,18 @@
 import { forwardRef } from 'react';
-import type { AppState, Assignment, Position } from '../../types';
+import type { AppState, Assignment, HomeGroupPeriod, Position } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { DaySection } from './DaySection';
+import { HomeGroupsSection } from './HomeGroupsSection';
 
 interface Props {
   state: AppState;
   dates: string[];
   assignments: Assignment[];
+  homeGroupPeriods: HomeGroupPeriod[];
 }
 
 export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleView(
-  { state, dates, assignments },
+  { state, dates, assignments, homeGroupPeriods },
   ref
 ) {
   if (dates.length === 0) return null;
@@ -45,6 +47,7 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
               refDate={refDate}
               dayIndex={dayIndex}
               positions={positions}
+              homeGroupPeriods={homeGroupPeriods}
             />
           ))}
         </tbody>
@@ -54,9 +57,16 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
 
   return (
     <div ref={ref} className="overflow-auto h-full print-overflow">
-      <div className="flex gap-4 min-w-max">
-        {regularPositions.length > 0 && renderTable(regularPositions, 'bg-slate-800 text-slate-100')}
-        {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-500 text-white')}
+      <div className="flex gap-4 min-w-max flex-col">
+        <div className="flex gap-4 min-w-max">
+          {regularPositions.length > 0 && renderTable(regularPositions, 'bg-slate-800 text-slate-100')}
+          {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-500 text-white')}
+        </div>
+        <HomeGroupsSection
+          state={state}
+          dates={dates}
+          homeGroupPeriods={homeGroupPeriods}
+        />
       </div>
     </div>
   );
