@@ -22,6 +22,7 @@ interface Props {
   onUpdatePosition: (id: string, name: string) => void;
   onDeletePosition: (id: string) => void;
   onToggleOnCall: (id: string) => void;
+  onReorderPositions: (orderedIds: string[]) => void;
   onAddPerson: (name: string) => void;
   onDeletePerson: (id: string) => void;
   onUpdatePersonName: (id: string, name: string) => void;
@@ -70,6 +71,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onUpdate={handlers.onUpdatePosition}
           onDelete={handlers.onDeletePosition}
           onToggleOnCall={handlers.onToggleOnCall}
+          onReorder={handlers.onReorderPositions}
           onToggleQualification={handlers.onToggleQualification}
         />
       )}

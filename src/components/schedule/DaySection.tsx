@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
-import type { AppState, Assignment } from '../../types';
+import type { AppState, Assignment, Position } from '../../types';
 import { ShiftRow } from './ShiftRow';
 
 interface Props {
@@ -9,9 +9,10 @@ interface Props {
   assignments: Assignment[];
   refDate: string;
   dayIndex: number;
+  positions: Position[];
 }
 
-export function DaySection({ date, state, assignments, refDate, dayIndex }: Props) {
+export function DaySection({ date, state, assignments, refDate, dayIndex, positions }: Props) {
   const locale = state.dir === 'rtl' ? heLocale : undefined;
   const label = format(parseISO(date), 'EEE, MMM d', { locale });
 
@@ -19,7 +20,7 @@ export function DaySection({ date, state, assignments, refDate, dayIndex }: Prop
     <>
       <tr>
         <td
-          colSpan={state.positions.length + 1}
+          colSpan={positions.length + 1}
           className="px-3 py-2 bg-slate-100 text-sm font-bold text-slate-800 border-t-2 border-slate-400 uppercase tracking-wide"
         >
           {label}
@@ -34,6 +35,7 @@ export function DaySection({ date, state, assignments, refDate, dayIndex }: Prop
           assignments={assignments}
           refDate={refDate}
           dayIndex={dayIndex}
+          positions={positions}
         />
       ))}
     </>

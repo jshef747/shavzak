@@ -1,4 +1,4 @@
-import type { AppState, Shift, Assignment } from '../../types';
+import type { AppState, Shift, Assignment, Position } from '../../types';
 import { AssignmentCell } from './AssignmentCell';
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   assignments: Assignment[];
   refDate: string;
   dayIndex: number;
+  positions: Position[];
 }
 
 function formatShiftTime(h: number) {
@@ -17,7 +18,7 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex }: Props) {
+export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions }: Props) {
   const endHour = shift.startHour + shift.durationHours;
   const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
 
@@ -27,7 +28,7 @@ export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex }:
         {shift.name}
         <div dir="ltr" className="text-gray-400 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>
-      {state.positions.map(pos => (
+      {positions.map(pos => (
         <AssignmentCell
           key={pos.id}
           cell={{ date, shiftId: shift.id, positionId: pos.id }}
