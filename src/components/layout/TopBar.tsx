@@ -101,7 +101,7 @@ export function TopBar({
                 {t('autoAssign', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onOpenHomePeriods}
-                className="bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white">
+                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-700 !text-white">
                 {t('homePeriods', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onExportExcel}
