@@ -205,60 +205,75 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
       >
         <div className="space-y-4">
           <p className="text-xs text-gray-500">{t('bulkAssignDesc', lang)}</p>
-          {state.people.length === 0 || state.positions.length === 0 ? (
+          {state.people.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">{t('noPeopleOrPositions', lang)}</p>
-          ) : (
-            <div className="overflow-auto rounded-lg border border-gray-200">
-              <table className="min-w-full text-sm border-collapse">
-                <thead>
-                  <tr className="bg-slate-700 text-slate-100">
-                    <th className="sticky left-0 bg-slate-700 px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide min-w-[140px]">
-                      {t('name', lang)}
-                    </th>
-                    {state.positions.map(pos => (
-                      <th key={pos.id} className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide min-w-[110px]">
-                        <div className="flex flex-col items-center gap-1">
-                          <span>{pos.name}</span>
-                          {pos.isOnCall && (
-                            <span className="text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full normal-case tracking-normal font-medium">
-                              {t('onCall', lang)}
-                            </span>
-                          )}
-                        </div>
+          ) : (() => {
+            const regularPositions = state.positions.filter(p => !p.isOnCall);
+            const onCallPositions = state.positions.filter(p => p.isOnCall);
+
+            const renderTable = (positions: typeof state.positions, headerBg: string) => (
+              <div className="overflow-auto rounded-lg border border-gray-200">
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className={`${headerBg} text-white`}>
+                      <th className={`sticky left-0 ${headerBg} px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide min-w-[140px]`}>
+                        {t('name', lang)}
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {state.people.map((person, i) => (
-                    <tr key={person.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
-                      <td className="sticky left-0 bg-inherit px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                            <span className="text-[10px] font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
-                          </div>
-                          {person.name}
-                        </div>
-                      </td>
-                      {state.positions.map(pos => {
-                        const isQualified = person.qualifiedPositions.includes(pos.id);
-                        return (
-                          <td key={pos.id} className={`px-4 py-3 text-center transition-colors ${isQualified ? 'bg-indigo-50' : ''}`}>
-                            <input
-                              type="checkbox"
-                              checked={isQualified}
-                              onChange={() => onToggleQualification(person.id, pos.id)}
-                              className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                            />
-                          </td>
-                        );
-                      })}
+                      {positions.map(pos => (
+                        <th key={pos.id} className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide min-w-[110px]">
+                          {pos.name}
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {state.people.map((person, i) => (
+                      <tr key={person.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                        <td className="sticky left-0 bg-inherit px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-[10px] font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
+                            </div>
+                            {person.name}
+                          </div>
+                        </td>
+                        {positions.map(pos => {
+                          const isQualified = person.qualifiedPositions.includes(pos.id);
+                          return (
+                            <td key={pos.id} className={`px-4 py-3 text-center transition-colors ${isQualified ? 'bg-indigo-50' : ''}`}>
+                              <input
+                                type="checkbox"
+                                checked={isQualified}
+                                onChange={() => onToggleQualification(person.id, pos.id)}
+                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                              />
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+
+            return (
+              <div className="space-y-5">
+                {regularPositions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('currentPositions', lang)}</p>
+                    {renderTable(regularPositions, 'bg-slate-700')}
+                  </div>
+                )}
+                {onCallPositions.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold text-orange-600 uppercase tracking-wide">{t('onCall', lang)}</p>
+                    {renderTable(onCallPositions, 'bg-orange-700')}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           <div className="flex justify-end pt-1">
             <Button variant="secondary" size="sm" onClick={() => setShowBulkAssign(false)}>{t('close', lang)}</Button>
           </div>
