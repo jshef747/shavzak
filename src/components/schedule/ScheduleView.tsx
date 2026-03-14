@@ -28,6 +28,11 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
             {state.positions.map(pos => (
               <th key={pos.id} className="px-3 py-2 text-center text-xs uppercase tracking-wide min-w-[120px]">
                 {pos.name}
+                {pos.isOnCall && (
+                  <span className="ml-1.5 text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-full normal-case tracking-normal font-medium">
+                    {t('onCall', lang)}
+                  </span>
+                )}
               </th>
             ))}
           </tr>

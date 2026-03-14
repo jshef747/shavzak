@@ -5,7 +5,7 @@ export interface Shift {
   durationHours: number;
 }
 
-export interface Position { id: string; name: string; }
+export interface Position { id: string; name: string; isOnCall?: boolean; }
 
 export interface UnavailabilityEntry { shiftId: string; date: string; }
 

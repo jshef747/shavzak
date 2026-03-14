@@ -122,6 +122,20 @@ const strings: Record<string, { en: string; he: string }> = {
   suggestBreak: { en: 'Try reducing min break or adding more staff', he: 'נסה להפחית זמן מנוחה מינימלי או להוסיף אנשים' },
   suggestConstraint: { en: 'Review constraints in person settings', he: 'בדוק אילוצים בהגדרות האדם' },
   suggestInvalid: { en: 'Check availability, break times, and constraints', he: 'בדוק זמינות, זמני הפסקה ואילוצים' },
+  onCall: { en: 'On Call', he: 'כוננות' },
+  assignPeople: { en: 'Assign People', he: 'שבץ אנשים' },
+  assignPeopleTitle: { en: 'Assign People to Role', he: 'שיבוץ אנשים לתפקיד' },
+  noPeopleForRole: { en: 'No people added yet', he: 'אין אנשים עדיין' },
+  people: { en: 'people', he: 'אנשים' },
+  bulkAssign: { en: 'Bulk Assign', he: 'שיבוץ מרובה' },
+  bulkAssignTitle: { en: 'Assign Roles to People', he: 'שיבוץ תפקידים לאנשים' },
+  bulkAssignDesc: { en: 'Check each cell to assign a role to a person', he: 'סמן כל תא כדי לשבץ תפקיד לאדם' },
+  noPeopleOrPositions: { en: 'Add people and positions to use bulk assign', he: 'הוסף אנשים ותפקידים כדי להשתמש בשיבוץ מרובה' },
+  clearSelection: { en: 'Clear', he: 'נקה' },
+  assignRolesToSelected: { en: 'Assign Roles to Selected', he: 'שיבוץ תפקידים לנבחרים' },
+  bulkRolesTitle: { en: 'Assign Roles', he: 'שיבוץ תפקידים' },
+  selected: { en: 'selected', he: 'נבחרו' },
+  selectAll: { en: 'Select all', he: 'בחר הכל' },
 };
 
 export function t(key: string, lang: Lang): string {

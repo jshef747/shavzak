@@ -24,7 +24,7 @@ export function App() {
   const { state, setState } = useAppState();
   const { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule } = useSchedule(state, setState);
   const { addShift, updateShift, deleteShift, reorderShifts } = useShifts(state, setState);
-  const { addPosition, updatePosition, deletePosition } = usePositions(state, setState);
+  const { addPosition, updatePosition, deletePosition, toggleOnCall } = usePositions(state, setState);
   const {
     addPerson, deletePerson, updatePersonName,
     toggleQualification, toggleUnavailability,
@@ -179,6 +179,7 @@ export function App() {
         onAddPosition={addPosition}
         onUpdatePosition={updatePosition}
         onDeletePosition={deletePosition}
+        onToggleOnCall={toggleOnCall}
         onAddPerson={addPerson}
         onDeletePerson={deletePerson}
         onUpdatePersonName={updatePersonName}
