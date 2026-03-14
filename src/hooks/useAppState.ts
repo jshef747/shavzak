@@ -8,11 +8,18 @@ function loadState(): AppState {
     if (raw) {
       const parsed = JSON.parse(raw);
       const merged: AppState = { ...INITIAL_STATE, ...parsed };
-      // Normalize people to ensure constraints field exists (backwards compat)
+      // Normalize people to ensure constraints and homeGroupId fields exist (backwards compat)
       merged.people = (merged.people ?? []).map(p => ({
         ...p,
         constraints: p.constraints ?? null,
+        homeGroupId: p.homeGroupId ?? null,
       }));
+      // Normalize schedules to ensure homeGroupPeriods field exists (backwards compat)
+      merged.schedules = (merged.schedules ?? []).map(s => ({
+        ...s,
+        homeGroupPeriods: s.homeGroupPeriods ?? [],
+      }));
+      merged.homeGroups = merged.homeGroups ?? [];
       merged.dir = 'rtl';
       merged.minBreakHours = merged.minBreakHours ?? 12;
       return merged;

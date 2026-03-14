@@ -6,6 +6,7 @@ import { langFromDir, t } from '../../utils/i18n';
 import { ShiftsTab } from './ShiftsTab';
 import { PositionsTab } from './PositionsTab';
 import { PeopleTab } from './PeopleTab';
+import { HomeGroupsTab } from './HomeGroupsTab';
 
 interface Props {
   open: boolean;
@@ -36,10 +37,14 @@ interface Props {
   onUpdateConstraintMaxTotal: (personId: string, max: number | null) => void;
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
+  onAddHomeGroup: (name: string) => void;
+  onUpdateHomeGroup: (id: string, name: string) => void;
+  onDeleteHomeGroup: (id: string) => void;
+  onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
 }
 
 // Internal tab keys stay in English for logic comparisons
-const TABS = ['Shifts', 'Positions', 'People'];
+const TABS = ['Shifts', 'Positions', 'People', 'Groups'];
 
 export function SettingsModal({ open, onClose, state, dates, initialTab, ...handlers }: Props) {
   const [activeTab, setActiveTab] = useState(initialTab ?? 'Shifts');
@@ -49,7 +54,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
     if (open && initialTab) setActiveTab(initialTab);
   }, [open, initialTab]);
 
-  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang)];
+  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang)];
 
   return (
     <Modal open={open} onClose={onClose} title={t('settingsTitle', lang)} size="xl">
@@ -92,6 +97,15 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onUpdateConstraintMaxTotal={handlers.onUpdateConstraintMaxTotal}
           onUpdateConstraintMaxConsecutive={handlers.onUpdateConstraintMaxConsecutive}
           onUpdateConstraintMinRest={handlers.onUpdateConstraintMinRest}
+        />
+      )}
+      {activeTab === 'Groups' && (
+        <HomeGroupsTab
+          state={state}
+          onAddGroup={handlers.onAddHomeGroup}
+          onUpdateGroup={handlers.onUpdateHomeGroup}
+          onDeleteGroup={handlers.onDeleteHomeGroup}
+          onSetPersonGroup={handlers.onSetPersonHomeGroup}
         />
       )}
     </Modal>

@@ -12,6 +12,7 @@ export function StatusLegend({ dir }: Props) {
   const legendItems = [
     { labelKey: 'statusValid',             color: 'bg-emerald-100 border-emerald-400' },
     { labelKey: 'statusUnavailable',       color: 'bg-red-100 border-red-500' },
+    { labelKey: 'statusHomeGroup',         color: 'bg-blue-100 border-blue-400' },
     { labelKey: 'statusDoubleBooked',      color: 'bg-orange-100 border-orange-500' },
     { labelKey: 'statusUnqualified',       color: 'bg-yellow-100 border-yellow-500' },
     { labelKey: 'statusInsufficientBreak', color: 'bg-sky-100 border-sky-500' },

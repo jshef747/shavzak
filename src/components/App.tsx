@@ -5,6 +5,7 @@ import { useShifts } from '../hooks/useShifts';
 import { usePositions } from '../hooks/usePositions';
 import { usePeople } from '../hooks/usePeople';
 import { useAssignments } from '../hooks/useAssignments';
+import { useHomeGroups } from '../hooks/useHomeGroups';
 import { useDateRange } from '../hooks/useDateRange';
 import { langFromDir, t } from '../utils/i18n';
 import { TopBar } from './layout/TopBar';
@@ -17,6 +18,7 @@ import { PersonEditor } from './settings/PersonEditor';
 import { Modal } from './ui/Modal';
 import { NewScheduleModal } from './layout/NewScheduleModal';
 import { AutoAssignModal } from './layout/AutoAssignModal';
+import { HomePeriodsModal } from './layout/HomePeriodsModal';
 import { exportToExcel } from '../utils/exportExcel';
 import { autoAssign, type AutoAssignResult } from '../utils/autoAssign';
 
@@ -34,6 +36,7 @@ export function App() {
     updateConstraintMaxConsecutive, updateConstraintMinRest,
   } = usePeople(state, setState);
   const { assign, unassign, moveAssignment, batchAssign, assignments } = useAssignments(state, setState);
+  const { addHomeGroup, updateHomeGroup, deleteHomeGroup, setPersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -43,6 +46,9 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
+  const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
+
+  const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
 
   const lang = langFromDir(state.dir);
 
@@ -68,6 +74,7 @@ export function App() {
       state.shifts,
       state.positions,
       state.minBreakHours,
+      state.homeGroups,
     );
     setAutoAssignResult(result);
     setAutoAssignOpen(true);
@@ -98,6 +105,7 @@ export function App() {
         onOpenSettings={() => openSettings()}
         onToggleSidebar={() => setSidebarOpen(v => !v)}
         onAutoAssign={handleOpenAutoAssign}
+        onOpenHomePeriods={() => setHomePeriodsOpen(true)}
       />
 
       <DndProvider
@@ -158,6 +166,7 @@ export function App() {
                 state={state}
                 dates={dates}
                 assignments={assignments}
+                homeGroupPeriods={homeGroupPeriods}
               />
             )}
             <StatusLegend dir={state.dir} />
@@ -194,6 +203,10 @@ export function App() {
         onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
         onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
         onUpdateConstraintMinRest={updateConstraintMinRest}
+        onAddHomeGroup={addHomeGroup}
+        onUpdateHomeGroup={updateHomeGroup}
+        onDeleteHomeGroup={deleteHomeGroup}
+        onSetPersonHomeGroup={setPersonHomeGroup}
       />
 
       {sidebarEditPersonId && (() => {
@@ -240,6 +253,17 @@ export function App() {
         state={state}
         onApply={handleApplyAutoAssign}
       />
+
+      {activeSchedule && (
+        <HomePeriodsModal
+          open={homePeriodsOpen}
+          onClose={() => setHomePeriodsOpen(false)}
+          state={state}
+          activeSchedule={activeSchedule}
+          onAddPeriod={addHomeGroupPeriod}
+          onDeletePeriod={deleteHomeGroupPeriod}
+        />
+      )}
     </div>
   );
 }

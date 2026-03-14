@@ -1,5 +1,5 @@
 import { useDroppable, useDndContext } from '@dnd-kit/core';
-import type { AppState, Assignment, CellAddress, CellStatus, DragData } from '../../types';
+import type { AppState, Assignment, CellAddress, CellStatus, DragData, HomeGroupPeriod } from '../../types';
 import { serializeCellAddress } from '../../utils/cellKey';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
 import { langFromDir, t } from '../../utils/i18n';
@@ -10,12 +10,14 @@ interface Props {
   state: AppState;
   assignments: Assignment[];
   refDate: string;
+  homeGroupPeriods: HomeGroupPeriod[];
 }
 
 const STATUS_CLASSES: Record<CellStatus, string> = {
   empty:                  'bg-white border-slate-200',
   valid:                  'bg-emerald-100 border-emerald-400',
   unavailable:            'bg-red-100 border-red-500',
+  'home-group':           'bg-blue-100 border-blue-400',
   'double-booked':        'bg-orange-100 border-orange-500',
   unqualified:            'bg-yellow-100 border-yellow-500',
   'insufficient-break':   'bg-sky-100 border-sky-500',
@@ -23,10 +25,10 @@ const STATUS_CLASSES: Record<CellStatus, string> = {
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
-  'unavailable', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation',
+  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation',
 ]);
 
-export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
+export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
   const { isOver, setNodeRef } = useDroppable({ id: cellKey });
@@ -39,7 +41,7 @@ export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
-    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours)
+    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods)
     : 'empty';
 
   // Drag-over preview: green if valid drop, red if not
@@ -57,7 +59,7 @@ export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
               a.positionId === dragData.sourceCell!.positionId
             ))
           : assignments;
-        const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours);
+        const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods);
         dragOverClass = (previewStatus === 'valid' || previewStatus === 'empty')
           ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-400'
           : 'bg-red-100 border-red-500 ring-1 ring-red-400';
@@ -71,6 +73,7 @@ export function AssignmentCell({ cell, state, assignments, refDate }: Props) {
     empty: '',
     valid: t('tooltipValid', lang),
     unavailable: t('tooltipUnavailable', lang),
+    'home-group': t('tooltipHomeGroup', lang),
     'double-booked': t('tooltipDoubleBooked', lang),
     unqualified: t('tooltipUnqualified', lang),
     'insufficient-break': t('tooltipBreak', lang),

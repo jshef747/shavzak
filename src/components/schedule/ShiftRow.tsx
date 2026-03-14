@@ -1,4 +1,4 @@
-import type { AppState, Shift, Assignment, Position } from '../../types';
+import type { AppState, HomeGroupPeriod, Shift, Assignment, Position } from '../../types';
 import { AssignmentCell } from './AssignmentCell';
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   refDate: string;
   dayIndex: number;
   positions: Position[];
+  homeGroupPeriods: HomeGroupPeriod[];
 }
 
 function formatShiftTime(h: number) {
@@ -18,7 +19,7 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions }: Props) {
+export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
   const endHour = shift.startHour + shift.durationHours;
   const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
 
@@ -35,6 +36,7 @@ export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, p
           state={state}
           assignments={assignments}
           refDate={refDate}
+          homeGroupPeriods={homeGroupPeriods}
         />
       ))}
     </tr>
