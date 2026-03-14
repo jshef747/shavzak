@@ -131,6 +131,11 @@ const strings: Record<string, { en: string; he: string }> = {
   bulkAssignTitle: { en: 'Assign Roles to People', he: 'שיבוץ תפקידים לאנשים' },
   bulkAssignDesc: { en: 'Check each cell to assign a role to a person', he: 'סמן כל תא כדי לשבץ תפקיד לאדם' },
   noPeopleOrPositions: { en: 'Add people and positions to use bulk assign', he: 'הוסף אנשים ותפקידים כדי להשתמש בשיבוץ מרובה' },
+  clearSelection: { en: 'Clear', he: 'נקה' },
+  assignRolesToSelected: { en: 'Assign Roles to Selected', he: 'שיבוץ תפקידים לנבחרים' },
+  bulkRolesTitle: { en: 'Assign Roles', he: 'שיבוץ תפקידים' },
+  selected: { en: 'selected', he: 'נבחרו' },
+  selectAll: { en: 'Select all', he: 'בחר הכל' },
 };
 
 export function t(key: string, lang: Lang): string {

@@ -34,7 +34,49 @@ export function PeopleTab({
 }: Props) {
   const [newName, setNewName] = useState('');
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [selectedPeople, setSelectedPeople] = useState<Set<string>>(new Set());
+  const [showBulkRoles, setShowBulkRoles] = useState(false);
   const lang = langFromDir(state.dir);
+
+  const allSelected = state.people.length > 0 && state.people.every(p => selectedPeople.has(p.id));
+  const someSelected = selectedPeople.size > 0;
+
+  function togglePerson(id: string) {
+    setSelectedPeople(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      setSelectedPeople(new Set());
+    } else {
+      setSelectedPeople(new Set(state.people.map(p => p.id)));
+    }
+  }
+
+  function closeBulkRoles() {
+    setShowBulkRoles(false);
+    setSelectedPeople(new Set());
+  }
+
+  // For a given position: how many selected people have it
+  function qualifiedCount(posId: string): number {
+    return state.people.filter(p => selectedPeople.has(p.id) && p.qualifiedPositions.includes(posId)).length;
+  }
+
+  // Click on a position in the bulk modal: if all have it → remove; otherwise → add to those who don't
+  function handleBulkToggle(posId: string) {
+    const selected = state.people.filter(p => selectedPeople.has(p.id));
+    const allHaveIt = selected.every(p => p.qualifiedPositions.includes(posId));
+    for (const person of selected) {
+      const hasIt = person.qualifiedPositions.includes(posId);
+      if (allHaveIt && hasIt) onToggleQualification(person.id, posId);      // remove from all
+      if (!allHaveIt && !hasIt) onToggleQualification(person.id, posId);    // add to those missing
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -66,24 +108,75 @@ export function PeopleTab({
           </div>
         ) : (
           <div className="space-y-2">
-            {state.people.map(person => (
-              <div key={person.id} className="flex gap-3 items-center p-3 bg-gray-50 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors group">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
+            {/* Select-all row */}
+            <div className="flex items-center gap-3 px-3 py-1.5">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
+              <span className="text-xs text-gray-400 select-none">
+                {someSelected ? `${selectedPeople.size} ${t('selected', lang)}` : t('selectAll', lang)}
+              </span>
+              {someSelected && (
+                <div className="flex items-center gap-2 ml-auto">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={() => setShowBulkRoles(true)}
+                    className="flex items-center gap-1.5"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    {t('assignRolesToSelected', lang)}
+                  </Button>
+                  <button
+                    onClick={() => setSelectedPeople(new Set())}
+                    className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    {t('clearSelection', lang)}
+                  </button>
                 </div>
-                <input
-                  className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0 min-w-0"
-                  value={person.name}
-                  onChange={e => onUpdateName(person.id, e.target.value)}
-                />
-                <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0">
-                  {person.qualifiedPositions.length} {t('roles', lang)}
-                </span>
-                <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0">
-                  {t('edit', lang)}
-                </Button>
-              </div>
-            ))}
+              )}
+            </div>
+
+            {/* Person rows */}
+            {state.people.map(person => {
+              const isSelected = selectedPeople.has(person.id);
+              return (
+                <div
+                  key={person.id}
+                  className={`flex gap-3 items-center p-3 rounded-lg border transition-colors group ${
+                    isSelected
+                      ? 'bg-indigo-50 border-indigo-200'
+                      : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => togglePerson(person.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
+                  />
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <input
+                    className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0 min-w-0"
+                    value={person.name}
+                    onChange={e => onUpdateName(person.id, e.target.value)}
+                  />
+                  <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0">
+                    {person.qualifiedPositions.length} {t('roles', lang)}
+                  </span>
+                  <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0">
+                    {t('edit', lang)}
+                  </Button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -115,6 +208,7 @@ export function PeopleTab({
         </div>
       </div>
 
+      {/* Single-person Edit Modal */}
       {editingPerson && (
         <Modal
           open={!!editingPerson}
@@ -141,6 +235,74 @@ export function PeopleTab({
           />
         </Modal>
       )}
+
+      {/* Bulk Role Assignment Modal */}
+      <Modal
+        open={showBulkRoles}
+        onClose={closeBulkRoles}
+        title={`${t('bulkRolesTitle', lang)} — ${selectedPeople.size} ${t('selected', lang)}`}
+        size="md"
+      >
+        <div className="space-y-3">
+          {state.positions.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">{t('noPositionsEmpty', lang)}</p>
+          ) : (
+            <div className="space-y-2">
+              {state.positions.map(pos => {
+                const count = qualifiedCount(pos.id);
+                const total = selectedPeople.size;
+                const allHave = count === total;
+                const someHave = count > 0 && count < total;
+
+                return (
+                  <button
+                    key={pos.id}
+                    onClick={() => handleBulkToggle(pos.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-colors ${
+                      allHave
+                        ? 'bg-indigo-50 border-indigo-200'
+                        : someHave
+                        ? 'bg-amber-50 border-amber-200'
+                        : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    {/* State indicator */}
+                    <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border text-xs font-bold ${
+                      allHave
+                        ? 'bg-indigo-600 border-indigo-600 text-white'
+                        : someHave
+                        ? 'bg-amber-400 border-amber-400 text-white'
+                        : 'bg-white border-gray-300 text-transparent'
+                    }`}>
+                      {allHave ? '✓' : someHave ? '–' : ''}
+                    </span>
+
+                    <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                      <span className="text-[10px] font-bold text-indigo-600">{pos.name.charAt(0).toUpperCase()}</span>
+                    </div>
+
+                    <span className={`text-sm font-medium flex-1 ${allHave ? 'text-indigo-900' : someHave ? 'text-amber-900' : 'text-gray-700'}`}>
+                      {pos.name}
+                      {pos.isOnCall && (
+                        <span className="ml-2 text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full font-medium">
+                          {t('onCall', lang)}
+                        </span>
+                      )}
+                    </span>
+
+                    <span className={`text-xs flex-shrink-0 ${allHave ? 'text-indigo-500' : someHave ? 'text-amber-600' : 'text-gray-400'}`}>
+                      {count}/{total}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex justify-end pt-2">
+            <Button variant="secondary" size="sm" onClick={closeBulkRoles}>{t('close', lang)}</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
