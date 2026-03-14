@@ -13,11 +13,13 @@ interface Props {
   onStartChange: (d: string) => void;
   onEndChange: (d: string) => void;
   dir?: 'ltr' | 'rtl';
+  minDate?: string;
+  maxDate?: string;
 }
 
 const DAY_HEADERS_EN = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange, dir = 'ltr' }: Props) {
+export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange, dir = 'ltr', minDate, maxDate }: Props) {
   const lang = langFromDir(dir);
   const locale = dir === 'rtl' ? heLocale : undefined;
   const dayHeaders = dir === 'rtl' ? DAY_HEADERS_HE : DAY_HEADERS_EN;
@@ -38,7 +40,15 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const leadingBlanks = getDay(monthStart); // 0=Sun
 
+  function isDayOutOfRange(day: Date): boolean {
+    const iso = format(day, 'yyyy-MM-dd');
+    if (minDate && iso < minDate) return true;
+    if (maxDate && iso > maxDate) return true;
+    return false;
+  }
+
   function handleDayClick(day: Date) {
+    if (isDayOutOfRange(day)) return;
     const iso = format(day, 'yyyy-MM-dd');
     if (!start || (start && end)) {
       // Start fresh: set start only, clear end
@@ -109,7 +119,8 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
           <div key={`blank-${i}`} />
         ))}
         {days.map(day => {
-          const inRange = isInRange(day);
+          const outOfRange = isDayOutOfRange(day);
+          const inRange = !outOfRange && isInRange(day);
           const dayIsStart = isStart(day);
           const dayIsEnd = isEnd(day);
           const dayIsToday = isToday(day);
@@ -118,20 +129,22 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
           return (
             <div
               key={day.toISOString()}
-              className={`relative flex items-center justify-center h-8 cursor-pointer transition-colors
+              className={`relative flex items-center justify-center h-8 transition-colors
+                ${outOfRange ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
                 ${inRange && !isSelected ? 'bg-indigo-50' : ''}
                 ${dayIsStart ? 'rounded-l-full' : ''}
                 ${dayIsEnd ? 'rounded-r-full' : ''}
               `}
               onClick={() => handleDayClick(day)}
-              onMouseEnter={() => setHoverDate(day)}
+              onMouseEnter={() => !outOfRange && setHoverDate(day)}
               onMouseLeave={() => setHoverDate(null)}
             >
               <span
                 className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium transition-colors
                   ${isSelected ? 'bg-indigo-600 text-white' : ''}
                   ${!isSelected && inRange ? 'text-indigo-700' : ''}
-                  ${!isSelected && !inRange ? 'text-gray-700 hover:bg-gray-100' : ''}
+                  ${!isSelected && !inRange && !outOfRange ? 'text-gray-700 hover:bg-gray-100' : ''}
+                  ${!isSelected && outOfRange ? 'text-gray-400' : ''}
                   ${dayIsToday && !isSelected ? 'ring-2 ring-indigo-400 ring-offset-1' : ''}
                 `}
               >

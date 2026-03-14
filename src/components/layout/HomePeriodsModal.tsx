@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { AppState, HomeGroupPeriod, Schedule } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { DateRangePicker } from '../ui/DateRangePicker';
 import { langFromDir, t } from '../../utils/i18n';
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
@@ -91,54 +92,58 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
           </div>
         )}
 
+        {/* Groups & Members summary */}
+        {state.homeGroups.length > 0 && (
+          <div className="flex flex-wrap gap-3">
+            {state.homeGroups.map(g => {
+              const members = state.people.filter(p => p.homeGroupId === g.id).map(p => p.name);
+              return (
+                <div key={g.id} className="border border-slate-200 rounded-lg px-3 py-2 bg-white min-w-[120px]">
+                  <p className="text-xs font-semibold text-slate-700">{g.name}</p>
+                  {members.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 italic mt-0.5">{lang === 'he' ? 'אין חברים' : 'No members'}</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {members.map(name => (
+                        <span key={name} className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">{name}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Add period form */}
         {state.homeGroups.length > 0 ? (
           <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50">
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{t('addPeriod', lang)}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {/* Group selector */}
-              <div className="space-y-1">
-                <label className="text-xs text-slate-500">{t('groupLabel', lang)}</label>
-                <select
-                  value={newGroupId}
-                  onChange={e => setNewGroupId(e.target.value)}
-                  className="w-full text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                >
-                  <option value="">— {t('groupLabel', lang)} —</option>
-                  {state.homeGroups.map(g => (
-                    <option key={g.id} value={g.id}>{g.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Departure date */}
-              <div className="space-y-1">
-                <label className="text-xs text-slate-500">{t('departure', lang)}</label>
-                <input
-                  type="date"
-                  value={newStart}
-                  min={activeSchedule.startDate}
-                  max={activeSchedule.endDate}
-                  onChange={e => {
-                    setNewStart(e.target.value);
-                    if (newEnd && e.target.value > newEnd) setNewEnd(e.target.value);
-                  }}
-                  className="w-full text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                />
-              </div>
-
-              {/* Return date */}
-              <div className="space-y-1">
-                <label className="text-xs text-slate-500">{t('returnDate', lang)}</label>
-                <input
-                  type="date"
-                  value={newEnd}
-                  min={newStart || activeSchedule.startDate}
-                  max={activeSchedule.endDate}
-                  onChange={e => setNewEnd(e.target.value)}
-                  className="w-full text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                />
-              </div>
+            {/* Group selector */}
+            <div className="space-y-1">
+              <label className="text-xs text-slate-500">{t('groupLabel', lang)}</label>
+              <select
+                value={newGroupId}
+                onChange={e => setNewGroupId(e.target.value)}
+                className="w-full text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+              >
+                <option value="">— {t('groupLabel', lang)} —</option>
+                {state.homeGroups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+            {/* Date range picker */}
+            <div className="bg-white border border-slate-200 rounded-lg p-3">
+              <DateRangePicker
+                startDate={newStart}
+                endDate={newEnd}
+                onStartChange={setNewStart}
+                onEndChange={setNewEnd}
+                dir={state.dir}
+                minDate={activeSchedule.startDate}
+                maxDate={activeSchedule.endDate}
+              />
             </div>
             <div className="flex justify-end rtl:justify-start">
               <Button variant="primary" onClick={handleAdd} disabled={!canAdd}>

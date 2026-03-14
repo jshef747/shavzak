@@ -77,10 +77,14 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
         <tbody>
           {activeGroups.map((group, idx) => {
             const rowBg = idx % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
+            const members = state.people.filter(p => p.homeGroupId === group.id).map(p => p.name);
             return (
               <tr key={group.id} className={`border-b ${rowBg}`}>
-                <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs text-slate-700 border-r whitespace-nowrap font-medium ${rowBg}`}>
-                  {group.name}
+                <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs border-r min-w-[160px] ${rowBg}`}>
+                  <div className="font-medium text-slate-700">{group.name}</div>
+                  {members.length > 0 && (
+                    <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">{members.join(' · ')}</div>
+                  )}
                 </td>
                 {dates.map(date => {
                   const status = getGroupDayStatus(date, group.id, state.homeGroups, homeGroupPeriods, state.shifts);
