@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { langFromDir, t } from '../../utils/i18n';
 
 interface Props {
   dir: 'ltr' | 'rtl';
 }
 
-export function StatusLegend({ dir }: Props) {
+export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
   const lang = langFromDir(dir);
   const [open, setOpen] = useState(false);
 
@@ -23,6 +23,7 @@ export function StatusLegend({ dir }: Props) {
     <div className="no-print fixed bottom-4 right-4 rtl:right-auto rtl:left-4 z-40">
       <button
         onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
         className="bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg hover:bg-slate-700 transition-colors"
       >
         {open ? t('hideLegend', lang) : t('legend', lang)}
@@ -39,4 +40,4 @@ export function StatusLegend({ dir }: Props) {
       )}
     </div>
   );
-}
+});

@@ -54,7 +54,11 @@ export function App() {
 
   function handleExportExcel() {
     if (!activeSchedule) return;
-    exportToExcel(state, activeSchedule, dates);
+    try {
+      exportToExcel(state, activeSchedule, dates);
+    } catch {
+      window.alert(t('exportError', lang));
+    }
   }
 
   function updateMinBreakHours(hours: number) {

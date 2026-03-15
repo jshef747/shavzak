@@ -164,6 +164,7 @@ const strings: Record<string, { en: string; he: string }> = {
   tooltipHomeGroup: { en: 'Person is on home leave', he: 'האדם נמצא ביציאה' },
   tooltipHomeGroupDeparture: { en: 'Departure day — available until 12:00', he: 'יום יציאה — זמין עד 12:00' },
   tooltipHomeGroupReturn: { en: 'Return day — available from 12:00', he: 'יום חזרה — זמין מ-12:00' },
+  exportError: { en: 'Export failed. Please try again.', he: 'הייצוא נכשל. אנא נסה שנית.' },
 };
 
 export function t(key: string, lang: Lang): string {

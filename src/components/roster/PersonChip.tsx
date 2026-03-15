@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { DragData, CellAddress } from '../../types';
@@ -13,7 +14,7 @@ interface Props {
   dimmed?: boolean;
 }
 
-export function PersonChip({ personId, name, source, sourceCell, variant = 'pool', dimmed = false }: Props) {
+export const PersonChip = memo(function PersonChip({ personId, name, source, sourceCell, variant = 'pool', dimmed = false }: Props) {
   const draggableId = sourceCell
     ? `${personId}::cell::${serializeCellAddress(sourceCell)}`
     : `${personId}::pool`;
@@ -71,4 +72,4 @@ export function PersonChip({ personId, name, source, sourceCell, variant = 'pool
       {name}
     </div>
   );
-}
+});

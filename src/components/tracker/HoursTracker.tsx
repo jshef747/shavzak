@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { AppState, Assignment } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { personPalette, personInitials } from '../../utils/personColor';
@@ -10,7 +11,7 @@ interface Props {
 export function HoursTracker({ state, assignments }: Props) {
   const lang = langFromDir(state.dir);
 
-  const hoursPerPerson = state.people.map(person => {
+  const hoursPerPerson = useMemo(() => state.people.map(person => {
     const total = assignments
       .filter(a => a.personId === person.id)
       .reduce((sum, a) => {
@@ -18,7 +19,7 @@ export function HoursTracker({ state, assignments }: Props) {
         return sum + (shift?.durationHours ?? 0);
       }, 0);
     return { person, total };
-  }).filter(({ total }) => total > 0);
+  }).filter(({ total }) => total > 0), [state.people, state.shifts, assignments]);
 
   if (hoursPerPerson.length === 0) return null;
 

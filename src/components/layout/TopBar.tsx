@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useState, useEffect, type RefObject } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
@@ -37,6 +37,25 @@ export function TopBar({
   const [guideOpen, setGuideOpen] = useState(false);
   const lang = langFromDir(state.dir);
 
+  // Auto-show Quick Start on first ever visit (no schedules yet)
+  useEffect(() => {
+    if (state.schedules.length === 0 && !localStorage.getItem('shavzak-guided')) {
+      setGuideOpen(true);
+      localStorage.setItem('shavzak-guided', '1');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keyboard shortcut: "?" opens the guide (when not in an input)
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === '?') setGuideOpen(true);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: activeSchedule?.name ?? 'Schedule',
@@ -63,6 +82,7 @@ export function TopBar({
         {/* Zone 2: Schedule selector */}
         <div className="flex gap-2 items-center rtl:flex-row-reverse">
           <select
+            aria-label={t('selectSchedule', lang)}
             className="text-sm rounded px-2 py-1 text-gray-800 bg-white border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400"
             value={state.activeScheduleId ?? ''}
             onChange={e => onSetActiveSchedule(e.target.value || null)}
@@ -76,7 +96,6 @@ export function TopBar({
             variant="primary"
             size="sm"
             onClick={() => setNewModalOpen(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white border-0"
           >
             {t('newBtn', lang)}
           </Button>
@@ -96,8 +115,7 @@ export function TopBar({
         <div className="ml-auto rtl:ml-0 rtl:mr-auto flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
           {activeSchedule && (
             <>
-              <Button variant="primary" size="sm" onClick={onAutoAssign}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white border-0">
+              <Button variant="primary" size="sm" onClick={onAutoAssign}>
                 {t('autoAssign', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onOpenHomePeriods}
@@ -105,11 +123,11 @@ export function TopBar({
                 {t('homePeriods', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onExportExcel}
-                className="hidden md:inline-flex bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600">
+                className="hidden md:inline-flex !bg-slate-700 !border-slate-600 !text-slate-100 hover:!bg-slate-600">
                 {t('excel', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => handlePrint()}
-                className="hidden md:inline-flex bg-slate-700 border-slate-600 text-slate-100 hover:bg-slate-600">
+                className="hidden md:inline-flex !bg-slate-700 !border-slate-600 !text-slate-100 hover:!bg-slate-600">
                 {t('pdf', lang)}
               </Button>
             </>

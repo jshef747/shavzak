@@ -13,7 +13,7 @@ export function DragOverlayContent({ dragData, state }: Props) {
   const palette = personPalette(person.name);
   const initials = personInitials(person.name);
   return (
-    <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border shadow-xl text-sm font-medium ${palette.light}`}>
+    <div className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border shadow-2xl text-sm font-medium scale-105 ${palette.light}`}>
       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${palette.bg} ${palette.text} shrink-0`}>
         {initials}
       </span>

@@ -167,6 +167,7 @@ export function AutoAssignModal({ open, onClose, result, state, onApply }: Props
               <div>
                 <button
                   className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 hover:text-amber-900 rtl:flex-row-reverse"
+                  aria-expanded={skippedExpanded}
                   onClick={() => setSkippedExpanded(v => !v)}
                 >
                   <svg
@@ -240,8 +241,7 @@ export function AutoAssignModal({ open, onClose, result, state, onApply }: Props
             {t('cancel', lang)}
           </Button>
           {proposed.length > 0 && (
-            <Button variant="primary" size="sm" onClick={handleApply}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white border-0">
+            <Button variant="primary" size="sm" onClick={handleApply}>
               {t('autoAssignApply', lang)} ({proposed.length})
             </Button>
           )}
