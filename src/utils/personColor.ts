@@ -35,15 +35,44 @@ export const PALETTE_150: string[] = Array.from({ length: 150 }, (_, i) => {
   return hslToHex(hue, s, l);
 });
 
+// ─── Color distance ──────────────────────────────────────────────────────────
+// Euclidean distance in RGB space. Max possible = sqrt(3 × 255²) ≈ 441.7.
+// MIN_COLOR_DISTANCE = 44 ≈ 10% of that max — ensures every new color looks
+// clearly different from every already-assigned color.
+
+function hexToRgb(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff];
+}
+
+function colorDistance(a: string, b: string): number {
+  const [r1, g1, b1] = hexToRgb(a);
+  const [r2, g2, b2] = hexToRgb(b);
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
+}
+
+const MIN_COLOR_DISTANCE = 44; // ~10% of max RGB distance
+
 /**
- * Randomly pick a color that is NOT already in use.
- * Falls back to any random color from the full palette if all 150 are taken.
+ * Pick a color from the palette that is visually distinct (≥10% RGB distance)
+ * from every already-assigned color.
+ * Falls back to the least-similar color if the palette is exhausted.
  */
 export function pickPersonColor(usedColors: string[]): string {
-  const usedSet = new Set(usedColors);
-  const available = PALETTE_150.filter(c => !usedSet.has(c));
-  const pool = available.length > 0 ? available : PALETTE_150;
-  return pool[Math.floor(Math.random() * pool.length)];
+  const available = PALETTE_150.filter(c =>
+    usedColors.every(u => colorDistance(c, u) >= MIN_COLOR_DISTANCE)
+  );
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+  // Fallback: pick whichever palette color is most different from all used colors
+  let best = PALETTE_150[0];
+  let bestMinDist = 0;
+  for (const c of PALETTE_150) {
+    const minDist = Math.min(...usedColors.map(u => colorDistance(c, u)));
+    if (minDist > bestMinDist) { bestMinDist = minDist; best = c; }
+  }
+  return best;
 }
 
 // ─── Initials helper (kept from original) ────────────────────────────────────
