@@ -124,11 +124,12 @@ export function computeCellStatus(
       // Check if both positions are on-call — allows reduced break threshold
       const existingPosition = positions.find(p => p.id === a.positionId);
       if (targetPosition?.isOnCall && existingPosition?.isOnCall) {
-        // On-call: allowed if gap >= half the minimum break
-        if (gap >= (minBreakHours / 2) * 60) {
+        // On-call: consecutive shifts (gap ≥ 0) are allowed with a warning.
+        // Only an actual time overlap (gap < 0) is a hard block.
+        if (gap >= 0) {
           shortBreakOnCall = true; // flag it but continue checking other assignments
         } else {
-          return 'insufficient-break'; // too close even for on-call
+          return 'insufficient-break'; // actual time overlap — hard block
         }
       } else {
         return 'insufficient-break'; // regular position: strict break required
