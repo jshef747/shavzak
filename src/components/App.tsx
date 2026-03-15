@@ -46,7 +46,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
-  const [autoAssignReassign, setAutoAssignReassign] = useState(false);
+  const [autoAssignReassign, setAutoAssignReassign] = useState<'partial' | 'full' | null>(null);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
 
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
@@ -74,14 +74,16 @@ export function App() {
   function handleOpenAutoAssign() {
     if (!activeSchedule) return;
     if (activeSchedule.assignments.length > 0) {
-      // Some cells are filled — show confirmation before reassigning
+      // Some or all cells are filled — show confirmation before reassigning
+      const totalCells = dates.length * state.shifts.length * state.positions.length;
+      const mode = activeSchedule.assignments.length >= totalCells ? 'full' : 'partial';
       setAutoAssignResult(null);
-      setAutoAssignReassign(true);
+      setAutoAssignReassign(mode);
       setAutoAssignOpen(true);
     } else {
       const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups);
       setAutoAssignResult(result);
-      setAutoAssignReassign(false);
+      setAutoAssignReassign(null);
       setAutoAssignOpen(true);
     }
   }
@@ -99,10 +101,11 @@ export function App() {
       } else {
         batchAssign(autoAssignResult.proposed);
       }
+
     }
     setAutoAssignOpen(false);
     setAutoAssignResult(null);
-    setAutoAssignReassign(false);
+    setAutoAssignReassign(null);
   }
 
   return (
@@ -265,7 +268,7 @@ export function App() {
 
       <AutoAssignModal
         open={autoAssignOpen}
-        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); setAutoAssignReassign(false); }}
+        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); setAutoAssignReassign(null); }}
         result={autoAssignResult}
         reassign={autoAssignReassign}
         state={state}

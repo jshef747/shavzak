@@ -9,7 +9,7 @@ interface Props {
   open: boolean;
   onClose: () => void;
   result: AutoAssignResult | null;
-  reassign: boolean;
+  reassign: 'partial' | 'full' | null;
   state: AppState;
   onConfirmReassign: () => void;
   onApply: () => void;
@@ -50,13 +50,14 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, onConf
 
   if (!open) return null;
 
-  // Confirmation screen: shown when reassign=true and result not yet computed
+  // Confirmation screen: shown when reassign mode is set and result not yet computed
   if (reassign && !result) {
+    const bodyKey = reassign === 'full' ? 'autoAssignReassignBodyFull' : 'autoAssignReassignBodyPartial';
     return (
       <Modal open={open} onClose={onClose} title={t('autoAssignReassignTitle', lang)} size="sm">
         <div className="space-y-4">
           <p className="text-sm text-slate-600 leading-relaxed">
-            {t('autoAssignReassignBody', lang)}
+            {t(bodyKey, lang)}
           </p>
           <div className="flex justify-end gap-2 pt-2 border-t rtl:flex-row-reverse">
             <Button variant="secondary" size="sm" onClick={onClose}>
