@@ -35,7 +35,7 @@ export function App() {
     updateConstraintMaxWeek, updateConstraintMaxTotal,
     updateConstraintMaxConsecutive, updateConstraintMinRest,
   } = usePeople(state, setState);
-  const { assign, unassign, moveAssignment, batchAssign, assignments } = useAssignments(state, setState);
+  const { assign, unassign, moveAssignment, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
   const { addHomeGroup, updateHomeGroup, deleteHomeGroup, setPersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -46,6 +46,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
+  const [autoAssignReassign, setAutoAssignReassign] = useState(false);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
 
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
@@ -72,24 +73,36 @@ export function App() {
 
   function handleOpenAutoAssign() {
     if (!activeSchedule) return;
-    const result = autoAssign(
-      activeSchedule,
-      state.people,
-      state.shifts,
-      state.positions,
-      state.minBreakHours,
-      state.homeGroups,
-    );
+    if (activeSchedule.assignments.length > 0) {
+      // Some cells are filled — show confirmation before reassigning
+      setAutoAssignResult(null);
+      setAutoAssignReassign(true);
+      setAutoAssignOpen(true);
+    } else {
+      const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups);
+      setAutoAssignResult(result);
+      setAutoAssignReassign(false);
+      setAutoAssignOpen(true);
+    }
+  }
+
+  function handleConfirmReassign() {
+    if (!activeSchedule) return;
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true);
     setAutoAssignResult(result);
-    setAutoAssignOpen(true);
   }
 
   function handleApplyAutoAssign() {
     if (autoAssignResult) {
-      batchAssign(autoAssignResult.proposed);
+      if (autoAssignReassign) {
+        clearAndBatchAssign(autoAssignResult.proposed);
+      } else {
+        batchAssign(autoAssignResult.proposed);
+      }
     }
     setAutoAssignOpen(false);
     setAutoAssignResult(null);
+    setAutoAssignReassign(false);
   }
 
   return (
@@ -252,9 +265,11 @@ export function App() {
 
       <AutoAssignModal
         open={autoAssignOpen}
-        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); }}
+        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); setAutoAssignReassign(false); }}
         result={autoAssignResult}
+        reassign={autoAssignReassign}
         state={state}
+        onConfirmReassign={handleConfirmReassign}
         onApply={handleApplyAutoAssign}
       />
 

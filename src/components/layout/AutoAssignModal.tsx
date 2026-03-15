@@ -9,7 +9,9 @@ interface Props {
   open: boolean;
   onClose: () => void;
   result: AutoAssignResult | null;
+  reassign: boolean;
   state: AppState;
+  onConfirmReassign: () => void;
   onApply: () => void;
 }
 
@@ -42,11 +44,34 @@ const SKIP_REASON_KEY: Record<SkipReason, { reason: string; suggestion: string }
   'all-invalid': { reason: 'skipAllInvalid', suggestion: 'suggestInvalid' },
 };
 
-export function AutoAssignModal({ open, onClose, result, state, onApply }: Props) {
+export function AutoAssignModal({ open, onClose, result, reassign, state, onConfirmReassign, onApply }: Props) {
   const [skippedExpanded, setSkippedExpanded] = useState(false);
   const lang = langFromDir(state.dir);
 
-  if (!open || !result) return null;
+  if (!open) return null;
+
+  // Confirmation screen: shown when reassign=true and result not yet computed
+  if (reassign && !result) {
+    return (
+      <Modal open={open} onClose={onClose} title={t('autoAssignReassignTitle', lang)} size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 leading-relaxed">
+            {t('autoAssignReassignBody', lang)}
+          </p>
+          <div className="flex justify-end gap-2 pt-2 border-t rtl:flex-row-reverse">
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              {t('cancel', lang)}
+            </Button>
+            <Button variant="danger" size="sm" onClick={onConfirmReassign}>
+              {t('autoAssignReassignBtn', lang)}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
+  if (!result) return null;
 
   const { proposed, skipped } = result;
   const allFilled = proposed.length === 0 && skipped.length === 0;

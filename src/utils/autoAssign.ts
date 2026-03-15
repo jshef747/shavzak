@@ -51,13 +51,15 @@ export function autoAssign(
   positions: Position[],
   minBreakHours: number,
   homeGroups: HomeGroup[] = [],
+  reassign = false,
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
 
   // Working copy of assignments — updated as the algorithm assigns, so that
   // break / week-limit checks account for assignments made in this very run.
-  const working: Assignment[] = [...schedule.assignments];
+  // When reassign=true, we start from scratch (ignore existing assignments).
+  const working: Assignment[] = reassign ? [] : [...schedule.assignments];
 
   // Reference date for shiftStartMins calculations (earliest schedule date).
   const refDate = schedule.startDate;
