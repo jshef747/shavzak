@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { langFromDir, t } from '../../utils/i18n';
 
 interface Props {
   dir: 'ltr' | 'rtl';
 }
 
-export function StatusLegend({ dir }: Props) {
+export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
   const lang = langFromDir(dir);
   const [open, setOpen] = useState(false);
 
@@ -17,12 +17,14 @@ export function StatusLegend({ dir }: Props) {
     { labelKey: 'statusUnqualified',       color: 'bg-yellow-100 border-yellow-500' },
     { labelKey: 'statusInsufficientBreak', color: 'bg-sky-100 border-sky-500' },
     { labelKey: 'statusConstraint',        color: 'bg-purple-100 border-purple-500' },
+    { labelKey: 'statusOncallShortBreak',  color: 'bg-orange-50 border-orange-400' },
   ];
 
   return (
     <div className="no-print fixed bottom-4 right-4 rtl:right-auto rtl:left-4 z-40">
       <button
         onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
         className="bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg hover:bg-slate-700 transition-colors"
       >
         {open ? t('hideLegend', lang) : t('legend', lang)}
@@ -39,4 +41,4 @@ export function StatusLegend({ dir }: Props) {
       )}
     </div>
   );
-}
+});

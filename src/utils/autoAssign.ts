@@ -28,6 +28,11 @@ function totalHours(personId: string, assignments: Assignment[], shifts: Shift[]
     }, 0);
 }
 
+/** Returns how many times a person has been assigned to a specific position. */
+function positionCount(personId: string, positionId: string, assignments: Assignment[]): number {
+  return assignments.filter(a => a.personId === personId && a.positionId === positionId).length;
+}
+
 /**
  * Auto-assigns people to all empty cells in the schedule.
  *
@@ -46,13 +51,15 @@ export function autoAssign(
   positions: Position[],
   minBreakHours: number,
   homeGroups: HomeGroup[] = [],
+  reassign = false,
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
 
   // Working copy of assignments — updated as the algorithm assigns, so that
   // break / week-limit checks account for assignments made in this very run.
-  const working: Assignment[] = [...schedule.assignments];
+  // When reassign=true, we start from scratch (ignore existing assignments).
+  const working: Assignment[] = reassign ? [] : [...schedule.assignments];
 
   // Reference date for shiftStartMins calculations (earliest schedule date).
   const refDate = schedule.startDate;
@@ -107,12 +114,15 @@ export function autoAssign(
     // Step 2: Check each qualified person's status.
     const statuses = qualified.map(person => ({
       person,
-      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, schedule.homeGroupPeriods ?? []),
+      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, schedule.homeGroupPeriods ?? [], positions),
     }));
 
     const valid = statuses.filter(s => s.status === 'valid');
+    // On-call short-break candidates are allowed but only used as a last resort
+    const oncallWarn = statuses.filter(s => s.status === 'oncall-short-break');
+    const candidates = valid.length > 0 ? valid : oncallWarn;
 
-    if (valid.length === 0) {
+    if (candidates.length === 0) {
       // Determine the dominant reason for skipping.
       const statusSet = new Set(statuses.map(s => s.status));
       let reasonKey: SkipReason;
@@ -131,15 +141,21 @@ export function autoAssign(
       continue;
     }
 
-    // Step 3: Sort valid candidates by fairness (ascending hours), then name.
-    valid.sort((a, b) => {
+    // Step 3: Sort candidates by fairness:
+    //   1. Total assigned hours (asc) — load balancing
+    //   2. Times assigned to THIS specific position (asc) — rotation across positions
+    //   3. Name alphabetically (asc) — stable tiebreaker
+    candidates.sort((a, b) => {
       const hoursA = totalHours(a.person.id, working, shifts);
       const hoursB = totalHours(b.person.id, working, shifts);
       if (hoursA !== hoursB) return hoursA - hoursB;
+      const posA = positionCount(a.person.id, cell.positionId, working);
+      const posB = positionCount(b.person.id, cell.positionId, working);
+      if (posA !== posB) return posA - posB;
       return a.person.name.localeCompare(b.person.name);
     });
 
-    const chosen = valid[0].person;
+    const chosen = candidates[0].person;
     const newAssignment: Assignment = {
       personId: chosen.id,
       date: cell.date,

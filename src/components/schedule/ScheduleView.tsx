@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useMemo } from 'react';
 import type { AppState, Assignment, HomeGroupPeriod, Position } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { DaySection } from './DaySection';
@@ -19,8 +19,8 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
   const refDate = dates[0];
   const lang = langFromDir(state.dir);
 
-  const regularPositions = state.positions.filter(pos => !pos.isOnCall);
-  const onCallPositions  = state.positions.filter(pos =>  pos.isOnCall);
+  const regularPositions = useMemo(() => state.positions.filter(pos => !pos.isOnCall), [state.positions]);
+  const onCallPositions  = useMemo(() => state.positions.filter(pos =>  pos.isOnCall), [state.positions]);
 
   function renderTable(positions: Position[], headerClass: string) {
     return (

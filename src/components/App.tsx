@@ -35,7 +35,7 @@ export function App() {
     updateConstraintMaxWeek, updateConstraintMaxTotal,
     updateConstraintMaxConsecutive, updateConstraintMinRest,
   } = usePeople(state, setState);
-  const { assign, unassign, moveAssignment, batchAssign, assignments } = useAssignments(state, setState);
+  const { assign, unassign, moveAssignment, swapAssignments, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
   const { addHomeGroup, updateHomeGroup, deleteHomeGroup, setPersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -46,6 +46,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
+  const [autoAssignReassign, setAutoAssignReassign] = useState<'partial' | 'full' | null>(null);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
 
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
@@ -54,7 +55,11 @@ export function App() {
 
   function handleExportExcel() {
     if (!activeSchedule) return;
-    exportToExcel(state, activeSchedule, dates);
+    try {
+      exportToExcel(state, activeSchedule, dates);
+    } catch {
+      window.alert(t('exportError', lang));
+    }
   }
 
   function updateMinBreakHours(hours: number) {
@@ -68,24 +73,39 @@ export function App() {
 
   function handleOpenAutoAssign() {
     if (!activeSchedule) return;
-    const result = autoAssign(
-      activeSchedule,
-      state.people,
-      state.shifts,
-      state.positions,
-      state.minBreakHours,
-      state.homeGroups,
-    );
+    if (activeSchedule.assignments.length > 0) {
+      // Some or all cells are filled — show confirmation before reassigning
+      const totalCells = dates.length * state.shifts.length * state.positions.length;
+      const mode = activeSchedule.assignments.length >= totalCells ? 'full' : 'partial';
+      setAutoAssignResult(null);
+      setAutoAssignReassign(mode);
+      setAutoAssignOpen(true);
+    } else {
+      const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups);
+      setAutoAssignResult(result);
+      setAutoAssignReassign(null);
+      setAutoAssignOpen(true);
+    }
+  }
+
+  function handleConfirmReassign() {
+    if (!activeSchedule) return;
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true);
     setAutoAssignResult(result);
-    setAutoAssignOpen(true);
   }
 
   function handleApplyAutoAssign() {
     if (autoAssignResult) {
-      batchAssign(autoAssignResult.proposed);
+      if (autoAssignReassign) {
+        clearAndBatchAssign(autoAssignResult.proposed);
+      } else {
+        batchAssign(autoAssignResult.proposed);
+      }
+
     }
     setAutoAssignOpen(false);
     setAutoAssignResult(null);
+    setAutoAssignReassign(null);
   }
 
   return (
@@ -115,6 +135,7 @@ export function App() {
         onAssign={assign}
         onUnassign={unassign}
         onMove={moveAssignment}
+        onSwap={swapAssignments}
         onDragStart={() => setSidebarOpen(false)}
       >
         <div className="flex flex-1 overflow-hidden">
@@ -248,9 +269,14 @@ export function App() {
 
       <AutoAssignModal
         open={autoAssignOpen}
-        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); }}
+        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); setAutoAssignReassign(null); }}
         result={autoAssignResult}
+        reassign={autoAssignReassign}
         state={state}
+        dates={dates}
+        baseAssignments={activeSchedule?.assignments ?? []}
+        homeGroupPeriods={activeSchedule?.homeGroupPeriods ?? []}
+        onConfirmReassign={handleConfirmReassign}
         onApply={handleApplyAutoAssign}
       />
 

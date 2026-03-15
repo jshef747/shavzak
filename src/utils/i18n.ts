@@ -110,6 +110,10 @@ const strings: Record<string, { en: string; he: string }> = {
   autoAssign: { en: 'Auto Assign', he: 'שיבוץ אוטומטי' },
   autoAssignTitle: { en: 'Auto Assignment Preview', he: 'תצוגה מקדימה – שיבוץ אוטומטי' },
   autoAssignAllFilled: { en: 'All cells are already filled!', he: 'כל התאים כבר מאויישים!' },
+  autoAssignReassignTitle: { en: 'Reassign All?', he: 'שיבוץ מחדש?' },
+  autoAssignReassignBodyFull: { en: 'All cells are already filled. This will clear every existing assignment and reassign from scratch.', he: 'כל התאים כבר מאויישים. פעולה זו תמחק את כל השיבוצים הקיימים ותשבץ מחדש מהתחלה.' },
+  autoAssignReassignBodyPartial: { en: 'Some cells are already assigned. Are you sure you want to clear them and reassign everything from scratch?', he: 'חלק מהתאים כבר מאויישים. האם אתה בטוח שברצונך למחוק אותם ולשבץ מחדש מהתחלה?' },
+  autoAssignReassignBtn: { en: 'Clear & Reassign', he: 'מחק ושבץ מחדש' },
   autoAssignApply: { en: 'Apply', he: 'החל' },
   autoAssignProposedHeader: { en: 'Proposed Assignments', he: 'שיבוצים מוצעים' },
   autoAssignSkippedHeader: { en: 'Skipped Cells', he: 'תאים שדולגו' },
@@ -164,6 +168,9 @@ const strings: Record<string, { en: string; he: string }> = {
   tooltipHomeGroup: { en: 'Person is on home leave', he: 'האדם נמצא ביציאה' },
   tooltipHomeGroupDeparture: { en: 'Departure day — available until 12:00', he: 'יום יציאה — זמין עד 12:00' },
   tooltipHomeGroupReturn: { en: 'Return day — available from 12:00', he: 'יום חזרה — זמין מ-12:00' },
+  exportError: { en: 'Export failed. Please try again.', he: 'הייצוא נכשל. אנא נסה שנית.' },
+  statusOncallShortBreak:  { en: 'On-call short break', he: 'כוננות – הפסקה קצרה' },
+  tooltipOncallShortBreak: { en: 'Back-to-back on-call shifts with reduced break (≥ half minimum)', he: 'משמרות כוננות רצופות עם הפסקה מופחתת (≥ חצי מינימום)' },
 };
 
 export function t(key: string, lang: Lang): string {

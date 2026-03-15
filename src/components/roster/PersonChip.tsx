@@ -1,19 +1,21 @@
+import { memo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import type { DragData, CellAddress } from '../../types';
 import { serializeCellAddress } from '../../utils/cellKey';
-import { personPalette, personInitials } from '../../utils/personColor';
+import { personInitials } from '../../utils/personColor';
 
 interface Props {
   personId: string;
   name: string;
+  colorHex: string;
   source: 'pool' | 'cell';
   sourceCell?: CellAddress;
   variant?: 'pool' | 'cell';
   dimmed?: boolean;
 }
 
-export function PersonChip({ personId, name, source, sourceCell, variant = 'pool', dimmed = false }: Props) {
+export const PersonChip = memo(function PersonChip({ personId, name, colorHex, source, sourceCell, variant = 'pool', dimmed = false }: Props) {
   const draggableId = sourceCell
     ? `${personId}::cell::${serializeCellAddress(sourceCell)}`
     : `${personId}::pool`;
@@ -34,7 +36,6 @@ export function PersonChip({ personId, name, source, sourceCell, variant = 'pool
     opacity: isDragging ? 0.4 : 1,
   };
 
-  const palette = personPalette(name);
   const initials = personInitials(name);
 
   if (variant === 'cell') {
@@ -44,9 +45,13 @@ export function PersonChip({ personId, name, source, sourceCell, variant = 'pool
         style={style}
         {...attributes}
         {...listeners}
-        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 shadow-sm ring-1 ${palette.ring} text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
+        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
+        // Colored ring using boxShadow
       >
-        <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold ${palette.bg} ${palette.text} shrink-0`}>
+        <span
+          className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
+          style={{ backgroundColor: colorHex, color: '#1e293b' }}
+        >
           {initials}
         </span>
         <span className="truncate text-gray-800">{name}</span>
@@ -58,17 +63,18 @@ export function PersonChip({ personId, name, source, sourceCell, variant = 'pool
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{ ...style, backgroundColor: colorHex, borderColor: colorHex }}
       {...attributes}
       {...listeners}
-      className={`flex rtl:flex-row-reverse items-center gap-2 px-2 py-1 rounded border text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-opacity ${
-        dimmed ? 'opacity-40' : ''
-      } ${palette.light}`}
+      className={`flex rtl:flex-row-reverse items-center gap-2 px-2 py-1 rounded border text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-opacity ${dimmed ? 'opacity-40' : ''}`}
     >
-      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${palette.bg} ${palette.text} shrink-0`}>
+      <span
+        className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+        style={{ backgroundColor: 'rgba(0,0,0,0.15)', color: '#1e293b' }}
+      >
         {initials}
       </span>
-      {name}
+      <span style={{ color: '#1e293b' }}>{name}</span>
     </div>
   );
-}
+});

@@ -37,6 +37,7 @@ export interface HomeGroupPeriod {
 export interface Person {
   id: string;
   name: string;
+  colorHex: string;             // unique pastel hex color assigned at creation
   homeGroupId: string | null;
   qualifiedPositions: string[];
   unavailability: UnavailabilityEntry[];
@@ -72,7 +73,7 @@ export interface DragData {
 export type CellStatus =
   | 'empty' | 'valid' | 'unavailable' | 'home-group'
   | 'double-booked' | 'unqualified' | 'insufficient-break'
-  | 'constraint-violation';
+  | 'constraint-violation' | 'oncall-short-break';
 
 export interface AppState {
   shifts: Shift[];

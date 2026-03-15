@@ -22,10 +22,11 @@ const STATUS_CLASSES: Record<CellStatus, string> = {
   unqualified:            'bg-yellow-100 border-yellow-500',
   'insufficient-break':   'bg-sky-100 border-sky-500',
   'constraint-violation': 'bg-purple-100 border-purple-500',
+  'oncall-short-break':   'bg-orange-50 border-orange-400',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
-  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation',
+  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
 export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
@@ -41,28 +42,37 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
-    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods)
+    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
     : 'empty';
 
-  // Drag-over preview: green if valid drop, red if not
+  // Detect drag-over scenario
   let dragOverClass = 'bg-indigo-50 border-indigo-400';
+  let isSwapHover = false;
   if (isOver && active) {
     const dragData = active.data.current as DragData | undefined;
     if (dragData) {
-      const dragPerson = state.people.find(p => p.id === dragData.personId);
-      if (dragPerson) {
-        const previewAssignments = dragData.type === 'from-cell' && dragData.sourceCell
-          ? assignments.filter(a => !(
-              a.personId === dragData.personId &&
-              a.date === dragData.sourceCell!.date &&
-              a.shiftId === dragData.sourceCell!.shiftId &&
-              a.positionId === dragData.sourceCell!.positionId
-            ))
-          : assignments;
-        const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods);
-        dragOverClass = (previewStatus === 'valid' || previewStatus === 'empty')
-          ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-400'
-          : 'bg-red-100 border-red-500 ring-1 ring-red-400';
+      const isFromCell = dragData.type === 'from-cell' && dragData.sourceCell;
+      isSwapHover = !!(isFromCell && person);
+
+      if (isSwapHover) {
+        // Swap: show indigo indicator regardless of validity
+        dragOverClass = 'bg-indigo-100 border-indigo-500 ring-1 ring-indigo-400';
+      } else {
+        const dragPerson = state.people.find(p => p.id === dragData.personId);
+        if (dragPerson) {
+          const previewAssignments = isFromCell
+            ? assignments.filter(a => !(
+                a.personId === dragData.personId &&
+                a.date === dragData.sourceCell!.date &&
+                a.shiftId === dragData.sourceCell!.shiftId &&
+                a.positionId === dragData.sourceCell!.positionId
+              ))
+            : assignments;
+          const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
+          dragOverClass = (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break')
+            ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-400'
+            : 'bg-red-100 border-red-500 ring-1 ring-red-400';
+        }
       }
     }
   }
@@ -78,6 +88,7 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
     unqualified: t('tooltipUnqualified', lang),
     'insufficient-break': t('tooltipBreak', lang),
     'constraint-violation': t('tooltipConstraint', lang),
+    'oncall-short-break': t('tooltipOncallShortBreak', lang),
   };
 
   const warningText = person && WARNING_STATUSES.has(status)
@@ -95,10 +106,19 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
         <PersonChip
           personId={person.id}
           name={person.name}
+          colorHex={person.colorHex}
           source="cell"
           sourceCell={cell}
           variant="cell"
         />
+      )}
+
+      {isSwapHover && (
+        <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-500 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
+          </svg>
+        </span>
       )}
 
       {warningText && (

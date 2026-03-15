@@ -1,11 +1,14 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { AppState, Person, ShiftConstraint, UnavailabilityEntry, DayOfWeek } from '../types';
+import { pickPersonColor } from '../utils/personColor';
 
-export function usePeople(_state: AppState, setState: Dispatch<SetStateAction<AppState>>) {
+export function usePeople(state: AppState, setState: Dispatch<SetStateAction<AppState>>) {
   function addPerson(name: string) {
+    const usedColors = state.people.map(p => p.colorHex);
     const person: Person = {
       id: crypto.randomUUID(),
       name,
+      colorHex: pickPersonColor(usedColors),
       homeGroupId: null,
       qualifiedPositions: [],
       unavailability: [],

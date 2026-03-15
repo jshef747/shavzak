@@ -83,5 +83,44 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
     }));
   }
 
-  return { assign, unassign, moveAssignment, batchAssign, assignments: schedule?.assignments ?? [] };
+  function clearAndBatchAssign(newAssignments: Assignment[]) {
+    if (!schedule) return;
+    const now = new Date().toISOString();
+    setState(prev => ({
+      ...prev,
+      schedules: prev.schedules.map(s => {
+        if (s.id !== state.activeScheduleId) return s;
+        return { ...s, assignments: newAssignments, updatedAt: now };
+      }),
+    }));
+  }
+
+  function swapAssignments(cellA: CellAddress, cellB: CellAddress) {
+    if (!schedule) return;
+    const now = new Date().toISOString();
+    setState(prev => ({
+      ...prev,
+      schedules: prev.schedules.map(s => {
+        if (s.id !== state.activeScheduleId) return s;
+        const assignA = s.assignments.find(a => a.date === cellA.date && a.shiftId === cellA.shiftId && a.positionId === cellA.positionId);
+        const assignB = s.assignments.find(a => a.date === cellB.date && a.shiftId === cellB.shiftId && a.positionId === cellB.positionId);
+        if (!assignA || !assignB) return s;
+        const without = s.assignments.filter(
+          a => !(a.date === cellA.date && a.shiftId === cellA.shiftId && a.positionId === cellA.positionId) &&
+               !(a.date === cellB.date && a.shiftId === cellB.shiftId && a.positionId === cellB.positionId)
+        );
+        return {
+          ...s,
+          assignments: [
+            ...without,
+            { personId: assignB.personId, date: cellA.date, shiftId: cellA.shiftId, positionId: cellA.positionId },
+            { personId: assignA.personId, date: cellB.date, shiftId: cellB.shiftId, positionId: cellB.positionId },
+          ],
+          updatedAt: now,
+        };
+      }),
+    }));
+  }
+
+  return { assign, unassign, moveAssignment, swapAssignments, batchAssign, clearAndBatchAssign, assignments: schedule?.assignments ?? [] };
 }
