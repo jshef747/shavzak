@@ -272,6 +272,9 @@ export function App() {
         result={autoAssignResult}
         reassign={autoAssignReassign}
         state={state}
+        dates={dates}
+        baseAssignments={activeSchedule?.assignments ?? []}
+        homeGroupPeriods={activeSchedule?.homeGroupPeriods ?? []}
         onConfirmReassign={handleConfirmReassign}
         onApply={handleApplyAutoAssign}
       />
