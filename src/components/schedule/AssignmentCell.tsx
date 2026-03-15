@@ -22,10 +22,11 @@ const STATUS_CLASSES: Record<CellStatus, string> = {
   unqualified:            'bg-yellow-100 border-yellow-500',
   'insufficient-break':   'bg-sky-100 border-sky-500',
   'constraint-violation': 'bg-purple-100 border-purple-500',
+  'oncall-short-break':   'bg-orange-50 border-orange-400',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
-  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation',
+  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
 export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
@@ -41,7 +42,7 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
-    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods)
+    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
     : 'empty';
 
   // Drag-over preview: green if valid drop, red if not
@@ -59,8 +60,8 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
               a.positionId === dragData.sourceCell!.positionId
             ))
           : assignments;
-        const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods);
-        dragOverClass = (previewStatus === 'valid' || previewStatus === 'empty')
+        const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
+        dragOverClass = (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break')
           ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-400'
           : 'bg-red-100 border-red-500 ring-1 ring-red-400';
       }
@@ -78,6 +79,7 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
     unqualified: t('tooltipUnqualified', lang),
     'insufficient-break': t('tooltipBreak', lang),
     'constraint-violation': t('tooltipConstraint', lang),
+    'oncall-short-break': t('tooltipOncallShortBreak', lang),
   };
 
   const warningText = person && WARNING_STATUSES.has(status)

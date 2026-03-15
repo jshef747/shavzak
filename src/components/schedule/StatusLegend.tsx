@@ -17,6 +17,7 @@ export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
     { labelKey: 'statusUnqualified',       color: 'bg-yellow-100 border-yellow-500' },
     { labelKey: 'statusInsufficientBreak', color: 'bg-sky-100 border-sky-500' },
     { labelKey: 'statusConstraint',        color: 'bg-purple-100 border-purple-500' },
+    { labelKey: 'statusOncallShortBreak',  color: 'bg-orange-50 border-orange-400' },
   ];
 
   return (

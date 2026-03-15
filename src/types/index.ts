@@ -73,7 +73,7 @@ export interface DragData {
 export type CellStatus =
   | 'empty' | 'valid' | 'unavailable' | 'home-group'
   | 'double-booked' | 'unqualified' | 'insufficient-break'
-  | 'constraint-violation';
+  | 'constraint-violation' | 'oncall-short-break';
 
 export interface AppState {
   shifts: Shift[];

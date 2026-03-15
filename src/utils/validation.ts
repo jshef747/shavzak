@@ -1,5 +1,5 @@
 import { getDay, parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
-import type { Assignment, CellAddress, CellStatus, HomeGroup, HomeGroupPeriod, Person, Shift, DayOfWeek } from '../types';
+import type { Assignment, CellAddress, CellStatus, HomeGroup, HomeGroupPeriod, Person, Position, Shift, DayOfWeek } from '../types';
 import { type Lang, tf, DAY_LABELS_HE } from './i18n';
 
 /**
@@ -77,6 +77,7 @@ export function computeCellStatus(
   minBreakHours = 12,
   homeGroups: HomeGroup[] = [],
   homeGroupPeriods: HomeGroupPeriod[] = [],
+  positions: Position[] = [],
 ): CellStatus {
   const targetShift = shifts.find(s => s.id === cell.shiftId);
   if (!targetShift) return 'empty';
@@ -106,6 +107,9 @@ export function computeCellStatus(
   // 4. Insufficient break
   const targetStart = shiftStartMins(cell.date, targetShift, refDate);
   const targetEnd = shiftEndMins(cell.date, targetShift, refDate);
+  const targetPosition = positions.find(p => p.id === cell.positionId);
+
+  let shortBreakOnCall = false; // tracks if we hit an on-call reduced-break situation
 
   for (const a of personAssignments) {
     if (a.date === cell.date && a.shiftId === cell.shiftId) continue; // same slot, skip
@@ -116,8 +120,23 @@ export function computeCellStatus(
 
     // gap between the two shifts (negative means overlap)
     const gap = Math.max(targetStart - existingEnd, existingStart - targetEnd);
-    if (gap < minBreakHours * 60) return 'insufficient-break';
+    if (gap < minBreakHours * 60) {
+      // Check if both positions are on-call — allows reduced break threshold
+      const existingPosition = positions.find(p => p.id === a.positionId);
+      if (targetPosition?.isOnCall && existingPosition?.isOnCall) {
+        // On-call: allowed if gap >= half the minimum break
+        if (gap >= (minBreakHours / 2) * 60) {
+          shortBreakOnCall = true; // flag it but continue checking other assignments
+        } else {
+          return 'insufficient-break'; // too close even for on-call
+        }
+      } else {
+        return 'insufficient-break'; // regular position: strict break required
+      }
+    }
   }
+
+  if (shortBreakOnCall) return 'oncall-short-break';
 
   // 5. Repeating constraint violation
   if (person.constraints) {

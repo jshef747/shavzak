@@ -165,6 +165,8 @@ const strings: Record<string, { en: string; he: string }> = {
   tooltipHomeGroupDeparture: { en: 'Departure day — available until 12:00', he: 'יום יציאה — זמין עד 12:00' },
   tooltipHomeGroupReturn: { en: 'Return day — available from 12:00', he: 'יום חזרה — זמין מ-12:00' },
   exportError: { en: 'Export failed. Please try again.', he: 'הייצוא נכשל. אנא נסה שנית.' },
+  statusOncallShortBreak:  { en: 'On-call short break', he: 'כוננות – הפסקה קצרה' },
+  tooltipOncallShortBreak: { en: 'Back-to-back on-call shifts with reduced break (≥ half minimum)', he: 'משמרות כוננות רצופות עם הפסקה מופחתת (≥ חצי מינימום)' },
 };
 
 export function t(key: string, lang: Lang): string {
