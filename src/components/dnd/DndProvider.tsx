@@ -20,10 +20,11 @@ interface Props {
   onAssign: (cell: CellAddress, personId: string) => void;
   onUnassign: (cell: CellAddress) => void;
   onMove: (source: CellAddress, target: CellAddress, personId: string) => void;
+  onSwap: (cellA: CellAddress, cellB: CellAddress) => void;
   onDragStart?: () => void;
 }
 
-export function DndProvider({ state, assignments: _assignments, refDate: _refDate, children, onAssign, onUnassign, onMove, onDragStart }: Props) {
+export function DndProvider({ state, assignments, refDate: _refDate, children, onAssign, onUnassign, onMove, onSwap, onDragStart }: Props) {
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
 
   const sensors = useSensors(
@@ -69,7 +70,14 @@ export function DndProvider({ state, assignments: _assignments, refDate: _refDat
         src.positionId === targetCell.positionId
       ) return; // same cell, no-op
 
-      onMove(src, targetCell, dragData.personId);
+      const targetOccupied = assignments.some(
+        a => a.date === targetCell.date && a.shiftId === targetCell.shiftId && a.positionId === targetCell.positionId
+      );
+      if (targetOccupied) {
+        onSwap(src, targetCell);
+      } else {
+        onMove(src, targetCell, dragData.personId);
+      }
     } else {
       onAssign(targetCell, dragData.personId);
     }

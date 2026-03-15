@@ -35,7 +35,7 @@ export function App() {
     updateConstraintMaxWeek, updateConstraintMaxTotal,
     updateConstraintMaxConsecutive, updateConstraintMinRest,
   } = usePeople(state, setState);
-  const { assign, unassign, moveAssignment, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
+  const { assign, unassign, moveAssignment, swapAssignments, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
   const { addHomeGroup, updateHomeGroup, deleteHomeGroup, setPersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
@@ -135,6 +135,7 @@ export function App() {
         onAssign={assign}
         onUnassign={unassign}
         onMove={moveAssignment}
+        onSwap={swapAssignments}
         onDragStart={() => setSidebarOpen(false)}
       >
         <div className="flex flex-1 overflow-hidden">
