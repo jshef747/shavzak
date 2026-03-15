@@ -1,29 +1,35 @@
-// Deterministic per-name color assignment with a 10-color palette
+// ─── 150-color pastel palette ────────────────────────────────────────────────
+// Generated from evenly-distributed hues (0–360°) at S=65%, L=80%.
+// Light enough for dark text (#1e293b) to be readable on top.
 
-const PALETTES = [
-  { bg: 'bg-rose-500',    text: 'text-white', ring: 'ring-rose-300',    light: 'bg-rose-50 border-rose-200 text-rose-800' },
-  { bg: 'bg-orange-500',  text: 'text-white', ring: 'ring-orange-300',  light: 'bg-orange-50 border-orange-200 text-orange-800' },
-  { bg: 'bg-amber-500',   text: 'text-white', ring: 'ring-amber-300',   light: 'bg-amber-50 border-amber-200 text-amber-800' },
-  { bg: 'bg-lime-600',    text: 'text-white', ring: 'ring-lime-300',    light: 'bg-lime-50 border-lime-200 text-lime-800' },
-  { bg: 'bg-teal-500',    text: 'text-white', ring: 'ring-teal-300',    light: 'bg-teal-50 border-teal-200 text-teal-800' },
-  { bg: 'bg-cyan-600',    text: 'text-white', ring: 'ring-cyan-300',    light: 'bg-cyan-50 border-cyan-200 text-cyan-800' },
-  { bg: 'bg-blue-500',    text: 'text-white', ring: 'ring-blue-300',    light: 'bg-blue-50 border-blue-200 text-blue-800' },
-  { bg: 'bg-violet-500',  text: 'text-white', ring: 'ring-violet-300',  light: 'bg-violet-50 border-violet-200 text-violet-800' },
-  { bg: 'bg-pink-500',    text: 'text-white', ring: 'ring-pink-300',    light: 'bg-pink-50 border-pink-200 text-pink-800' },
-  { bg: 'bg-indigo-500',  text: 'text-white', ring: 'ring-indigo-300',  light: 'bg-indigo-50 border-indigo-200 text-indigo-800' },
-];
-
-function hashName(name: string): number {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) {
-    h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return h;
+function hslToHex(h: number, s: number, l: number): string {
+  s /= 100;
+  l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const col = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * col).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-export function personPalette(name: string) {
-  return PALETTES[hashName(name) % PALETTES.length];
+export const PALETTE_150: string[] = Array.from({ length: 150 }, (_, i) =>
+  hslToHex(Math.round((i * 360) / 150), 65, 80)
+);
+
+/**
+ * Randomly pick a color that is NOT already in use.
+ * Falls back to any random color from the full palette if all 150 are taken.
+ */
+export function pickPersonColor(usedColors: string[]): string {
+  const usedSet = new Set(usedColors);
+  const available = PALETTE_150.filter(c => !usedSet.has(c));
+  const pool = available.length > 0 ? available : PALETTE_150;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
+
+// ─── Initials helper (kept from original) ────────────────────────────────────
 
 export function personInitials(name: string): string {
   const parts = name.trim().split(/\s+/);

@@ -37,6 +37,7 @@ export interface HomeGroupPeriod {
 export interface Person {
   id: string;
   name: string;
+  colorHex: string;             // unique pastel hex color assigned at creation
   homeGroupId: string | null;
   qualifiedPositions: string[];
   unavailability: UnavailabilityEntry[];

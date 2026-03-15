@@ -13,31 +13,9 @@ function formatTime(h: number): string {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-// Same hash as personColor.ts — kept local to avoid coupling
-function hashName(name: string): number {
-  let h = 0;
-  for (let i = 0; i < name.length; i++) {
-    h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  }
-  return h;
-}
-
-// Tailwind -200 pastels (same palette order as personColor.ts)
-const PALETTE_BG = [
-  'FECDD3', // rose-200
-  'FED7AA', // orange-200
-  'FDE68A', // amber-200
-  'D9F99D', // lime-200
-  '99F6E4', // teal-200
-  'A5F3FC', // cyan-200
-  'BFDBFE', // blue-200
-  'DDD6FE', // violet-200
-  'FBCFE8', // pink-200
-  'C7D2FE', // indigo-200
-];
-
-function personBgHex(name: string): string {
-  return PALETTE_BG[hashName(name) % PALETTE_BG.length];
+// Strip leading '#' from a hex color for xlsx-js-style (expects 6-char hex, no #)
+function toXlsxRgb(hex: string): string {
+  return hex.startsWith('#') ? hex.slice(1) : hex;
 }
 
 // ─── Style presets ──────────────────────────────────────────────────────────
@@ -65,9 +43,9 @@ const STYLE_EMPTY_CELL = {
   alignment: { horizontal: 'center', vertical: 'center' },
 };
 
-function personStyle(name: string) {
+function personStyle(colorHex: string) {
   return {
-    fill: { patternType: 'solid', fgColor: { rgb: personBgHex(name) } },
+    fill: { patternType: 'solid', fgColor: { rgb: toXlsxRgb(colorHex) } },
     font: { color: { rgb: '1F2937' }, sz: 10 }, // slate-800, always readable on pastels
     alignment: { horizontal: 'center', vertical: 'center' },
   };
@@ -127,7 +105,7 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
         if (assignment) {
           const person = people.find(p => p.id === assignment.personId);
           const name = person?.name ?? '';
-          ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci + 1 })] = cell(name, personStyle(name));
+          ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci + 1 })] = cell(name, personStyle(person?.colorHex ?? '#e2e8f0'));
         } else {
           ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci + 1 })] = cell('', STYLE_EMPTY_CELL);
         }

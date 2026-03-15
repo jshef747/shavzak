@@ -95,6 +95,7 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
         <PersonChip
           personId={person.id}
           name={person.name}
+          colorHex={person.colorHex}
           source="cell"
           sourceCell={cell}
           variant="cell"

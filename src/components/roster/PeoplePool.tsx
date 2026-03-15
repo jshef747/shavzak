@@ -38,6 +38,7 @@ export function PeoplePool({ state, assignedPersonIds, onEditPerson, onDeletePer
               <PersonChip
                 personId={person.id}
                 name={person.name}
+                colorHex={person.colorHex}
                 source="pool"
                 variant="pool"
                 dimmed={assignedPersonIds.has(person.id)}

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { AppState, Assignment } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
-import { personPalette, personInitials } from '../../utils/personColor';
+import { personInitials } from '../../utils/personColor';
 
 interface Props {
   state: AppState;
@@ -30,11 +30,13 @@ export function HoursTracker({ state, assignments }: Props) {
       </h3>
       <div className="space-y-1.5">
         {hoursPerPerson.map(({ person, total }) => {
-          const palette = personPalette(person.name);
           const initials = personInitials(person.name);
           return (
             <div key={person.id} className="flex rtl:flex-row-reverse items-center gap-2 text-xs">
-              <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${palette.bg} ${palette.text} shrink-0`}>
+              <span
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                style={{ backgroundColor: person.colorHex, color: '#1e293b' }}
+              >
                 {initials}
               </span>
               <span className="text-gray-700 truncate flex-1">{person.name}</span>
