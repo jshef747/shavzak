@@ -108,7 +108,6 @@ export function TopBar({
               variant="danger"
               size="sm"
               onClick={() => setDeleteConfirmOpen(true)}
-              className="hidden md:inline-flex"
             >
               {t('delete', lang)}
             </Button>
