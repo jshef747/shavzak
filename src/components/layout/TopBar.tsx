@@ -22,6 +22,7 @@ interface Props {
   userEmail?: string;
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
+  hideSidebar?: boolean;
 }
 
 export function TopBar({
@@ -38,6 +39,7 @@ export function TopBar({
   userEmail,
   onOpenAuthModal,
   onLogout,
+  hideSidebar = false,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -70,7 +72,7 @@ export function TopBar({
         <button
           onClick={onToggleSidebar}
           aria-label="Toggle roster"
-          className="md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0"
+          className={`md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -78,8 +80,8 @@ export function TopBar({
         </button>
 
         {/* Zone 1: Wordmark */}
-        <span className="text-base font-semibold text-gray-900 shrink-0">שבצק</span>
-        <div className="w-px h-5 bg-gray-200 shrink-0" />
+        <span className="hidden md:block text-base font-semibold text-gray-900 shrink-0">שבצק</span>
+        <div className="hidden md:block w-px h-5 bg-gray-200 shrink-0" />
 
         {/* Zone 2: Schedule selector */}
         <div className="flex gap-2 items-center">
@@ -117,11 +119,11 @@ export function TopBar({
         <div className="ml-auto rtl:ml-0 rtl:mr-auto flex items-center gap-2 shrink-0">
           {activeSchedule && (
             <>
-              <Button variant="primary" size="sm" onClick={onAutoAssign}>
+              <Button variant="primary" size="sm" onClick={onAutoAssign} className="hidden md:inline-flex">
                 {t('autoAssign', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onOpenHomePeriods}
-                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white">
+                className="hidden md:inline-flex !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white">
                 {t('homePeriods', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onExportExcel}
@@ -152,7 +154,7 @@ export function TopBar({
           <button
             onClick={() => setGuideOpen(true)}
             title={t('quickStartTitle', lang)}
-            className="hidden md:block p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-sm font-bold leading-none"
+            className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-sm font-bold leading-none"
           >
             ?
           </button>
@@ -172,7 +174,7 @@ export function TopBar({
           <button
             onClick={onToggleSidebar}
             aria-label="Toggle roster"
-            className="ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0"
+            className={`ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

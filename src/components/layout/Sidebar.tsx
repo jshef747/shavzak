@@ -1,21 +1,7 @@
-import { useState, useEffect } from 'react';
 import type { AppState, Assignment } from '../../types';
 import { PeoplePool } from '../roster/PeoplePool';
 import { HoursTracker } from '../tracker/HoursTracker';
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 767px)');
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener('change', handler);
-    setIsMobile(mq.matches);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  return isMobile;
-}
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface Props {
   state: AppState;

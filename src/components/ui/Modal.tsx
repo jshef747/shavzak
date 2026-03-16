@@ -34,7 +34,7 @@ export function Modal({ open, onClose, title, children, size = 'md' }: ModalProp
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-4 right-4 rtl:right-auto rtl:left-4 text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-1.5 rounded-full text-xl leading-none transition-colors duration-150"
+            className="absolute top-3 right-3 rtl:right-auto rtl:left-3 text-gray-400 hover:text-gray-700 hover:bg-gray-100 p-2.5 rounded-full text-xl leading-none transition-colors duration-150"
           >
             <span className="sr-only">Close</span>
             ×
