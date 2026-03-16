@@ -25,14 +25,14 @@ export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
       <button
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="bg-slate-800 text-white text-xs px-2.5 py-1.5 rounded-md shadow-lg hover:bg-slate-700 transition-colors"
+        className="bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md shadow-sm hover:bg-gray-700 transition-colors duration-150"
       >
         {open ? t('hideLegend', lang) : t('legend', lang)}
       </button>
       {open && (
-        <div className="absolute bottom-full mb-1 right-0 rtl:right-auto rtl:left-0 bg-white border border-slate-200 rounded-lg shadow-xl p-3 space-y-1.5 min-w-[190px]">
+        <div className="absolute bottom-full mb-1 right-0 rtl:right-auto rtl:left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-3 space-y-1.5 min-w-[190px]">
           {legendItems.map(item => (
-            <div key={item.labelKey} className="flex items-center gap-2 text-xs text-slate-700">
+            <div key={item.labelKey} className="flex items-center gap-2 text-xs text-gray-700">
               <span className={`w-4 h-4 rounded border-2 shrink-0 ${item.color}`} />
               {t(item.labelKey, lang)}
             </div>

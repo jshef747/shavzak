@@ -148,7 +148,7 @@ export function QuickStartModal({ open, onClose, dir = 'ltr' }: Props) {
               key={i}
               onClick={() => setStep(i)}
               className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
-                i === step ? 'bg-indigo-600 scale-125' : 'bg-slate-200 hover:bg-slate-300'
+                i === step ? 'bg-blue-600 scale-110' : 'bg-gray-200 hover:bg-gray-300'
               }`}
             />
           ))}
@@ -156,13 +156,13 @@ export function QuickStartModal({ open, onClose, dir = 'ltr' }: Props) {
 
         {/* Step content */}
         <div className="flex-1 flex flex-col items-center px-4 sm:px-6">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50/80 border border-indigo-100/50 text-indigo-600 flex items-center justify-center mb-6 shrink-0 shadow-sm rotate-3 hover:rotate-0 transition-transform">
+          <div className="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center mb-6 shrink-0 shadow-sm rotate-3 hover:rotate-0 transition-transform">
             {current.icon}
           </div>
-          <h3 className="text-xl font-bold text-slate-800 mb-3 text-center tracking-tight">
+          <h3 className="text-xl font-bold text-gray-900 mb-3 text-center tracking-tight">
             {current.title}
           </h3>
-          <div className="text-sm md:text-base text-slate-600 leading-relaxed text-left rtl:text-right w-full">
+          <div className="text-sm md:text-base text-gray-600 leading-relaxed text-left rtl:text-right w-full">
             {typeof current.description === 'string' ? (
               <p>{current.description}</p>
             ) : (
@@ -172,30 +172,30 @@ export function QuickStartModal({ open, onClose, dir = 'ltr' }: Props) {
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between mt-8 pt-5 border-t border-slate-100">
+        <div className="flex items-center justify-between mt-8 pt-5 border-t border-gray-100">
           <button
             onClick={() => setStep(s => Math.max(0, s - 1))}
             disabled={step === 0}
-            className="px-4 py-2 text-sm font-medium text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-50 rounded-lg disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-150"
           >
             {t('back', lang)}
           </button>
-          
-          <span className="text-xs font-medium text-slate-400 tracking-wider" dir="ltr">
+
+          <span className="text-xs font-medium text-gray-400 tracking-wider" dir="ltr">
             {step + 1} / {STEPS.length}
           </span>
-          
+
           {step < STEPS.length - 1 ? (
             <button
               onClick={() => setStep(s => s + 1)}
-              className="px-4 py-2 text-sm font-semibold text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 rounded-lg transition-all"
+              className="px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-150"
             >
               {t('next', lang)}
             </button>
           ) : (
             <button
               onClick={onClose}
-              className="px-5 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 hover:shadow-indigo-500/30 hover:shadow-lg transition-all active:scale-95"
+              className="px-5 py-2 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-150"
             >
               {t('done', lang)}
             </button>

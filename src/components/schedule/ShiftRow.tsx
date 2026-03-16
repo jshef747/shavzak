@@ -22,7 +22,7 @@ function formatShiftTime(h: number) {
 
 export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
   const endHour = shift.startHour + shift.durationHours;
-  const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
+  const rowBg = dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white';
 
   return (
     <tr className={`border-b ${rowBg}`}>

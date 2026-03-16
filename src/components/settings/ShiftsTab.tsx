@@ -84,7 +84,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
 
       <div className="flex-1 min-w-0">
         <input
-          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
           value={shift.name}
           onChange={e => onUpdate(shift.id, { name: e.target.value })}
           placeholder={t('shiftNamePlaceholder', lang)}
@@ -97,7 +97,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
           <input
             type="time"
             dir="ltr"
-            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
             value={hourToTime(shift.startHour)}
             onChange={e => onUpdate(shift.id, { startHour: timeToHour(e.target.value) })}
           />
@@ -106,7 +106,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
           <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('durationH', lang)}</span>
           <input
             type="number"
-            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
             value={shift.durationHours}
             min={0.5} max={24} step={0.5}
             onChange={e => onUpdate(shift.id, { durationHours: parseFloat(e.target.value) || 0.5 })}
@@ -187,8 +187,8 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
       {/* Current Shifts */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -218,7 +218,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
               value={templateName}
               onChange={e => setTemplateName(e.target.value)}
               placeholder={lang === 'he' ? 'שם התבנית...' : 'Template name...'}
-              className="flex-1 text-sm border border-indigo-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              className="flex-1 text-sm border border-blue-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
             <Button type="submit" variant="primary" size="sm" disabled={!templateName.trim() || saving}>
               {saving ? '...' : t('save', lang)}
@@ -230,19 +230,19 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
         )}
 
         {shiftSets.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-indigo-50/50 rounded-lg border border-indigo-100">
-            <span className="text-xs font-medium text-indigo-800">{t('quickPresets', lang)}</span>
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+            <span className="text-xs font-medium text-blue-800">{t('quickPresets', lang)}</span>
             {shiftSets.map(set => (
-              <div key={set.id} className="inline-flex items-center bg-white border border-indigo-200 shadow-sm rounded-full overflow-hidden">
+              <div key={set.id} className="inline-flex items-center bg-white border border-blue-200 shadow-sm rounded-full overflow-hidden">
                 <button
                   onClick={() => handleLoadTemplate(set.shifts)}
-                  className="text-xs px-2.5 py-1 text-indigo-700 hover:bg-indigo-50 transition-colors"
+                  className="text-xs px-2.5 py-1 text-blue-700 hover:bg-blue-50 transition-colors"
                 >
                   {set.name}
                 </button>
                 <button 
                   onClick={() => onDeleteShiftSet(set.id)}
-                  className="px-1.5 py-1 text-indigo-400 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-indigo-100"
+                  className="px-1.5 py-1 text-blue-400 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-blue-100"
                   title={t('delete', lang)}
                 >
                   ×
@@ -351,7 +351,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             <input
               type="number"
               dir="ltr"
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
               value={state.minBreakHours}
               min={1} max={48} step={0.5}
               onChange={e => {

@@ -15,7 +15,7 @@ interface Props {
 }
 
 const STATUS_CLASSES: Record<CellStatus, string> = {
-  empty:                  'bg-white border-slate-200',
+  empty:                  'bg-white border-gray-200 hover:border-blue-300',
   valid:                  'bg-emerald-100 border-emerald-400',
   unavailable:            'bg-red-100 border-red-500',
   'home-group':           'bg-blue-100 border-blue-400',
@@ -47,7 +47,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     : 'empty';
 
   // Detect drag-over scenario
-  let dragOverClass = 'bg-indigo-50 border-indigo-400';
+  let dragOverClass = 'bg-blue-50 border-blue-400';
   let isSwapHover = false;
   if (isOver && active) {
     const dragData = active.data.current as DragData | undefined;
@@ -57,7 +57,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
 
       if (isSwapHover) {
         // Swap: show indigo indicator regardless of validity
-        dragOverClass = 'bg-indigo-100 border-indigo-500 ring-1 ring-indigo-400';
+        dragOverClass = 'bg-blue-100 border-blue-500 ring-1 ring-blue-400';
       } else {
         const dragPerson = state.people.find(p => p.id === dragData.personId);
         if (dragPerson) {
@@ -101,7 +101,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   return (
     <td
       ref={setNodeRef}
-      className={`relative border px-2 py-1.5 min-w-[120px] h-10 transition-colors ${colorClass}`}
+      className={`relative border px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${colorClass}`}
     >
       {person && (
         <PersonChip
@@ -116,7 +116,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
 
       {isSwapHover && (
         <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-500 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
           </svg>
         </span>

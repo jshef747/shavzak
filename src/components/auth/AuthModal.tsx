@@ -139,7 +139,7 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
           <button
             type="button"
             onClick={switchMode}
-            className="text-sm text-indigo-600 hover:text-indigo-800 text-center transition-colors"
+            className="text-sm text-blue-600 hover:text-blue-700 text-center transition-colors duration-150"
           >
             {mode === 'login'
               ? t('noAccountRegister', lang)

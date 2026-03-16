@@ -69,12 +69,12 @@ export function TopBar({
 
   return (
     <>
-      <div className="no-print bg-slate-900 text-white px-4 py-2.5 flex items-center gap-4 shadow rtl:flex-row-reverse">
+      <div className="no-print h-14 bg-white border-b border-gray-200 px-4 flex items-center gap-4 shrink-0 rtl:flex-row-reverse">
         {/* Hamburger — mobile LTR only (appears on left) */}
         <button
           onClick={onToggleSidebar}
           aria-label="Toggle roster"
-          className="md:hidden rtl:hidden p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors shrink-0"
+          className="md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -82,14 +82,14 @@ export function TopBar({
         </button>
 
         {/* Zone 1: Wordmark */}
-        <span className="font-bold text-lg text-white shrink-0">שבצק</span>
-        <div className="w-px h-5 bg-slate-600 shrink-0" />
+        <span className="text-base font-semibold text-gray-900 shrink-0">שבצק</span>
+        <div className="w-px h-5 bg-gray-200 shrink-0" />
 
         {/* Zone 2: Schedule selector */}
         <div className="flex gap-2 items-center rtl:flex-row-reverse">
           <select
             aria-label={t('selectSchedule', lang)}
-            className="text-sm rounded px-2 py-1 text-gray-800 bg-white border-0 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="text-sm rounded px-2 py-1 text-gray-800 bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
             value={state.activeScheduleId ?? ''}
             onChange={e => onSetActiveSchedule(e.target.value || null)}
           >
@@ -125,15 +125,15 @@ export function TopBar({
                 {t('autoAssign', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onOpenHomePeriods}
-                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-700 !text-white">
+                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white">
                 {t('homePeriods', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onExportExcel}
-                className="hidden md:inline-flex !bg-slate-700 !border-slate-600 !text-slate-100 hover:!bg-slate-600">
+                className="hidden md:inline-flex">
                 {t('excel', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={() => handlePrint()}
-                className="hidden md:inline-flex !bg-slate-700 !border-slate-600 !text-slate-100 hover:!bg-slate-600">
+                className="hidden md:inline-flex">
                 {t('pdf', lang)}
               </Button>
             </>
@@ -141,10 +141,10 @@ export function TopBar({
           {/* Auth: login / user+logout */}
           {userEmail ? (
             <div className="flex items-center gap-1.5">
-              <span className="hidden md:block text-xs text-slate-400 truncate max-w-[140px]">{userEmail}</span>
+              <span className="hidden md:block text-xs text-gray-500 truncate max-w-[140px]">{userEmail}</span>
               <button
                 onClick={onLogout}
-                className="p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors text-xs px-2"
+                className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-xs px-2"
               >
                 {t('logout', lang)}
               </button>
@@ -152,7 +152,7 @@ export function TopBar({
           ) : (
             <button
               onClick={onOpenAuthModal}
-              className="p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors text-xs px-2"
+              className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-xs px-2"
             >
               {t('login', lang)}
             </button>
@@ -160,14 +160,14 @@ export function TopBar({
           <button
             onClick={() => setGuideOpen(true)}
             title={t('quickStartTitle', lang)}
-            className="hidden md:block p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors text-sm font-bold leading-none"
+            className="hidden md:block p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-sm font-bold leading-none"
           >
             ?
           </button>
           <button
             onClick={onOpenSettings}
             title={t('settingsTitle', lang)}
-            className="p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors"
+            className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -180,7 +180,7 @@ export function TopBar({
           <button
             onClick={onToggleSidebar}
             aria-label="Toggle roster"
-            className="ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors shrink-0"
+            className="ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
