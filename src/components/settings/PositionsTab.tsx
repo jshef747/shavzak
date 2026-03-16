@@ -80,20 +80,25 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
         onChange={e => onUpdate(pos.id, e.target.value)}
       />
 
-      {/* On-Call toggle switch */}
-      <button
-        role="switch"
-        aria-checked={pos.isOnCall}
-        onClick={() => onToggleOnCall(pos.id)}
-        title={t('onCall', lang)}
-        className={`relative inline-flex items-center w-10 h-[22px] rounded-full flex-shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 ${
-          pos.isOnCall ? 'bg-orange-400' : 'bg-gray-200 hover:bg-gray-300'
-        }`}
-      >
-        <span className={`absolute w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
-          pos.isOnCall ? 'translate-x-[19px]' : 'translate-x-[2px]'
-        }`} />
-      </button>
+      {/* On-Call toggle switch + label */}
+      <div className="flex flex-col items-center gap-0.5 shrink-0">
+        <button
+          role="switch"
+          aria-checked={pos.isOnCall}
+          onClick={() => onToggleOnCall(pos.id)}
+          title={t('onCall', lang)}
+          className={`relative w-10 h-[22px] rounded-full flex-shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 ${
+            pos.isOnCall ? 'bg-orange-400' : 'bg-gray-200 hover:bg-gray-300'
+          }`}
+        >
+          <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${
+            pos.isOnCall ? 'left-[19px]' : 'left-[2px]'
+          }`} />
+        </button>
+        <span className={`text-[9px] leading-none font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400'}`}>
+          {t('onCall', lang)}
+        </span>
+      </div>
 
       {/* People count / single-role assign button */}
       <button
