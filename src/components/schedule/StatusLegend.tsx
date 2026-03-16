@@ -21,7 +21,7 @@ export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
   ];
 
   return (
-    <div className="no-print fixed bottom-4 right-4 rtl:right-auto rtl:left-4 z-40">
+    <div className="no-print fixed bottom-20 md:bottom-4 right-4 rtl:right-auto rtl:left-4 z-40">
       <button
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}

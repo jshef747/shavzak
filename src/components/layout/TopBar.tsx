@@ -78,8 +78,8 @@ export function TopBar({
         </button>
 
         {/* Zone 1: Wordmark */}
-        <span className="text-base font-semibold text-gray-900 shrink-0">שבצק</span>
-        <div className="w-px h-5 bg-gray-200 shrink-0" />
+        <span className="hidden md:block text-base font-semibold text-gray-900 shrink-0">שבצק</span>
+        <div className="hidden md:block w-px h-5 bg-gray-200 shrink-0" />
 
         {/* Zone 2: Schedule selector */}
         <div className="flex gap-2 items-center">
@@ -98,6 +98,7 @@ export function TopBar({
             variant="primary"
             size="sm"
             onClick={() => setNewModalOpen(true)}
+            className="md:!bg-blue-600 md:!text-white md:!border-transparent !bg-white !text-gray-700 !border-gray-200 hover:!bg-gray-50 !shadow-none md:!shadow-sm"
           >
             {t('newBtn', lang)}
           </Button>

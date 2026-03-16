@@ -56,7 +56,17 @@ interface ActiveCell {
 export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods, onAssign, onUnassign }: Props) {
   const [dayIndex, setDayIndex] = useState(0);
   const [expandedShifts, setExpandedShifts] = useState<Set<string>>(() => new Set());
+  const [expandedOnCall, setExpandedOnCall] = useState<Set<string>>(() => new Set());
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
+
+  function toggleOnCall(shiftId: string) {
+    setExpandedOnCall(prev => {
+      const next = new Set(prev);
+      if (next.has(shiftId)) next.delete(shiftId);
+      else next.add(shiftId);
+      return next;
+    });
+  }
 
   function toggleShift(shiftId: string) {
     setExpandedShifts(prev => {
@@ -119,8 +129,8 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
     setActiveCell(null);
   }
 
-  function prevDay() { setDayIndex(i => Math.max(0, i - 1)); setExpandedShifts(new Set()); }
-  function nextDay() { setDayIndex(i => Math.min(dates.length - 1, i + 1)); setExpandedShifts(new Set()); }
+  function prevDay() { setDayIndex(i => Math.max(0, i - 1)); setExpandedShifts(new Set()); setExpandedOnCall(new Set()); }
+  function nextDay() { setDayIndex(i => Math.min(dates.length - 1, i + 1)); setExpandedShifts(new Set()); setExpandedOnCall(new Set()); }
 
   function renderPositionRow(pos: typeof state.positions[0], shift: typeof state.shifts[0], isOnCall: boolean) {
     const cell: CellAddress = { date: currentDate, shiftId: shift.id, positionId: pos.id };
@@ -268,11 +278,21 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                         </div>
                       )}
                       {onCallPositions.length > 0 && (
-                        <div className="border-t border-orange-100 bg-orange-50/40">
-                          <p className="px-4 pt-2 text-[10px] font-semibold text-orange-400 uppercase tracking-wide">
-                            {t('onCall', lang)}
-                          </p>
-                          {onCallPositions.map(pos => renderPositionRow(pos, shift, true))}
+                        <div className="border-t border-orange-100">
+                          <button
+                            className="w-full px-4 py-2.5 bg-orange-50/60 flex items-center justify-between text-start active:bg-orange-100 transition-colors"
+                            onClick={() => toggleOnCall(shift.id)}
+                          >
+                            <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">{t('onCall', lang)}</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 text-orange-400 shrink-0 transition-transform duration-200 ${expandedOnCall.has(shift.id) ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                          {expandedOnCall.has(shift.id) && (
+                            <div className="bg-orange-50/40">
+                              {onCallPositions.map(pos => renderPositionRow(pos, shift, true))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>
