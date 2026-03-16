@@ -205,6 +205,9 @@ const strings: Record<string, { en: string; he: string }> = {
   forceMinimumLabel: { en: 'Force Minimum Duty', he: 'כוננות מינימום מאולצת' },
   forceMinimumDesc: { en: 'Always assign this person as often as the minimum break allows.', he: 'שבץ אדם זה בכל משמרת אפשרית לאחר זמן המנוחה המינימלי.' },
   forceMinimumBulk: { en: 'Force Minimum', he: 'מינימום מאולץ' },
+  assignPickerTitle: { en: 'Assign', he: 'שבץ' },
+  clearAssignment:   { en: 'Clear', he: 'נקה' },
+  tapToAssign:       { en: '+ assign', he: '+ שבץ' },
 };
 
 export function t(key: string, lang: Lang): string {

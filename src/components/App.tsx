@@ -16,8 +16,11 @@ import type { Shift, Position, AppState } from '../types';
 import { TopBar } from './layout/TopBar';
 import { Sidebar } from './layout/Sidebar';
 import { ScheduleView } from './schedule/ScheduleView';
+import { MobileScheduleView } from './schedule/MobileScheduleView';
 import { StatusLegend } from './schedule/StatusLegend';
 import { DndProvider } from './dnd/DndProvider';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { Button } from './ui/Button';
 import { SettingsModal } from './settings/SettingsModal';
 import { PersonEditor } from './settings/PersonEditor';
 import { Modal } from './ui/Modal';
@@ -111,6 +114,7 @@ export function App() {
 
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
   const lang = langFromDir(state.dir);
+  const isMobile = useIsMobile();
 
   function handleExportExcel() {
     if (!activeSchedule) return;
@@ -217,7 +221,7 @@ export function App() {
             onClose={() => setSidebarOpen(false)}
           />
 
-          <main className="flex-1 overflow-hidden p-4 relative flex flex-col">
+          <main className="flex-1 overflow-hidden md:p-4 relative flex flex-col">
             {exportError && (
               <div className="mb-3 flex items-center justify-between gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-lg shrink-0">
                 <span>{exportError}</span>
@@ -256,6 +260,15 @@ export function App() {
                   </button>
                 </div>
               </div>
+            ) : isMobile ? (
+              <MobileScheduleView
+                state={state}
+                dates={dates}
+                assignments={assignments}
+                homeGroupPeriods={homeGroupPeriods}
+                onAssign={(cell, personId) => assign(cell, personId)}
+                onUnassign={(cell) => unassign(cell)}
+              />
             ) : (
               <ScheduleView
                 ref={printRef}
@@ -269,6 +282,28 @@ export function App() {
           </main>
         </div>
       </DndProvider>
+
+      {/* Mobile bottom action bar */}
+      {activeSchedule && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 flex gap-2 z-30">
+          <Button
+            variant="primary"
+            size="sm"
+            className="flex-1 justify-center"
+            onClick={handleOpenAutoAssign}
+          >
+            {t('autoAssign', lang)}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1 justify-center !bg-emerald-600 !border-emerald-600 !text-white"
+            onClick={() => setHomePeriodsOpen(true)}
+          >
+            {t('homePeriods', lang)}
+          </Button>
+        </div>
+      )}
 
       <SettingsModal
         open={settingsOpen}

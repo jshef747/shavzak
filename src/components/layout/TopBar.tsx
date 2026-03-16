@@ -117,11 +117,11 @@ export function TopBar({
         <div className="ml-auto rtl:ml-0 rtl:mr-auto flex items-center gap-2 shrink-0">
           {activeSchedule && (
             <>
-              <Button variant="primary" size="sm" onClick={onAutoAssign}>
+              <Button variant="primary" size="sm" onClick={onAutoAssign} className="hidden md:inline-flex">
                 {t('autoAssign', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onOpenHomePeriods}
-                className="!bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white">
+                className="hidden md:inline-flex !bg-emerald-600 hover:!bg-emerald-700 !border-emerald-600 !text-white">
                 {t('homePeriods', lang)}
               </Button>
               <Button variant="secondary" size="sm" onClick={onExportExcel}
