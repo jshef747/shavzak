@@ -80,38 +80,38 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
         onChange={e => onUpdate(pos.id, e.target.value)}
       />
 
-      {/* On-Call toggle */}
+      {/* On-Call toggle switch */}
       <button
+        role="switch"
+        aria-checked={pos.isOnCall}
         onClick={() => onToggleOnCall(pos.id)}
         title={t('onCall', lang)}
-        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all flex-shrink-0 ${
-          pos.isOnCall
-            ? 'bg-orange-50 border-orange-300 text-orange-700'
-            : 'bg-gray-100 border-gray-200 text-gray-400 hover:border-orange-200 hover:text-orange-500'
+        className={`relative inline-flex items-center w-10 h-[22px] rounded-full flex-shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 ${
+          pos.isOnCall ? 'bg-orange-400' : 'bg-gray-200 hover:bg-gray-300'
         }`}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
-        {t('onCall', lang)}
+        <span className={`absolute w-[18px] h-[18px] rounded-full bg-white shadow-sm transition-transform duration-200 ${
+          pos.isOnCall ? 'translate-x-[19px]' : 'translate-x-[2px]'
+        }`} />
       </button>
 
       {/* People count / single-role assign button */}
       <button
         onClick={() => onAssign(pos)}
-        className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-blue-100 transition-colors"
+        className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-full flex-shrink-0 hover:bg-blue-100 transition-colors"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        {qualifiedCount} {t('people', lang)}
+        <span dir="ltr">{qualifiedCount}</span>
+        <span className="hidden sm:inline">{t('people', lang)}</span>
       </button>
 
       <Button
         variant="ghost"
         size="sm"
         onClick={() => onDelete(pos.id)}
-        className="text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+        className="text-gray-400 hover:text-red-500 hover:bg-red-50 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
