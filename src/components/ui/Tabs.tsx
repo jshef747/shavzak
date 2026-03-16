@@ -17,7 +17,7 @@ export function Tabs({ tabs, active, onChange, labels }: TabsProps) {
           onClick={() => onChange(tab)}
           className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
             active === tab
-              ? 'bg-indigo-600 text-white shadow-sm'
+              ? 'bg-blue-600 text-white shadow-sm'
               : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
           }`}
         >

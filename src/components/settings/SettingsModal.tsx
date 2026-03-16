@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { AppState, Shift, UnavailabilityEntry, DayOfWeek } from '../../types';
+import type { AppState, Shift, UnavailabilityEntry, DayOfWeek, Position } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Tabs } from '../ui/Tabs';
 import { langFromDir, t } from '../../utils/i18n';
@@ -7,7 +7,6 @@ import { ShiftsTab } from './ShiftsTab';
 import { PositionsTab } from './PositionsTab';
 import { PeopleTab } from './PeopleTab';
 import { HomeGroupsTab } from './HomeGroupsTab';
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -37,16 +36,33 @@ interface Props {
   onUpdateConstraintMaxTotal: (personId: string, max: number | null) => void;
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
+  onUpdateForceMinimum: (personId: string, value: boolean) => void;
   onAddHomeGroup: (name: string) => void;
   onUpdateHomeGroup: (id: string, name: string) => void;
   onDeleteHomeGroup: (id: string) => void;
-  onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
+  onTogglePersonHomeGroup: (personId: string, groupId: string) => void;
+  shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
+  positionSets: import('../../hooks/usePresets').PositionSetPreset[];
+  onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
+  onDeleteShiftSet: (id: string) => Promise<void>;
+  onLoadShiftSet: (shifts: Omit<Shift, 'id'>[]) => void;
+  onAddPositionSet: (name: string, positions: Position[]) => Promise<void>;
+  onDeletePositionSet: (id: string) => Promise<void>;
+  onLoadPositionSet: (positions: Omit<Position, 'id'>[]) => void;
+  isLoggedIn: boolean;
 }
 
 // Internal tab keys stay in English for logic comparisons
 const TABS = ['Shifts', 'Positions', 'People', 'Groups'];
 
-export function SettingsModal({ open, onClose, state, dates, initialTab, ...handlers }: Props) {
+export function SettingsModal({
+  open, onClose, state, dates, initialTab,
+  shiftSets, positionSets,
+  onAddShiftSet, onDeleteShiftSet, onLoadShiftSet,
+  onAddPositionSet, onDeletePositionSet, onLoadPositionSet,
+  isLoggedIn,
+  ...handlers
+}: Props) {
   const [activeTab, setActiveTab] = useState(initialTab ?? 'Shifts');
   const lang = langFromDir(state.dir);
 
@@ -67,6 +83,11 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onDelete={handlers.onDeleteShift}
           onReorder={handlers.onReorderShifts}
           onUpdateMinBreakHours={handlers.onUpdateMinBreakHours}
+          shiftSets={shiftSets}
+          onAddShiftSet={onAddShiftSet}
+          onDeleteShiftSet={onDeleteShiftSet}
+          onLoadShiftSet={onLoadShiftSet}
+          isLoggedIn={isLoggedIn}
         />
       )}
       {activeTab === 'Positions' && (
@@ -78,6 +99,11 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onToggleOnCall={handlers.onToggleOnCall}
           onReorder={handlers.onReorderPositions}
           onToggleQualification={handlers.onToggleQualification}
+          positionSets={positionSets}
+          onAddPositionSet={onAddPositionSet}
+          onDeletePositionSet={onDeletePositionSet}
+          onLoadPositionSet={onLoadPositionSet}
+          isLoggedIn={isLoggedIn}
         />
       )}
       {activeTab === 'People' && (
@@ -97,7 +123,8 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onUpdateConstraintMaxTotal={handlers.onUpdateConstraintMaxTotal}
           onUpdateConstraintMaxConsecutive={handlers.onUpdateConstraintMaxConsecutive}
           onUpdateConstraintMinRest={handlers.onUpdateConstraintMinRest}
-          onSetPersonHomeGroup={handlers.onSetPersonHomeGroup}
+          onUpdateForceMinimum={handlers.onUpdateForceMinimum}
+          onTogglePersonHomeGroup={handlers.onTogglePersonHomeGroup}
         />
       )}
       {activeTab === 'Groups' && (
@@ -106,7 +133,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onAddGroup={handlers.onAddHomeGroup}
           onUpdateGroup={handlers.onUpdateHomeGroup}
           onDeleteGroup={handlers.onDeleteHomeGroup}
-          onSetPersonGroup={handlers.onSetPersonHomeGroup}
+          onTogglePersonGroup={handlers.onTogglePersonHomeGroup}
         />
       )}
     </Modal>

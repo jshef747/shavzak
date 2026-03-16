@@ -31,13 +31,13 @@ function getGroupDayStatus(
 
   // On departure/return day, check if at least one shift is blocked
   const anyBlocked = shifts.some(shift =>
-    isHomeGroupBlocked(date, shift, groupId, homeGroups, homeGroupPeriods)
+    isHomeGroupBlocked(date, shift, [groupId], homeGroups, homeGroupPeriods)
   );
   if (!anyBlocked) return null;
 
   // Check if ALL shifts are blocked (shouldn't happen on half-days, but handle gracefully)
   const allBlocked = shifts.length > 0 && shifts.every(shift =>
-    isHomeGroupBlocked(date, shift, groupId, homeGroups, homeGroupPeriods)
+    isHomeGroupBlocked(date, shift, [groupId], homeGroups, homeGroupPeriods)
   );
   return allBlocked ? 'full' : 'partial';
 }
@@ -77,7 +77,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
         <tbody>
           {activeGroups.map((group, idx) => {
             const rowBg = idx % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
-            const members = state.people.filter(p => p.homeGroupId === group.id).map(p => p.name);
+            const members = state.people.filter(p => (p.homeGroupIds ?? []).includes(group.id)).map(p => p.name);
             return (
               <tr key={group.id} className={`border-b ${rowBg}`}>
                 <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs border-r min-w-[160px] ${rowBg}`}>

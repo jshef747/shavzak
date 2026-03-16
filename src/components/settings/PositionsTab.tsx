@@ -19,6 +19,7 @@ import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
@@ -28,6 +29,11 @@ interface Props {
   onToggleOnCall: (id: string) => void;
   onToggleQualification: (personId: string, positionId: string) => void;
   onReorder: (orderedIds: string[]) => void;
+  positionSets: import('../../hooks/usePresets').PositionSetPreset[];
+  onAddPositionSet: (name: string, positions: Position[]) => Promise<void>;
+  onDeletePositionSet: (id: string) => Promise<void>;
+  onLoadPositionSet: (positions: Omit<Position, 'id'>[]) => void;
+  isLoggedIn: boolean;
 }
 
 function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, onToggleOnCall, onAssign }: {
@@ -65,8 +71,8 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
         </svg>
       </button>
 
-      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-        <span className="text-xs font-bold text-indigo-600">{pos.name.charAt(0).toUpperCase()}</span>
+      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+        <span className="text-xs font-bold text-blue-600">{pos.name.charAt(0).toUpperCase()}</span>
       </div>
       <input
         className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 focus:outline-none focus:ring-0 min-w-0"
@@ -93,7 +99,7 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
       {/* People count / single-role assign button */}
       <button
         onClick={() => onAssign(pos)}
-        className="flex items-center gap-1 text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-indigo-100 transition-colors"
+        className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full flex-shrink-0 hover:bg-blue-100 transition-colors"
       >
         <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -115,15 +121,42 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
   );
 }
 
-export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification, onReorder }: Props) {
+export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification, onReorder, positionSets, onAddPositionSet, onDeletePositionSet, onLoadPositionSet, isLoggedIn }: Props) {
   const [name, setName] = useState('');
   const [assigningPosition, setAssigningPosition] = useState<Position | null>(null);
   const [showBulkAssign, setShowBulkAssign] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [dialog, setDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
   const lang = langFromDir(state.dir);
+
+  function closeDialog() { setDialog({ open: false, message: '', onConfirm: () => {} }); }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
+
+  async function handleConfirmSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!templateName.trim()) return;
+    setSaving(true);
+    await onAddPositionSet(templateName.trim(), state.positions);
+    setSavingTemplate(false);
+    setTemplateName('');
+    setSaving(false);
+  }
+
+  function handleRequestDeletePosition(id: string) {
+    setDialog({ open: true, message: t('deletePositionConfirm', lang), onConfirm: () => { onDelete(id); closeDialog(); } });
+  }
+
+  function handleLoadTemplate(positions: Omit<Position, 'id'>[]) {
+    const msg = lang === 'he'
+      ? 'טעינת התבנית תחליף את כל התפקידים הקיימים. האם להמשיך?'
+      : 'Loading this template will replace ALL current positions. Are you sure?';
+    setDialog({ open: true, message: msg, onConfirm: () => { onLoadPositionSet(positions); closeDialog(); } });
+  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -135,12 +168,14 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
   }
 
   return (
+    <>
+    <ConfirmDialog open={dialog.open} message={dialog.message} onConfirm={dialog.onConfirm} onCancel={closeDialog} lang={lang} />
     <div className="space-y-5">
       {/* Current Positions */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
           </div>
@@ -153,6 +188,14 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">{t('positionsDesc', lang)}</p>
           </div>
+          {isLoggedIn && state.positions.length > 0 && !savingTemplate && (
+            <Button variant="secondary" size="sm" onClick={() => setSavingTemplate(true)} className="flex-shrink-0 flex items-center gap-1.5" title={t('saveAsPreset', lang)}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              {lang === 'he' ? 'שמור כתבנית' : 'Save as Template'}
+            </Button>
+          )}
           {/* Bulk Assign button */}
           {state.positions.length > 0 && state.people.length > 0 && (
             <Button variant="secondary" size="sm" onClick={() => setShowBulkAssign(true)} className="flex-shrink-0 flex items-center gap-1.5">
@@ -163,6 +206,47 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
             </Button>
           )}
         </div>
+
+        {savingTemplate && (
+          <form onSubmit={handleConfirmSave} className="flex items-center gap-2 mb-4">
+            <input
+              autoFocus
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              placeholder={lang === 'he' ? 'שם התבנית...' : 'Template name...'}
+              className="flex-1 text-sm border border-blue-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <Button type="submit" variant="primary" size="sm" disabled={!templateName.trim() || saving}>
+              {saving ? '...' : t('save', lang)}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setSavingTemplate(false); setTemplateName(''); }}>
+              {t('cancel', lang)}
+            </Button>
+          </form>
+        )}
+
+        {positionSets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+            <span className="text-xs font-medium text-blue-800">{t('quickPresets', lang)}</span>
+            {positionSets.map(set => (
+              <div key={set.id} className="inline-flex items-center bg-white border border-blue-200 shadow-sm rounded-full overflow-hidden">
+                <button
+                  onClick={() => handleLoadTemplate(set.positions)}
+                  className="text-xs px-2.5 py-1 text-blue-700 hover:bg-blue-50 transition-colors"
+                >
+                  {set.name}
+                </button>
+                <button
+                  onClick={() => onDeletePositionSet(set.id)}
+                  className="px-1.5 py-1 text-blue-400 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-blue-100"
+                  title={t('delete', lang)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {state.positions.length === 0 ? (
           <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
@@ -193,7 +277,7 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                         qualifiedCount={qualifiedCount}
                         lang={lang}
                         onUpdate={onUpdate}
-                        onDelete={onDelete}
+                        onDelete={handleRequestDeletePosition}
                         onToggleOnCall={onToggleOnCall}
                         onAssign={setAssigningPosition}
                       />
@@ -227,9 +311,11 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
             className="flex-1"
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) { onAdd(name.trim()); setName(''); } }}
           />
-          <Button onClick={() => { if (name.trim()) { onAdd(name.trim()); setName(''); } }} className="self-end">
-            {t('add', lang)}
-          </Button>
+          <div className="flex gap-2 self-end">
+            <Button onClick={() => { if (name.trim()) { onAdd(name.trim()); setName(''); } }}>
+              {t('add', lang)}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -253,7 +339,7 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                       key={person.id}
                       className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
                         isQualified
-                          ? 'bg-indigo-50 border-indigo-200'
+                          ? 'bg-blue-50 border-blue-200'
                           : 'bg-gray-50 border-gray-100 hover:border-gray-200'
                       }`}
                     >
@@ -261,16 +347,16 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                         type="checkbox"
                         checked={isQualified}
                         onChange={() => onToggleQualification(person.id, assigningPosition.id)}
-                        className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
-                      <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
+                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold text-blue-600">{person.name.charAt(0).toUpperCase()}</span>
                       </div>
-                      <span className={`text-sm font-medium ${isQualified ? 'text-indigo-900' : 'text-gray-700'}`}>
+                      <span className={`text-sm font-medium ${isQualified ? 'text-blue-900' : 'text-gray-700'}`}>
                         {person.name}
                       </span>
                       {isQualified && (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-indigo-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500 ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
                       )}
@@ -321,8 +407,8 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                       <tr key={person.id} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
                         <td className="sticky left-0 bg-inherit px-4 py-3 font-medium text-gray-900 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
-                              <span className="text-[10px] font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                              <span className="text-[10px] font-bold text-blue-600">{person.name.charAt(0).toUpperCase()}</span>
                             </div>
                             {person.name}
                           </div>
@@ -330,12 +416,12 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                         {positions.map(pos => {
                           const isQualified = person.qualifiedPositions.includes(pos.id);
                           return (
-                            <td key={pos.id} className={`px-4 py-3 text-center transition-colors ${isQualified ? 'bg-indigo-50' : ''}`}>
+                            <td key={pos.id} className={`px-4 py-3 text-center transition-colors ${isQualified ? 'bg-blue-50' : ''}`}>
                               <input
                                 type="checkbox"
                                 checked={isQualified}
                                 onChange={() => onToggleQualification(person.id, pos.id)}
-                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                               />
                             </td>
                           );
@@ -352,7 +438,7 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                 {regularPositions.length > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('currentPositions', lang)}</p>
-                    {renderTable(regularPositions, 'bg-slate-700')}
+                    {renderTable(regularPositions, 'bg-gray-700')}
                   </div>
                 )}
                 {onCallPositions.length > 0 && (
@@ -370,5 +456,6 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
         </div>
       </Modal>
     </div>
+    </>
   );
 }

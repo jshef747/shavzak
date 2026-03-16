@@ -3,20 +3,22 @@ import type { AppState } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
   onAddGroup: (name: string) => void;
   onUpdateGroup: (id: string, name: string) => void;
   onDeleteGroup: (id: string) => void;
-  onSetPersonGroup: (personId: string, groupId: string | null) => void;
+  onTogglePersonGroup: (personId: string, groupId: string) => void;
 }
 
-export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup, onSetPersonGroup }: Props) {
+export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup, onTogglePersonGroup }: Props) {
   const lang = langFromDir(state.dir);
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingGroupName, setEditingGroupName] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   function handleAdd() {
     const name = newGroupName.trim();
@@ -37,12 +39,18 @@ export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup,
   }
 
   function handleDelete(id: string) {
-    if (window.confirm(t('deleteGroupConfirm', lang))) {
-      onDeleteGroup(id);
-    }
+    setPendingDeleteId(id);
   }
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!pendingDeleteId}
+      message={t('deleteGroupConfirm', lang)}
+      onConfirm={() => { if (pendingDeleteId) { onDeleteGroup(pendingDeleteId); } setPendingDeleteId(null); }}
+      onCancel={() => setPendingDeleteId(null)}
+      lang={lang}
+    />
     <div className="space-y-5 pt-2">
       <p className="text-sm text-slate-500">{t('homeGroupsDesc', lang)}</p>
 
@@ -55,7 +63,7 @@ export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup,
         ) : (
           <div className="space-y-2">
             {state.homeGroups.map(group => {
-              const memberCount = state.people.filter(p => p.homeGroupId === group.id).length;
+              const memberCount = state.people.filter(p => (p.homeGroupIds ?? []).includes(group.id)).length;
               return (
                 <div
                   key={group.id}
@@ -136,16 +144,32 @@ export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup,
                     </div>
                   </td>
                   <td className="px-4 py-2.5">
-                    <select
-                      value={person.homeGroupId ?? ''}
-                      onChange={e => onSetPersonGroup(person.id, e.target.value || null)}
-                      className="text-sm border border-slate-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white text-slate-700 w-full max-w-[200px]"
-                    >
-                      <option value="">— {t('noGroup', lang)} —</option>
-                      {state.homeGroups.map(g => (
-                        <option key={g.id} value={g.id}>{g.name}</option>
-                      ))}
-                    </select>
+                    <div className="flex flex-wrap gap-1.5">
+                      {state.homeGroups.map(g => {
+                        const active = (person.homeGroupIds ?? []).includes(g.id);
+                        return (
+                          <button
+                            key={g.id}
+                            onClick={() => onTogglePersonGroup(person.id, g.id)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all ${
+                              active
+                                ? 'bg-emerald-50 border-emerald-300 text-emerald-700 shadow-sm'
+                                : 'bg-white border-slate-200 text-slate-500 hover:border-emerald-300 hover:bg-emerald-50/50'
+                            }`}
+                          >
+                            {active && (
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 inline-block mr-1 -mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                            {g.name}
+                          </button>
+                        );
+                      })}
+                      {state.homeGroups.length === 0 && (
+                        <span className="text-xs text-slate-400 italic">—</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -158,5 +182,6 @@ export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup,
         <p className="text-sm text-slate-400 italic">{t('noPeopleYet', lang)}</p>
       )}
     </div>
+    </>
   );
 }

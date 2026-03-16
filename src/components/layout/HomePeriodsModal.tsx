@@ -3,6 +3,7 @@ import type { AppState, HomeGroupPeriod, Schedule } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { DateRangePicker } from '../ui/DateRangePicker';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 import { langFromDir, t } from '../../utils/i18n';
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
@@ -23,6 +24,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
   const [newGroupId, setNewGroupId] = useState('');
   const [newStart, setNewStart] = useState('');
   const [newEnd, setNewEnd] = useState('');
+  const [pendingDeletePeriodId, setPendingDeletePeriodId] = useState<string | null>(null);
 
   const periods = activeSchedule.homeGroupPeriods ?? [];
 
@@ -76,11 +78,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
                         <Button
                           size="sm"
                           variant="danger"
-                          onClick={() => {
-                            if (window.confirm(t('deletePeriodConfirm', lang))) {
-                              onDeletePeriod(activeSchedule.id, period.id);
-                            }
-                          }}
+                          onClick={() => setPendingDeletePeriodId(period.id)}
                         >
                           {t('delete', lang)}
                         </Button>
@@ -96,7 +94,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
         {state.homeGroups.length > 0 && (
           <div className="flex flex-wrap gap-3">
             {state.homeGroups.map(g => {
-              const members = state.people.filter(p => p.homeGroupId === g.id).map(p => p.name);
+              const members = state.people.filter(p => (p.homeGroupIds ?? []).includes(g.id)).map(p => p.name);
               return (
                 <div key={g.id} className="border border-slate-200 rounded-lg px-3 py-2 bg-white min-w-[120px]">
                   <p className="text-xs font-semibold text-slate-700">{g.name}</p>
@@ -159,6 +157,13 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
           </p>
         )}
       </div>
+      <ConfirmDialog
+        open={!!pendingDeletePeriodId}
+        message={t('deletePeriodConfirm', lang)}
+        onConfirm={() => { if (pendingDeletePeriodId) { onDeletePeriod(activeSchedule.id, pendingDeletePeriodId); } setPendingDeletePeriodId(null); }}
+        onCancel={() => setPendingDeletePeriodId(null)}
+        lang={lang}
+      />
     </Modal>
   );
 }

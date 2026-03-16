@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
 import type { AppState, Assignment, HomeGroupPeriod, Position } from '../../types';
@@ -13,7 +14,7 @@ interface Props {
   homeGroupPeriods: HomeGroupPeriod[];
 }
 
-export function DaySection({ date, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
+export const DaySection = memo(function DaySection({ date, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
   const locale = state.dir === 'rtl' ? heLocale : undefined;
   const label = format(parseISO(date), 'EEE, MMM d', { locale });
 
@@ -22,7 +23,7 @@ export function DaySection({ date, state, assignments, refDate, dayIndex, positi
       <tr>
         <td
           colSpan={positions.length + 1}
-          className="px-3 py-2 bg-slate-100 text-sm font-bold text-slate-800 border-t-2 border-slate-400 uppercase tracking-wide"
+          className="px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-600 border-t border-gray-300 uppercase tracking-wide"
         >
           {label}
         </td>
@@ -42,4 +43,4 @@ export function DaySection({ date, state, assignments, refDate, dayIndex, positi
       ))}
     </>
   );
-}
+});

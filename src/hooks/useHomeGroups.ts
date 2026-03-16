@@ -18,9 +18,9 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     setState(prev => ({
       ...prev,
       homeGroups: prev.homeGroups.filter(g => g.id !== id),
-      // Clear homeGroupId from all people in this group
+      // Remove deleted group from all people's homeGroupIds
       people: prev.people.map(p =>
-        p.homeGroupId === id ? { ...p, homeGroupId: null } : p
+        ({ ...p, homeGroupIds: (p.homeGroupIds ?? []).filter(gid => gid !== id) })
       ),
       // Remove all periods for this group from all schedules
       schedules: prev.schedules.map(s => ({
@@ -30,12 +30,15 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     }));
   }
 
-  function setPersonHomeGroup(personId: string, groupId: string | null) {
+  function togglePersonHomeGroup(personId: string, groupId: string) {
     setState(prev => ({
       ...prev,
-      people: prev.people.map(p =>
-        p.id === personId ? { ...p, homeGroupId: groupId } : p
-      ),
+      people: prev.people.map(p => {
+        if (p.id !== personId) return p;
+        const ids = p.homeGroupIds ?? [];
+        const has = ids.includes(groupId);
+        return { ...p, homeGroupIds: has ? ids.filter(id => id !== groupId) : [...ids, groupId] };
+      }),
     }));
   }
 
@@ -71,7 +74,7 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     addHomeGroup,
     updateHomeGroup,
     deleteHomeGroup,
-    setPersonHomeGroup,
+    togglePersonHomeGroup,
     addHomeGroupPeriod,
     deleteHomeGroupPeriod,
   };

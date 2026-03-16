@@ -22,20 +22,18 @@ export function usePositions(_state: AppState, setState: Dispatch<SetStateAction
   }
 
   function deletePosition(id: string) {
-    if (window.confirm('Delete this position? All assignments to it will be removed.')) {
-      setState(prev => ({
-        ...prev,
-        positions: prev.positions.filter(p => p.id !== id),
-        people: prev.people.map(person => ({
-          ...person,
-          qualifiedPositions: person.qualifiedPositions.filter(qp => qp !== id),
-        })),
-        schedules: prev.schedules.map(sched => ({
-          ...sched,
-          assignments: sched.assignments.filter(a => a.positionId !== id),
-        })),
-      }));
-    }
+    setState(prev => ({
+      ...prev,
+      positions: prev.positions.filter(p => p.id !== id),
+      people: prev.people.map(person => ({
+        ...person,
+        qualifiedPositions: person.qualifiedPositions.filter(qp => qp !== id),
+      })),
+      schedules: prev.schedules.map(sched => ({
+        ...sched,
+        assignments: sched.assignments.filter(a => a.positionId !== id),
+      })),
+    }));
   }
 
   function reorderPositions(orderedIds: string[]) {

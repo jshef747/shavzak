@@ -18,6 +18,7 @@ import type { AppState, Shift } from '../../types';
 import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
@@ -26,6 +27,11 @@ interface Props {
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
+  shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
+  onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
+  onDeleteShiftSet: (id: string) => Promise<void>;
+  onLoadShiftSet: (shifts: Omit<Shift, 'id'>[]) => void;
+  isLoggedIn: boolean;
 }
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
@@ -54,9 +60,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   };
 
   function handleDelete() {
-    if (window.confirm(t('deleteShiftConfirm', lang))) {
-      onDelete(shift.id);
-    }
+    onDelete(shift.id);
   }
 
   return (
@@ -79,7 +83,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
 
       <div className="flex-1 min-w-0">
         <input
-          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
           value={shift.name}
           onChange={e => onUpdate(shift.id, { name: e.target.value })}
           placeholder={t('shiftNamePlaceholder', lang)}
@@ -92,7 +96,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
           <input
             type="time"
             dir="ltr"
-            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
             value={hourToTime(shift.startHour)}
             onChange={e => onUpdate(shift.id, { startHour: timeToHour(e.target.value) })}
           />
@@ -101,7 +105,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
           <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('durationH', lang)}</span>
           <input
             type="number"
-            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
             value={shift.durationHours}
             min={0.5} max={24} step={0.5}
             onChange={e => onUpdate(shift.id, { durationHours: parseFloat(e.target.value) || 0.5 })}
@@ -130,11 +134,17 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   );
 }
 
-export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours }: Props) {
+export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, shiftSets, onAddShiftSet, onDeleteShiftSet, onLoadShiftSet, isLoggedIn }: Props) {
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState<number>(8);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [dialog, setDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
   const lang = langFromDir(state.dir);
+
+  function closeDialog() { setDialog({ open: false, message: '', onConfirm: () => {} }); }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -144,6 +154,27 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
     if (!name.trim()) return;
     onAdd(name.trim(), timeToHour(startTime), duration);
     setName('');
+  }
+
+  async function handleConfirmSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!templateName.trim()) return;
+    setSaving(true);
+    await onAddShiftSet(templateName.trim(), state.shifts);
+    setSavingTemplate(false);
+    setTemplateName('');
+    setSaving(false);
+  }
+
+  function handleRequestDeleteShift(id: string) {
+    setDialog({ open: true, message: t('deleteShiftConfirm', lang), onConfirm: () => { onDelete(id); closeDialog(); } });
+  }
+
+  function handleLoadTemplate(shifts: Omit<Shift, 'id'>[]) {
+    const msg = lang === 'he'
+      ? 'טעינת התבנית תחליף את כל המשמרות הקיימות. האם להמשיך?'
+      : 'Loading this template will replace ALL current shifts. Are you sure?';
+    setDialog({ open: true, message: msg, onConfirm: () => { onLoadShiftSet(shifts); closeDialog(); } });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -156,12 +187,14 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
   }
 
   return (
+    <>
+    <ConfirmDialog open={dialog.open} message={dialog.message} onConfirm={dialog.onConfirm} onCancel={closeDialog} lang={lang} />
     <div className="space-y-5">
       {/* Current Shifts */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
@@ -174,7 +207,56 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">{t('shiftsDesc', lang)}</p>
           </div>
+          {isLoggedIn && state.shifts.length > 0 && !savingTemplate && (
+            <Button variant="secondary" size="sm" onClick={() => setSavingTemplate(true)} className="flex-shrink-0 flex items-center gap-1.5" title={t('saveAsPreset', lang)}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              {lang === 'he' ? 'שמור כתבנית' : 'Save as Template'}
+            </Button>
+          )}
         </div>
+
+        {savingTemplate && (
+          <form onSubmit={handleConfirmSave} className="flex items-center gap-2 mb-4">
+            <input
+              autoFocus
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              placeholder={lang === 'he' ? 'שם התבנית...' : 'Template name...'}
+              className="flex-1 text-sm border border-blue-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+            <Button type="submit" variant="primary" size="sm" disabled={!templateName.trim() || saving}>
+              {saving ? '...' : t('save', lang)}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setSavingTemplate(false); setTemplateName(''); }}>
+              {t('cancel', lang)}
+            </Button>
+          </form>
+        )}
+
+        {shiftSets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
+            <span className="text-xs font-medium text-blue-800">{t('quickPresets', lang)}</span>
+            {shiftSets.map(set => (
+              <div key={set.id} className="inline-flex items-center bg-white border border-blue-200 shadow-sm rounded-full overflow-hidden">
+                <button
+                  onClick={() => handleLoadTemplate(set.shifts)}
+                  className="text-xs px-2.5 py-1 text-blue-700 hover:bg-blue-50 transition-colors"
+                >
+                  {set.name}
+                </button>
+                <button 
+                  onClick={() => onDeleteShiftSet(set.id)}
+                  className="px-1.5 py-1 text-blue-400 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-blue-100"
+                  title={t('delete', lang)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {state.shifts.length === 0 ? (
           <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
@@ -203,7 +285,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
                       canDelete={state.shifts.length > 1}
                       lang={lang}
                       onUpdate={onUpdate}
-                      onDelete={onDelete}
+                      onDelete={handleRequestDeleteShift}
                     />
                   ))}
                 </div>
@@ -251,9 +333,11 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             onChange={e => setDuration(parseFloat(e.target.value) || 0.5)}
             className="w-24"
           />
-          <Button onClick={handleAdd} variant="primary" size="sm" className="self-end">
-            {t('addShift', lang)}
-          </Button>
+          <div className="flex gap-2 self-end">
+            <Button onClick={handleAdd} variant="primary" size="sm">
+              {t('addShift', lang)}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -273,7 +357,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             <input
               type="number"
               dir="ltr"
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-shadow"
+              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
               value={state.minBreakHours}
               min={1} max={48} step={0.5}
               onChange={e => {
@@ -286,5 +370,6 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
         </div>
       </div>
     </div>
+    </>
   );
 }

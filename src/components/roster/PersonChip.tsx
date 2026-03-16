@@ -54,7 +54,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
         >
           {initials}
         </span>
-        <span className="truncate text-gray-800">{name}</span>
+        <span className="flex-1 truncate text-right text-gray-800">{name}</span>
       </div>
     );
   }
@@ -74,7 +74,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
       >
         {initials}
       </span>
-      <span style={{ color: '#1e293b' }}>{name}</span>
+      <span className="flex-1 text-right" style={{ color: '#1e293b' }}>{name}</span>
     </div>
   );
 });
