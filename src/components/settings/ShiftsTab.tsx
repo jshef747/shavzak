@@ -308,13 +308,13 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             <p className="text-xs text-gray-500 mt-0.5">{t('addShiftDesc', lang)}</p>
           </div>
         </div>
-        <div className="flex gap-3 items-end flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end flex-wrap">
           <Input
             label={t('shiftNameLabel', lang)}
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder={t('shiftExample', lang)}
-            className="w-36"
+            className="sm:w-36"
             onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
           />
           <Input
@@ -323,7 +323,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             dir="ltr"
             value={startTime}
             onChange={e => setStartTime(e.target.value)}
-            className="w-28"
+            className="sm:w-28"
           />
           <Input
             label={t('durationH', lang)}
@@ -331,13 +331,11 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             value={duration}
             min={0.5} max={24} step={0.5}
             onChange={e => setDuration(parseFloat(e.target.value) || 0.5)}
-            className="w-24"
+            className="sm:w-24"
           />
-          <div className="flex gap-2 self-end">
-            <Button onClick={handleAdd} variant="primary" size="sm">
-              {t('addShift', lang)}
-            </Button>
-          </div>
+          <Button onClick={handleAdd} variant="primary" size="sm" className="sm:self-end">
+            {t('addShift', lang)}
+          </Button>
         </div>
       </div>
 

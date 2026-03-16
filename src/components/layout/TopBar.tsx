@@ -22,6 +22,7 @@ interface Props {
   userEmail?: string;
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
+  hideSidebar?: boolean;
 }
 
 export function TopBar({
@@ -38,6 +39,7 @@ export function TopBar({
   userEmail,
   onOpenAuthModal,
   onLogout,
+  hideSidebar = false,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -70,7 +72,7 @@ export function TopBar({
         <button
           onClick={onToggleSidebar}
           aria-label="Toggle roster"
-          className="md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0"
+          className={`md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -98,7 +100,6 @@ export function TopBar({
             variant="primary"
             size="sm"
             onClick={() => setNewModalOpen(true)}
-            className="md:!bg-blue-600 md:!text-white md:!border-transparent !bg-white !text-gray-700 !border-gray-200 hover:!bg-gray-50 !shadow-none md:!shadow-sm"
           >
             {t('newBtn', lang)}
           </Button>
@@ -153,7 +154,7 @@ export function TopBar({
           <button
             onClick={() => setGuideOpen(true)}
             title={t('quickStartTitle', lang)}
-            className="hidden md:block p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-sm font-bold leading-none"
+            className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-sm font-bold leading-none"
           >
             ?
           </button>
@@ -173,7 +174,7 @@ export function TopBar({
           <button
             onClick={onToggleSidebar}
             aria-label="Toggle roster"
-            className="ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0"
+            className={`ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

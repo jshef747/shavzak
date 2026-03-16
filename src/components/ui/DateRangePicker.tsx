@@ -88,7 +88,7 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
         <button
           type="button"
           onClick={() => setViewMonth(m => subMonths(m, 1))}
-          className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+          className="p-2.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
           aria-label={t('prevMonth', lang)}
         >
           ‹
@@ -99,7 +99,7 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
         <button
           type="button"
           onClick={() => setViewMonth(m => addMonths(m, 1))}
-          className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+          className="p-2.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
           aria-label={t('nextMonth', lang)}
         >
           ›
@@ -129,7 +129,7 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
           return (
             <div
               key={day.toISOString()}
-              className={`relative flex items-center justify-center h-8 transition-colors
+              className={`relative flex items-center justify-center h-10 transition-colors
                 ${outOfRange ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
                 ${inRange && !isSelected ? 'bg-indigo-50' : ''}
                 ${dayIsStart ? 'rounded-l-full' : ''}
@@ -140,7 +140,7 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
               onMouseLeave={() => setHoverDate(null)}
             >
               <span
-                className={`w-7 h-7 flex items-center justify-center rounded-full text-xs font-medium transition-colors
+                className={`w-9 h-9 flex items-center justify-center rounded-full text-xs font-medium transition-colors
                   ${isSelected ? 'bg-indigo-600 text-white' : ''}
                   ${!isSelected && inRange ? 'text-indigo-700' : ''}
                   ${!isSelected && !inRange && !outOfRange ? 'text-gray-700 hover:bg-gray-100' : ''}

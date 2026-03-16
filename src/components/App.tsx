@@ -194,6 +194,7 @@ export function App() {
         onExportExcel={handleExportExcel}
         onOpenSettings={() => openSettings()}
         onToggleSidebar={() => setSidebarOpen(v => !v)}
+        hideSidebar={isMobile}
         onAutoAssign={handleOpenAutoAssign}
         onOpenHomePeriods={() => setHomePeriodsOpen(true)}
         userEmail={user?.email}
@@ -212,14 +213,16 @@ export function App() {
         onDragStart={() => setSidebarOpen(false)}
       >
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar
-            state={state}
-            assignments={assignments}
-            onEditPerson={(id) => setSidebarEditPersonId(id)}
-            onDeletePerson={(id) => deletePerson(id)}
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-          />
+          {!isMobile && (
+            <Sidebar
+              state={state}
+              assignments={assignments}
+              onEditPerson={(id) => setSidebarEditPersonId(id)}
+              onDeletePerson={(id) => deletePerson(id)}
+              open={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+            />
+          )}
 
           <main className="flex-1 overflow-hidden md:p-4 relative flex flex-col">
             {exportError && (
@@ -285,7 +288,7 @@ export function App() {
 
       {/* Mobile bottom action bar */}
       {activeSchedule && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex gap-2 z-30">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex gap-1.5 z-30">
           <Button
             variant="primary"
             size="sm"
@@ -301,6 +304,14 @@ export function App() {
             onClick={() => setHomePeriodsOpen(true)}
           >
             {t('homePeriods', lang)}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="flex-1 justify-center"
+            onClick={handleExportExcel}
+          >
+            {t('excel', lang)}
           </Button>
         </div>
       )}

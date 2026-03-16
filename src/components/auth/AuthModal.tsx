@@ -130,7 +130,7 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
 
         {mode === 'register' && (
           <>
-            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 px-1">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 px-1">
               {([
                 ['length', t('pwReq8Chars', lang)],
                 ['upper', t('pwReqUppercase', lang)],

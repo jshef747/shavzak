@@ -232,7 +232,7 @@ export function QuickStartModal({ open, onClose, dir = 'ltr' }: Props) {
 
   return (
     <Modal open={open} onClose={onClose} title={t('quickStartTitle', lang)} size="md">
-      <div className="flex flex-col" style={{ minHeight: 400 }}>
+      <div className="flex flex-col">
         {/* Step indicator */}
         <div className="flex justify-center gap-2 mb-8">
           {STEPS.map((_, i) => (
