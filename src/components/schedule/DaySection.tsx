@@ -23,7 +23,7 @@ export const DaySection = memo(function DaySection({ date, state, assignments, r
       <tr>
         <td
           colSpan={positions.length + 1}
-          className="px-3 py-2 bg-gray-100 text-xs font-semibold text-gray-600 border-t border-gray-300 uppercase tracking-wide"
+          className="px-3 py-2 bg-gray-100 dark:bg-slate-700 text-xs font-semibold text-gray-600 dark:text-slate-300 border-t border-gray-300 dark:border-slate-600 uppercase tracking-wide"
         >
           {label}
         </td>

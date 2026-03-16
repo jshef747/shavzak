@@ -14,7 +14,7 @@ interface Props {
 export function ConfirmDialog({ open, message, onConfirm, onCancel, lang, variant = 'danger' }: Props) {
   return (
     <Modal open={open} onClose={onCancel} title={t('confirmTitle', lang)} size="sm">
-      <p className="text-sm text-gray-700 mb-6">{message}</p>
+      <p className="text-sm text-gray-700 dark:text-slate-300 mb-6">{message}</p>
       <div className="flex justify-end gap-2">
         <Button variant="secondary" size="sm" onClick={onCancel}>
           {t('cancel', lang)}

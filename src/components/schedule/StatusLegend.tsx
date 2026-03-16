@@ -30,9 +30,9 @@ export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
         {open ? t('hideLegend', lang) : t('legend', lang)}
       </button>
       {open && (
-        <div className="absolute bottom-full mb-1 right-0 rtl:right-auto rtl:left-0 bg-white border border-gray-200 rounded-lg shadow-lg p-3 space-y-1.5 min-w-[190px]">
+        <div className="absolute bottom-full mb-1 right-0 rtl:right-auto rtl:left-0 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg p-3 space-y-1.5 min-w-[190px]">
           {legendItems.map(item => (
-            <div key={item.labelKey} className="flex items-center gap-2 text-xs text-gray-700">
+            <div key={item.labelKey} className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300">
               <span className={`w-4 h-4 rounded border-2 shrink-0 ${item.color}`} />
               {t(item.labelKey, lang)}
             </div>

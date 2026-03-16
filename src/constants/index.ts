@@ -17,5 +17,6 @@ export const INITIAL_STATE: AppState = {
   schedules: [],
   activeScheduleId: null,
   dir: 'rtl',
+  theme: 'system',
   minBreakHours: 12,
 };

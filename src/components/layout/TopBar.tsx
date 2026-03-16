@@ -19,6 +19,8 @@ interface Props {
   onToggleSidebar: () => void;
   onAutoAssign: () => void;
   onOpenHomePeriods: () => void;
+  onToggleTheme: () => void;
+  isDark: boolean;
   userEmail?: string;
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
@@ -36,6 +38,8 @@ export function TopBar({
   onToggleSidebar,
   onAutoAssign,
   onOpenHomePeriods,
+  onToggleTheme,
+  isDark,
   userEmail,
   onOpenAuthModal,
   onLogout,
@@ -67,12 +71,12 @@ export function TopBar({
 
   return (
     <>
-      <div className="no-print h-14 bg-white border-b border-gray-200 px-4 flex items-center gap-4 shrink-0">
+      <div className="no-print h-14 bg-white dark:bg-slate-800 border-b border-gray-200 dark:border-slate-700 px-4 flex items-center gap-4 shrink-0">
         {/* Hamburger — mobile LTR only (appears on left) */}
         <button
           onClick={onToggleSidebar}
           aria-label="Toggle roster"
-          className={`md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
+          className={`md:hidden rtl:hidden p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -80,14 +84,14 @@ export function TopBar({
         </button>
 
         {/* Zone 1: Wordmark */}
-        <span className="hidden md:block text-base font-semibold text-gray-900 shrink-0">שבצק</span>
-        <div className="hidden md:block w-px h-5 bg-gray-200 shrink-0" />
+        <span className="hidden md:block text-base font-semibold text-gray-900 dark:text-slate-100 shrink-0">שבצק</span>
+        <div className="hidden md:block w-px h-5 bg-gray-200 dark:bg-slate-600 shrink-0" />
 
         {/* Zone 2: Schedule selector */}
         <div className="flex gap-2 items-center">
           <select
             aria-label={t('selectSchedule', lang)}
-            className="text-sm rounded px-2 py-1 text-gray-800 bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="text-sm rounded px-2 py-1 text-gray-800 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
             value={state.activeScheduleId ?? ''}
             onChange={e => onSetActiveSchedule(e.target.value || null)}
           >
@@ -134,10 +138,10 @@ export function TopBar({
           {/* Auth: login / user+logout */}
           {userEmail ? (
             <div className="flex items-center gap-1.5">
-              <span className="hidden md:block text-xs text-gray-500 truncate max-w-[140px]">{userEmail}</span>
+              <span className="hidden md:block text-xs text-gray-500 dark:text-slate-400 truncate max-w-[140px]">{userEmail}</span>
               <button
                 onClick={onLogout}
-                className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-xs px-2"
+                className="p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150 text-xs px-2"
               >
                 {t('logout', lang)}
               </button>
@@ -145,22 +149,50 @@ export function TopBar({
           ) : (
             <button
               onClick={onOpenAuthModal}
-              className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-xs px-2"
+              className="p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150 text-xs px-2"
             >
               {t('login', lang)}
             </button>
           )}
+          {/* Theme toggle: cycles system → light → dark → system */}
+          <button
+            onClick={onToggleTheme}
+            title={state.theme === 'system' ? 'Auto (system)' : state.theme === 'light' ? 'Light mode' : 'Dark mode'}
+            className="p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150"
+          >
+            {state.theme === 'dark' ? (
+              /* Moon */
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+              </svg>
+            ) : state.theme === 'light' ? (
+              /* Sun */
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 7a5 5 0 100 10A5 5 0 0012 7z" />
+              </svg>
+            ) : isDark ? (
+              /* System + currently dark: moon with dot */
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2" />
+              </svg>
+            ) : (
+              /* System + currently light: monitor */
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17H3a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2h-2" />
+              </svg>
+            )}
+          </button>
           <button
             onClick={() => setGuideOpen(true)}
             title={t('quickStartTitle', lang)}
-            className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 text-sm font-bold leading-none"
+            className="p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150 text-sm font-bold leading-none"
           >
             ?
           </button>
           <button
             onClick={onOpenSettings}
             title={t('settingsTitle', lang)}
-            className="p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150"
+            className="p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -173,7 +205,7 @@ export function TopBar({
           <button
             onClick={onToggleSidebar}
             aria-label="Toggle roster"
-            className={`ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
+            className={`ltr:hidden md:hidden rtl:ml-auto p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150 shrink-0 ${hideSidebar ? 'hidden' : ''}`}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />

@@ -45,10 +45,29 @@
   --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
+/* Person-color cell tint: controlled by CSS variable so dark mode shows subtler tint */
+:root { --person-cell-alpha: 50; /* hex 50 = ~31% opacity */ }
+.dark { --person-cell-alpha: 40; /* hex 40 = ~25% opacity — visible tint on dark bg */ }
+
+.dark {
+  --color-bg:           #020617;   /* slate-950 */
+  --color-surface:      #1e293b;   /* slate-800 */
+  --color-surface-alt:  #0f172a;   /* slate-900 */
+  --color-border:       #334155;   /* slate-700 */
+  --color-border-focus: #60a5fa;   /* blue-400 */
+  --color-text-primary:   #f1f5f9; /* slate-100 */
+  --color-text-secondary: #94a3b8; /* slate-400 */
+  --color-text-disabled:  #475569; /* slate-600 */
+  --color-text-inverse:   #0f172a;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900;
     font-family: var(--font-sans);
+  }
+  .dark body {
+    @apply bg-slate-950 text-slate-100;
   }
 }
 

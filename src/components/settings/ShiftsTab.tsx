@@ -67,12 +67,12 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 items-center p-3 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow transition-shadow"
+      className="flex flex-wrap sm:flex-nowrap gap-2 sm:gap-3 items-center p-3 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg shadow-sm hover:shadow transition-shadow"
     >
       <button
         {...attributes}
         {...listeners}
-        className="cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 px-0.5 touch-none flex-shrink-0"
+        className="cursor-grab active:cursor-grabbing text-gray-300 dark:text-slate-600 hover:text-gray-500 dark:hover:text-slate-400 px-0.5 touch-none flex-shrink-0"
         title={t('dragToReorder', lang)}
         tabIndex={-1}
       >
@@ -83,7 +83,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
 
       <div className="flex-1 min-w-0">
         <input
-          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
+          className="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
           value={shift.name}
           onChange={e => onUpdate(shift.id, { name: e.target.value })}
           placeholder={t('shiftNamePlaceholder', lang)}
@@ -92,28 +92,28 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
 
       <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('startTime', lang)}</span>
+          <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('startTime', lang)}</span>
           <input
             type="time"
             dir="ltr"
-            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
+            className="border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1 text-sm w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
             value={hourToTime(shift.startHour)}
             onChange={e => onUpdate(shift.id, { startHour: timeToHour(e.target.value) })}
           />
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">{t('durationH', lang)}</span>
+          <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('durationH', lang)}</span>
           <input
             type="number"
-            className="border border-gray-200 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
+            className="border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1 text-sm w-20 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
             value={shift.durationHours}
             min={0.5} max={24} step={0.5}
             onChange={e => onUpdate(shift.id, { durationHours: parseFloat(e.target.value) || 0.5 })}
           />
         </div>
         <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] font-medium text-gray-400 uppercase tracking-wider">End</span>
-          <span dir="ltr" className="text-sm text-gray-500 py-1 px-2">
+          <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider">End</span>
+          <span dir="ltr" className="text-sm text-gray-500 dark:text-slate-400 py-1 px-2">
             {hourToTime(shift.startHour + shift.durationHours)}
           </span>
         </div>
@@ -191,21 +191,21 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
     <ConfirmDialog open={dialog.open} message={dialog.message} onConfirm={dialog.onConfirm} onCancel={closeDialog} lang={lang} />
     <div className="space-y-5">
       {/* Current Shifts */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
               {t('currentShifts', lang)}
               {state.shifts.length > 0 && (
-                <span className="ml-2 text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{state.shifts.length}</span>
+                <span className="ml-2 text-xs font-normal text-gray-400 dark:text-slate-400 bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">{state.shifts.length}</span>
               )}
             </h3>
-            <p className="text-xs text-gray-500 mt-0.5">{t('shiftsDesc', lang)}</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t('shiftsDesc', lang)}</p>
           </div>
           {isLoggedIn && state.shifts.length > 0 && !savingTemplate && (
             <Button variant="secondary" size="sm" onClick={() => setSavingTemplate(true)} className="flex-shrink-0 flex items-center gap-1.5" title={t('saveAsPreset', lang)}>
@@ -224,7 +224,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
               value={templateName}
               onChange={e => setTemplateName(e.target.value)}
               placeholder={lang === 'he' ? 'שם התבנית...' : 'Template name...'}
-              className="flex-1 text-sm border border-blue-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="flex-1 text-sm border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
             <Button type="submit" variant="primary" size="sm" disabled={!templateName.trim() || saving}>
               {saving ? '...' : t('save', lang)}
@@ -236,19 +236,19 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
         )}
 
         {shiftSets.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-blue-50/50 rounded-lg border border-blue-100">
-            <span className="text-xs font-medium text-blue-800">{t('quickPresets', lang)}</span>
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800">
+            <span className="text-xs font-medium text-blue-800 dark:text-blue-300">{t('quickPresets', lang)}</span>
             {shiftSets.map(set => (
-              <div key={set.id} className="inline-flex items-center bg-white border border-blue-200 shadow-sm rounded-full overflow-hidden">
+              <div key={set.id} className="inline-flex items-center bg-white dark:bg-slate-700 border border-blue-200 dark:border-slate-600 shadow-sm rounded-full overflow-hidden">
                 <button
                   onClick={() => handleLoadTemplate(set.shifts)}
-                  className="text-xs px-2.5 py-1 text-blue-700 hover:bg-blue-50 transition-colors"
+                  className="text-xs px-2.5 py-1 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-slate-600 transition-colors"
                 >
                   {set.name}
                 </button>
                 <button 
                   onClick={() => onDeleteShiftSet(set.id)}
-                  className="px-1.5 py-1 text-blue-400 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-blue-100"
+                  className="px-1.5 py-1 text-blue-400 dark:text-blue-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors border-l border-blue-100 dark:border-slate-600"
                   title={t('delete', lang)}
                 >
                   ×
@@ -259,16 +259,16 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
         )}
 
         {state.shifts.length === 0 ? (
-          <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-gray-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="text-center py-8 border border-dashed border-gray-200 dark:border-slate-600 rounded-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <p className="text-sm text-gray-400">{t('noShiftsEmpty', lang)}</p>
+            <p className="text-sm text-gray-400 dark:text-slate-500">{t('noShiftsEmpty', lang)}</p>
           </div>
         ) : (
           <>
             {state.shifts.length > 1 && (
-              <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+              <p className="text-xs text-gray-400 dark:text-slate-500 mb-2 flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                 </svg>
@@ -296,16 +296,16 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
       </div>
 
       {/* Add Shift */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3 mb-4">
-          <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-gray-900">{t('addShift', lang)}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{t('addShiftDesc', lang)}</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('addShift', lang)}</h3>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t('addShiftDesc', lang)}</p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end flex-wrap">
@@ -340,22 +340,22 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
       </div>
 
       {/* Min Break Hours */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-semibold text-gray-900">{t('minBreakHoursLabel', lang)}</h3>
-            <p className="text-xs text-gray-500 mt-0.5">{t('minBreakDesc', lang)}</p>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('minBreakHoursLabel', lang)}</h3>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t('minBreakDesc', lang)}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <input
               type="number"
               dir="ltr"
-              className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
+              className="border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-3 py-1.5 text-sm w-20 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
               value={state.minBreakHours}
               min={1} max={48} step={0.5}
               onChange={e => {
@@ -363,7 +363,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
                 if (v >= 1) onUpdateMinBreakHours(v);
               }}
             />
-            <span className="text-sm font-medium text-gray-500">h</span>
+            <span className="text-sm font-medium text-gray-500 dark:text-slate-400">h</span>
           </div>
         </div>
       </div>

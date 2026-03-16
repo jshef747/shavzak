@@ -27,7 +27,7 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
       <table className="border-collapse text-sm min-w-max">
         <thead className="sticky top-0 z-10 shadow-sm">
           <tr className={headerClass}>
-            <th className="sticky left-0 rtl:left-auto rtl:right-0 z-20 bg-inherit px-3 py-2 text-left rtl:text-right text-xs font-semibold uppercase tracking-wide min-w-[120px]">
+            <th className="sticky left-0 rtl:left-auto rtl:right-0 z-20 bg-inherit px-3 py-2 text-left rtl:text-right text-xs font-semibold uppercase tracking-wide min-w-[120px] border-b border-gray-200 dark:border-slate-600">
               {t('shiftCol', lang)}
             </th>
             {positions.map(pos => (
@@ -59,8 +59,8 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
     <div ref={ref} className="overflow-auto h-full print-overflow">
       <div className="flex gap-4 min-w-max flex-col">
         <div className="flex gap-4 min-w-max">
-          {regularPositions.length > 0 && renderTable(regularPositions, 'bg-gray-50 text-gray-500')}
-          {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-50 text-orange-700')}
+          {regularPositions.length > 0 && renderTable(regularPositions, 'bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-400')}
+          {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300')}
         </div>
         <HomeGroupsSection
           state={state}

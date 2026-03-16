@@ -25,7 +25,7 @@ export function HoursTracker({ state, assignments }: Props) {
 
   return (
     <div className="p-3">
-      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+      <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
         {t('hours', lang)}
       </h3>
       <div className="space-y-1.5">
@@ -39,8 +39,8 @@ export function HoursTracker({ state, assignments }: Props) {
               >
                 {initials}
               </span>
-              <span className="text-gray-700 truncate flex-1">{person.name}</span>
-              <span className="font-semibold text-slate-800 bg-slate-200 rounded px-1.5 py-0.5 shrink-0">{total}h</span>
+              <span className="text-gray-700 dark:text-slate-300 truncate flex-1">{person.name}</span>
+              <span className="font-semibold text-slate-800 dark:text-slate-200 bg-slate-200 dark:bg-slate-600 rounded px-1.5 py-0.5 shrink-0">{total}h</span>
             </div>
           );
         })}

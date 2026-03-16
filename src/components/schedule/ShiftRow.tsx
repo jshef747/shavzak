@@ -22,13 +22,15 @@ function formatShiftTime(h: number) {
 
 export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
   const endHour = shift.startHour + shift.durationHours;
-  const rowBg = dayIndex % 2 === 0 ? 'bg-gray-50' : 'bg-white';
+  const rowBg = dayIndex % 2 === 0
+    ? 'bg-gray-50 dark:bg-slate-800'
+    : 'bg-white dark:bg-slate-900';
 
   return (
-    <tr className={`border-b ${rowBg}`}>
-      <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs text-gray-600 border-r whitespace-nowrap font-medium ${rowBg}`}>
+    <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
+      <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
         {shift.name}
-        <div dir="ltr" className="text-gray-400 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
+        <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>
       {positions.map(pos => (
         <AssignmentCell

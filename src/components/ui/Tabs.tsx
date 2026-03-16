@@ -8,7 +8,7 @@ interface TabsProps {
 
 export function Tabs({ tabs, active, onChange, labels }: TabsProps) {
   return (
-    <div role="tablist" className="flex gap-1 p-1 bg-gray-100 rounded-lg mb-6 overflow-x-auto scrollbar-none">
+    <div role="tablist" className="flex gap-1 p-1 bg-gray-100 dark:bg-slate-700 rounded-lg mb-6 overflow-x-auto scrollbar-none">
       {tabs.map((tab, i) => (
         <button
           key={tab}
@@ -18,7 +18,7 @@ export function Tabs({ tabs, active, onChange, labels }: TabsProps) {
           className={`flex-1 shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
             active === tab
               ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              : 'text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-600'
           }`}
         >
           {labels?.[i] ?? tab}

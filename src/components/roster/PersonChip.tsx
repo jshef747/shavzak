@@ -39,22 +39,25 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
   const initials = personInitials(name);
 
   if (variant === 'cell') {
+    const isDarkMode = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+    const chipStyle = isDarkMode
+      ? { ...style, backgroundColor: colorHex, borderColor: colorHex }
+      : style;
     return (
       <div
         ref={setNodeRef}
-        style={style}
+        style={chipStyle}
         {...attributes}
         {...listeners}
-        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
-        // Colored ring using boxShadow
+        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 dark:border shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
       >
         <span
           className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
-          style={{ backgroundColor: colorHex, color: '#1e293b' }}
+          style={{ backgroundColor: isDarkMode ? 'rgba(0,0,0,0.20)' : colorHex, color: '#1e293b' }}
         >
           {initials}
         </span>
-        <span className="flex-1 truncate text-right text-gray-800">{name}</span>
+        <span className="flex-1 truncate text-right text-gray-800" style={{ color: isDarkMode ? '#1e293b' : undefined }}>{name}</span>
       </div>
     );
   }

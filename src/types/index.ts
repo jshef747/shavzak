@@ -84,5 +84,6 @@ export interface AppState {
   schedules: Schedule[];
   activeScheduleId: string | null;
   dir: 'ltr' | 'rtl';
+  theme: 'light' | 'dark' | 'system';
   minBreakHours: number;
 }

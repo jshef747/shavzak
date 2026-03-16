@@ -26,6 +26,7 @@ export function normalizeState(raw: unknown): AppState {
 
   merged.homeGroups = merged.homeGroups ?? [];
   merged.dir = 'rtl';
+  merged.theme = (['light', 'dark', 'system'] as const).includes(merged.theme as 'light' | 'dark' | 'system') ? merged.theme : 'system';
   merged.minBreakHours = merged.minBreakHours ?? 12;
   return merged;
 }

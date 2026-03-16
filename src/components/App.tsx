@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useAppState } from '../hooks/useAppState';
 import { useSchedule } from '../hooks/useSchedule';
 import { useShifts } from '../hooks/useShifts';
@@ -112,6 +112,30 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, user]);
 
+  // Dark mode: track system preference
+  const [systemDark, setSystemDark] = useState(() =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+  const isDark = state.theme === 'dark' || (state.theme === 'system' && systemDark);
+
+  // Keep <html> in sync so dark: variants work in portals / fixed elements
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDark);
+  }, [isDark]);
+
+  const toggleTheme = useCallback(() => {
+    setState(prev => {
+      const next = prev.theme === 'system' ? 'light' : prev.theme === 'light' ? 'dark' : 'system';
+      return { ...prev, theme: next };
+    });
+  }, [setState]);
+
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
   const lang = langFromDir(state.dir);
   const isMobile = useIsMobile();
@@ -172,7 +196,7 @@ export function App() {
   // Show a minimal spinner while Supabase resolves the session
   if (authLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gray-50">
+      <div className={`h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950${isDark ? ' dark' : ''}`}>
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -182,7 +206,7 @@ export function App() {
     <div
       dir={state.dir}
       lang={state.dir === 'rtl' ? 'he' : 'en'}
-      className="h-screen flex flex-col bg-gray-50"
+      className={`h-screen flex flex-col bg-gray-50 dark:bg-slate-950${isDark ? ' dark' : ''}`}
     >
       <TopBar
         state={state}
@@ -197,6 +221,8 @@ export function App() {
         hideSidebar={isMobile}
         onAutoAssign={handleOpenAutoAssign}
         onOpenHomePeriods={() => setHomePeriodsOpen(true)}
+        onToggleTheme={toggleTheme}
+        isDark={isDark}
         userEmail={user?.email}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onLogout={logout}
@@ -224,9 +250,9 @@ export function App() {
             />
           )}
 
-          <main className="flex-1 overflow-hidden md:p-4 relative flex flex-col">
+          <main className="flex-1 overflow-hidden md:p-4 relative flex flex-col bg-gray-50 dark:bg-slate-950">
             {exportError && (
-              <div className="mb-3 flex items-center justify-between gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-lg shrink-0">
+              <div className="mb-3 flex items-center justify-between gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm px-4 py-2.5 rounded-lg shrink-0">
                 <span>{exportError}</span>
                 <button onClick={() => setExportError('')} className="text-red-400 hover:text-red-700 font-bold leading-none shrink-0">×</button>
               </div>
@@ -234,11 +260,11 @@ export function App() {
             {!activeSchedule ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <div className="text-center space-y-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p className="text-lg font-medium text-gray-600">{t('noSchedule', lang)}</p>
-                  <p className="text-sm text-gray-400">{t('noScheduleHint', lang)}</p>
+                  <p className="text-lg font-medium text-gray-600 dark:text-slate-400">{t('noSchedule', lang)}</p>
+                  <p className="text-sm text-gray-400 dark:text-slate-500">{t('noScheduleHint', lang)}</p>
                   <button
                     onClick={() => setNewScheduleOpen(true)}
                     className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-150"
@@ -250,11 +276,11 @@ export function App() {
             ) : state.positions.length === 0 ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <div className="text-center space-y-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <p className="text-lg font-medium text-gray-600">{t('noPositions', lang)}</p>
-                  <p className="text-sm text-gray-400">{t('noPositionsHint', lang)}</p>
+                  <p className="text-lg font-medium text-gray-600 dark:text-slate-400">{t('noPositions', lang)}</p>
+                  <p className="text-sm text-gray-400 dark:text-slate-500">{t('noPositionsHint', lang)}</p>
                   <button
                     onClick={() => openSettings('Positions')}
                     className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-150"
@@ -288,7 +314,7 @@ export function App() {
 
       {/* Mobile bottom action bar */}
       {activeSchedule && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex gap-1.5 z-30">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex gap-1.5 z-30">
           <Button
             variant="primary"
             size="sm"

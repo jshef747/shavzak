@@ -31,15 +31,15 @@ const STATUS_OUTLINE: Record<CellStatus, string | null> = {
 };
 
 const STATUS_BG: Record<CellStatus, string> = {
-  empty:                  'bg-white hover:bg-blue-50',
+  empty:                  'bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20',
   valid:                  '', // bg applied via inline style (person color)
-  unavailable:            'bg-red-100',
-  'home-group':           'bg-blue-100',
-  'double-booked':        'bg-orange-100',
-  unqualified:            'bg-yellow-100',
-  'insufficient-break':   'bg-sky-100',
-  'constraint-violation': 'bg-purple-100',
-  'oncall-short-break':   'bg-orange-50',
+  unavailable:            'bg-red-100 dark:bg-red-800/60',
+  'home-group':           'bg-blue-100 dark:bg-blue-800/60',
+  'double-booked':        'bg-orange-100 dark:bg-orange-800/60',
+  unqualified:            'bg-yellow-100 dark:bg-yellow-700/50',
+  'insufficient-break':   'bg-sky-100 dark:bg-sky-800/60',
+  'constraint-violation': 'bg-purple-100 dark:bg-purple-800/60',
+  'oncall-short-break':   'bg-orange-50 dark:bg-orange-800/50',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
@@ -102,8 +102,11 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   const bgClass = isOver ? dragOverBg : STATUS_BG[status];
   const outlineColor = isOver ? dragOverOutline : STATUS_OUTLINE[status];
   // For valid cells, tint background with person's color; drag-over and warning statuses use their own bg
+  const personCellAlpha = typeof window !== 'undefined'
+    ? getComputedStyle(document.documentElement).getPropertyValue('--person-cell-alpha').trim() || '50'
+    : '50';
   const cellStyle: CSSProperties = {
-    ...((!isOver && status === 'valid' && person) ? { backgroundColor: person.colorHex + '50' } : {}),
+    ...((!isOver && status === 'valid' && person) ? { backgroundColor: person.colorHex + personCellAlpha } : {}),
     ...(outlineColor
       ? { outline: `${isOver ? '2px' : '1px'} solid ${outlineColor}`, outlineOffset: isOver ? '-2px' : '-1px' }
       : {}),
@@ -131,7 +134,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     <td
       ref={setNodeRef}
       style={cellStyle}
-      className={`relative border border-gray-200 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
+      className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
     >
       {person && (
         <PersonChip
@@ -154,7 +157,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
 
       {warningText && (
         <span className="absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 group/info">
-          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-white border border-gray-300 text-[10px] font-bold text-gray-500 cursor-help hover:text-gray-800 hover:border-gray-500 transition-colors leading-none select-none">
+          <span className="flex items-center justify-center w-4 h-4 rounded-full bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-500 text-[10px] font-bold text-gray-500 dark:text-slate-400 cursor-help hover:text-gray-800 dark:hover:text-slate-200 hover:border-gray-500 dark:hover:border-slate-300 transition-colors leading-none select-none">
             i
           </span>
           <span className="pointer-events-none absolute bottom-full right-0 rtl:right-auto rtl:left-0 mb-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 opacity-0 group-hover/info:opacity-100 transition-opacity duration-150 z-50 whitespace-normal leading-snug shadow-xl">

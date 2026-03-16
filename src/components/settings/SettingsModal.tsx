@@ -73,7 +73,7 @@ export function SettingsModal({
   const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang)];
 
   return (
-    <Modal open={open} onClose={onClose} title={t('settingsTitle', lang)} size="xl">
+    <Modal open={open} onClose={onClose} title={t('settingsTitle', lang)} size="xl" dir={state.dir}>
       <Tabs tabs={TABS} active={activeTab} onChange={setActiveTab} labels={tabLabels} />
       {activeTab === 'Shifts' && (
         <ShiftsTab
