@@ -81,13 +81,16 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
       />
 
       {/* On-Call toggle switch + label */}
-      <div className="flex flex-col items-center gap-0.5 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span className={`text-[10px] font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400'}`}>
+          {t('onCall', lang)}
+        </span>
         <button
           role="switch"
           aria-checked={pos.isOnCall}
           onClick={() => onToggleOnCall(pos.id)}
           title={t('onCall', lang)}
-          className={`relative w-10 h-[22px] rounded-full flex-shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 ${
+          className={`relative w-10 h-[22px] rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-1 ${
             pos.isOnCall ? 'bg-orange-400' : 'bg-gray-200 hover:bg-gray-300'
           }`}
         >
@@ -95,9 +98,6 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
             pos.isOnCall ? 'left-[19px]' : 'left-[2px]'
           }`} />
         </button>
-        <span className={`text-[9px] leading-none font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400'}`}>
-          {t('onCall', lang)}
-        </span>
       </div>
 
       {/* People count / single-role assign button */}
