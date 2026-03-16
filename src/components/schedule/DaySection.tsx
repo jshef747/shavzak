@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
 import type { AppState, Assignment, HomeGroupPeriod, Position } from '../../types';
@@ -13,7 +14,7 @@ interface Props {
   homeGroupPeriods: HomeGroupPeriod[];
 }
 
-export function DaySection({ date, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
+export const DaySection = memo(function DaySection({ date, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
   const locale = state.dir === 'rtl' ? heLocale : undefined;
   const label = format(parseISO(date), 'EEE, MMM d', { locale });
 
@@ -42,4 +43,4 @@ export function DaySection({ date, state, assignments, refDate, dayIndex, positi
       ))}
     </>
   );
-}
+});

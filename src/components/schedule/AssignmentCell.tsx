@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { useDroppable, useDndContext } from '@dnd-kit/core';
 import type { AppState, Assignment, CellAddress, CellStatus, DragData, HomeGroupPeriod } from '../../types';
 import { serializeCellAddress } from '../../utils/cellKey';
@@ -29,7 +30,7 @@ const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
-export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
+const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
   const { isOver, setNodeRef } = useDroppable({ id: cellKey });
@@ -133,4 +134,51 @@ export function AssignmentCell({ cell, state, assignments, refDate, homeGroupPer
       )}
     </td>
   );
+};
+
+// Custom areEqual to prevent massive grid re-renders on every assignment change
+function areEqual(prev: Props, next: Props) {
+  if (prev.state !== next.state) return false;
+  if (prev.refDate !== next.refDate) return false;
+  if (prev.homeGroupPeriods !== next.homeGroupPeriods) return false;
+  if (
+    prev.cell.date !== next.cell.date || 
+    prev.cell.positionId !== next.cell.positionId || 
+    prev.cell.shiftId !== next.cell.shiftId
+  ) return false;
+
+  // Have assignments changed? We only care if:
+  // 1. The assignment for THIS cell changed
+  // 2. OR the assignments for the person CURRENTLY in this cell changed (which might alter their validity)
+  if (prev.assignments === next.assignments) return true;
+
+  const getPersonForCell = (assignments: Assignment[]) => 
+    assignments.find(a => a.date === prev.cell.date && a.shiftId === prev.cell.shiftId && a.positionId === prev.cell.positionId)?.personId;
+
+  const prevPersonId = getPersonForCell(prev.assignments);
+  const nextPersonId = getPersonForCell(next.assignments);
+
+  // Someone was added, removed, or changed in this exact cell
+  if (prevPersonId !== nextPersonId) return false;
+
+  // If there's a person in this cell, check if ANY of their other assignments changed
+  // (which could trigger constraint violations like max-per-week or consecutive days)
+  if (prevPersonId) {
+    const prevPersonAssignments = prev.assignments.filter(a => a.personId === prevPersonId);
+    const nextPersonAssignments = next.assignments.filter(a => a.personId === prevPersonId);
+    // Rough check: did the total number of assignments for this person change?
+    if (prevPersonAssignments.length !== nextPersonAssignments.length) return false;
+    
+    // Deep check: did the specific dates/shifts change?
+    for (let i = 0; i < prevPersonAssignments.length; i++) {
+        const pa = prevPersonAssignments[i];
+        const na = nextPersonAssignments[i];
+        if (pa.date !== na.date || pa.shiftId !== na.shiftId || pa.positionId !== na.positionId) return false;
+    }
+  }
+
+  // If this cell is empty, it doesn't care about other people's assignments changing.
+  return true;
 }
+
+export const AssignmentCell = memo(AssignmentCellBase, areEqual);

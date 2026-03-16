@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { AppState, Shift, UnavailabilityEntry, DayOfWeek } from '../../types';
-import type { PositionPreset, HourPreset } from '../../hooks/usePresets';
+import type { AppState, Shift, UnavailabilityEntry, DayOfWeek, Position } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Tabs } from '../ui/Tabs';
 import { langFromDir, t } from '../../utils/i18n';
@@ -8,8 +7,6 @@ import { ShiftsTab } from './ShiftsTab';
 import { PositionsTab } from './PositionsTab';
 import { PeopleTab } from './PeopleTab';
 import { HomeGroupsTab } from './HomeGroupsTab';
-import { PresetsTab } from './PresetsTab';
-
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -43,23 +40,25 @@ interface Props {
   onUpdateHomeGroup: (id: string, name: string) => void;
   onDeleteHomeGroup: (id: string) => void;
   onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
-  positionPresets: PositionPreset[];
-  hourPresets: HourPreset[];
-  onAddPositionPreset: (name: string) => Promise<void>;
-  onDeletePositionPreset: (id: string) => Promise<void>;
-  onAddHourPreset: (name: string, start_time: string, end_time: string) => Promise<void>;
-  onDeleteHourPreset: (id: string) => Promise<void>;
+  shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
+  positionSets: import('../../hooks/usePresets').PositionSetPreset[];
+  onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
+  onDeleteShiftSet: (id: string) => Promise<void>;
+  onLoadShiftSet: (shifts: Omit<Shift, 'id'>[]) => void;
+  onAddPositionSet: (name: string, positions: Position[]) => Promise<void>;
+  onDeletePositionSet: (id: string) => Promise<void>;
+  onLoadPositionSet: (positions: Omit<Position, 'id'>[]) => void;
   isLoggedIn: boolean;
 }
 
 // Internal tab keys stay in English for logic comparisons
-const TABS = ['Shifts', 'Positions', 'People', 'Groups', 'Presets'];
+const TABS = ['Shifts', 'Positions', 'People', 'Groups'];
 
 export function SettingsModal({
   open, onClose, state, dates, initialTab,
-  positionPresets, hourPresets,
-  onAddPositionPreset, onDeletePositionPreset,
-  onAddHourPreset, onDeleteHourPreset,
+  shiftSets, positionSets,
+  onAddShiftSet, onDeleteShiftSet, onLoadShiftSet,
+  onAddPositionSet, onDeletePositionSet, onLoadPositionSet,
   isLoggedIn,
   ...handlers
 }: Props) {
@@ -70,7 +69,7 @@ export function SettingsModal({
     if (open && initialTab) setActiveTab(initialTab);
   }, [open, initialTab]);
 
-  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang), t('tabPresets', lang)];
+  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang)];
 
   return (
     <Modal open={open} onClose={onClose} title={t('settingsTitle', lang)} size="xl">
@@ -83,7 +82,11 @@ export function SettingsModal({
           onDelete={handlers.onDeleteShift}
           onReorder={handlers.onReorderShifts}
           onUpdateMinBreakHours={handlers.onUpdateMinBreakHours}
-          hourPresets={hourPresets}
+          shiftSets={shiftSets}
+          onAddShiftSet={onAddShiftSet}
+          onDeleteShiftSet={onDeleteShiftSet}
+          onLoadShiftSet={onLoadShiftSet}
+          isLoggedIn={isLoggedIn}
         />
       )}
       {activeTab === 'Positions' && (
@@ -95,7 +98,11 @@ export function SettingsModal({
           onToggleOnCall={handlers.onToggleOnCall}
           onReorder={handlers.onReorderPositions}
           onToggleQualification={handlers.onToggleQualification}
-          positionPresets={positionPresets}
+          positionSets={positionSets}
+          onAddPositionSet={onAddPositionSet}
+          onDeletePositionSet={onDeletePositionSet}
+          onLoadPositionSet={onLoadPositionSet}
+          isLoggedIn={isLoggedIn}
         />
       )}
       {activeTab === 'People' && (
@@ -125,18 +132,6 @@ export function SettingsModal({
           onUpdateGroup={handlers.onUpdateHomeGroup}
           onDeleteGroup={handlers.onDeleteHomeGroup}
           onSetPersonGroup={handlers.onSetPersonHomeGroup}
-        />
-      )}
-      {activeTab === 'Presets' && (
-        <PresetsTab
-          lang={lang}
-          positionPresets={positionPresets}
-          hourPresets={hourPresets}
-          onAddPositionPreset={onAddPositionPreset}
-          onDeletePositionPreset={onDeletePositionPreset}
-          onAddHourPreset={onAddHourPreset}
-          onDeleteHourPreset={onDeleteHourPreset}
-          isLoggedIn={isLoggedIn}
         />
       )}
     </Modal>

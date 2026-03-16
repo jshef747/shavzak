@@ -25,8 +25,13 @@ export function useAuth() {
   }
 
   async function register(email: string, password: string): Promise<void> {
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
+    
+    if (!data.session) {
+      const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+      if (loginError) throw loginError;
+    }
   }
 
   async function logout(): Promise<void> {

@@ -1,76 +1,81 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import type { Shift, Position } from '../types';
 
-export interface PositionPreset {
+export interface ShiftSetPreset {
   id: string;
   name: string;
+  shifts: Omit<Shift, 'id'>[]; 
 }
 
-export interface HourPreset {
+export interface PositionSetPreset {
   id: string;
   name: string;
-  start_time: string;
-  end_time: string;
+  positions: Omit<Position, 'id'>[]; 
 }
 
 export function usePresets(userId: string | null) {
-  const [positionPresets, setPositionPresets] = useState<PositionPreset[]>([]);
-  const [hourPresets, setHourPresets] = useState<HourPreset[]>([]);
+  const [shiftSets, setShiftSets] = useState<ShiftSetPreset[]>([]);
+  const [positionSets, setPositionSets] = useState<PositionSetPreset[]>([]);
 
   useEffect(() => {
     if (!userId) {
-      setPositionPresets([]);
-      setHourPresets([]);
+      setShiftSets([]);
+      setPositionSets([]);
       return;
     }
 
     supabase
-      .from('position_presets')
-      .select('id, name')
+      .from('shift_set_presets')
+      .select('id, name, shifts')
+      .eq('user_id', userId)
       .order('created_at')
-      .then(({ data }) => { if (data) setPositionPresets(data); });
+      .then(({ data }) => { if (data) setShiftSets(data); });
 
     supabase
-      .from('hour_presets')
-      .select('id, name, start_time, end_time')
+      .from('position_set_presets')
+      .select('id, name, positions')
+      .eq('user_id', userId)
       .order('created_at')
-      .then(({ data }) => { if (data) setHourPresets(data); });
+      .then(({ data }) => { if (data) setPositionSets(data); });
   }, [userId]);
 
-  async function addPositionPreset(name: string): Promise<void> {
+  async function addShiftSet(name: string, shifts: Shift[]): Promise<void> {
+    const shiftsWithoutIds = shifts.map(({ id, ...rest }) => rest);
     const { data } = await supabase
-      .from('position_presets')
-      .insert({ name, user_id: userId })
-      .select('id, name')
+      .from('shift_set_presets')
+      .insert({ name, shifts: shiftsWithoutIds, user_id: userId })
+      .select('id, name, shifts')
       .single();
-    if (data) setPositionPresets(prev => [...prev, data]);
+    if (data) setShiftSets(prev => [...prev, data]);
   }
 
-  async function deletePositionPreset(id: string): Promise<void> {
-    await supabase.from('position_presets').delete().eq('id', id);
-    setPositionPresets(prev => prev.filter(p => p.id !== id));
+  async function deleteShiftSet(id: string): Promise<void> {
+    await supabase.from('shift_set_presets').delete().eq('id', id);
+    setShiftSets(prev => prev.filter(p => p.id !== id));
   }
 
-  async function addHourPreset(name: string, start_time: string, end_time: string): Promise<void> {
+  async function addPositionSet(name: string, positions: Position[]): Promise<void> {
+    const posWithoutIds = positions.map(({ id, ...rest }) => rest);
     const { data } = await supabase
-      .from('hour_presets')
-      .insert({ name, start_time, end_time, user_id: userId })
-      .select('id, name, start_time, end_time')
+      .from('position_set_presets')
+      .insert({ name, positions: posWithoutIds, user_id: userId })
+      .select('id, name, positions')
       .single();
-    if (data) setHourPresets(prev => [...prev, data]);
+    if (data) setPositionSets(prev => [...prev, data]);
   }
 
-  async function deleteHourPreset(id: string): Promise<void> {
-    await supabase.from('hour_presets').delete().eq('id', id);
-    setHourPresets(prev => prev.filter(p => p.id !== id));
+  async function deletePositionSet(id: string): Promise<void> {
+    await supabase.from('position_set_presets').delete().eq('id', id);
+    setPositionSets(prev => prev.filter(p => p.id !== id));
   }
 
   return {
-    positionPresets,
-    hourPresets,
-    addPositionPreset,
-    deletePositionPreset,
-    addHourPreset,
-    deleteHourPreset,
+    shiftSets,
+    positionSets,
+    addShiftSet,
+    deleteShiftSet,
+    addPositionSet,
+    deletePositionSet,
   };
 }

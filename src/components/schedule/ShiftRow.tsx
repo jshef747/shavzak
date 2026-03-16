@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { AppState, HomeGroupPeriod, Shift, Assignment, Position } from '../../types';
 import { AssignmentCell } from './AssignmentCell';
 
@@ -19,7 +20,7 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
+export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
   const endHour = shift.startHour + shift.durationHours;
   const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
 
@@ -41,4 +42,4 @@ export function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, p
       ))}
     </tr>
   );
-}
+});

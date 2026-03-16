@@ -15,7 +15,6 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { AppState, Shift } from '../../types';
-import type { HourPreset } from '../../hooks/usePresets';
 import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -27,7 +26,11 @@ interface Props {
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
-  hourPresets?: HourPreset[];
+  shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
+  onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
+  onDeleteShiftSet: (id: string) => Promise<void>;
+  onLoadShiftSet: (shifts: Omit<Shift, 'id'>[]) => void;
+  isLoggedIn: boolean;
 }
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
@@ -132,22 +135,14 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   );
 }
 
-export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, hourPresets = [] }: Props) {
+export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, shiftSets, onAddShiftSet, onDeleteShiftSet, onLoadShiftSet, isLoggedIn }: Props) {
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState<number>(8);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [saving, setSaving] = useState(false);
   const lang = langFromDir(state.dir);
-
-  function applyHourPreset(p: HourPreset) {
-    setName(p.name);
-    setStartTime(p.start_time);
-    const [sh, sm] = p.start_time.split(':').map(Number);
-    const [eh, em] = p.end_time.split(':').map(Number);
-    let start = sh + (sm ?? 0) / 60;
-    let end = eh + (em ?? 0) / 60;
-    if (end <= start) end += 24;
-    setDuration(end - start);
-  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -157,6 +152,25 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
     if (!name.trim()) return;
     onAdd(name.trim(), timeToHour(startTime), duration);
     setName('');
+  }
+
+  async function handleConfirmSave(e: React.FormEvent) {
+    e.preventDefault();
+    if (!templateName.trim()) return;
+    setSaving(true);
+    await onAddShiftSet(templateName.trim(), state.shifts);
+    setSavingTemplate(false);
+    setTemplateName('');
+    setSaving(false);
+  }
+
+  function handleLoadTemplate(shifts: Omit<Shift, 'id'>[]) {
+    const msg = lang === 'he' 
+      ? 'טעינת התבנית תחליף את כל המשמרות הקיימות. האם להמשיך?'
+      : 'Loading this template will replace ALL current shifts. Are you sure?';
+    if (window.confirm(msg)) {
+      onLoadShiftSet(shifts);
+    }
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -187,7 +201,56 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">{t('shiftsDesc', lang)}</p>
           </div>
+          {isLoggedIn && state.shifts.length > 0 && !savingTemplate && (
+            <Button variant="secondary" size="sm" onClick={() => setSavingTemplate(true)} className="flex-shrink-0 flex items-center gap-1.5" title={t('saveAsPreset', lang)}>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+              {lang === 'he' ? 'שמור כתבנית' : 'Save as Template'}
+            </Button>
+          )}
         </div>
+
+        {savingTemplate && (
+          <form onSubmit={handleConfirmSave} className="flex items-center gap-2 mb-4">
+            <input
+              autoFocus
+              value={templateName}
+              onChange={e => setTemplateName(e.target.value)}
+              placeholder={lang === 'he' ? 'שם התבנית...' : 'Template name...'}
+              className="flex-1 text-sm border border-indigo-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+            />
+            <Button type="submit" variant="primary" size="sm" disabled={!templateName.trim() || saving}>
+              {saving ? '...' : t('save', lang)}
+            </Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => { setSavingTemplate(false); setTemplateName(''); }}>
+              {t('cancel', lang)}
+            </Button>
+          </form>
+        )}
+
+        {shiftSets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-indigo-50/50 rounded-lg border border-indigo-100">
+            <span className="text-xs font-medium text-indigo-800">{t('quickPresets', lang)}</span>
+            {shiftSets.map(set => (
+              <div key={set.id} className="inline-flex items-center bg-white border border-indigo-200 shadow-sm rounded-full overflow-hidden">
+                <button
+                  onClick={() => handleLoadTemplate(set.shifts)}
+                  className="text-xs px-2.5 py-1 text-indigo-700 hover:bg-indigo-50 transition-colors"
+                >
+                  {set.name}
+                </button>
+                <button 
+                  onClick={() => onDeleteShiftSet(set.id)}
+                  className="px-1.5 py-1 text-indigo-400 hover:text-red-500 hover:bg-red-50 transition-colors border-l border-indigo-100"
+                  title={t('delete', lang)}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         {state.shifts.length === 0 ? (
           <div className="text-center py-8 border border-dashed border-gray-200 rounded-lg">
@@ -264,24 +327,12 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             onChange={e => setDuration(parseFloat(e.target.value) || 0.5)}
             className="w-24"
           />
-          <Button onClick={handleAdd} variant="primary" size="sm" className="self-end">
-            {t('addShift', lang)}
-          </Button>
-        </div>
-        {hourPresets.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
-            <span className="text-xs text-gray-400">{t('quickPresets', lang)}</span>
-            {hourPresets.map(p => (
-              <button
-                key={p.id}
-                onClick={() => applyHourPreset(p)}
-                className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
-              >
-                {p.name}
-              </button>
-            ))}
+          <div className="flex gap-2 self-end">
+            <Button onClick={handleAdd} variant="primary" size="sm">
+              {t('addShift', lang)}
+            </Button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Min Break Hours */}

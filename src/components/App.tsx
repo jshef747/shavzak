@@ -12,6 +12,7 @@ import { useCloudSync } from '../hooks/useCloudSync';
 import { usePresets } from '../hooks/usePresets';
 import { langFromDir, t } from '../utils/i18n';
 import { normalizeState } from '../utils/normalizeState';
+import type { Shift, Position, AppState } from '../types';
 import { TopBar } from './layout/TopBar';
 import { Sidebar } from './layout/Sidebar';
 import { ScheduleView } from './schedule/ScheduleView';
@@ -59,10 +60,25 @@ export function App() {
   const { user, loading: authLoading, login, register, logout } = useAuth();
   const { loadBoard, saveBoard } = useCloudSync();
   const {
-    positionPresets, hourPresets,
-    addPositionPreset, deletePositionPreset,
-    addHourPreset, deleteHourPreset,
+    shiftSets, positionSets,
+    addShiftSet, deleteShiftSet,
+    addPositionSet, deletePositionSet,
   } = usePresets(user?.id ?? null);
+
+  function handleLoadShiftSet(shifts: Omit<Shift, 'id'>[]) {
+    // Keep minBreakHours etc, just replace shifts entirely
+    setState((prev: AppState) => ({
+      ...prev,
+      shifts: shifts.map(s => ({ ...s, id: crypto.randomUUID() })) as Shift[]
+    }));
+  }
+
+  function handleLoadPositionSet(positions: Omit<Position, 'id'>[]) {
+    setState((prev: AppState) => ({
+      ...prev,
+      positions: positions.map(p => ({ ...p, id: crypto.randomUUID() })) as Position[]
+    }));
+  }
 
   // Load board from Supabase when user logs in
   const loadedUserRef = useRef<string | null>(null);
@@ -76,7 +92,7 @@ export function App() {
     loadBoard(user.id).then(saved => {
       if (saved) setState(normalizeState(saved));
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Auto-save board to Supabase (debounced 1s) when logged in
@@ -88,7 +104,7 @@ export function App() {
       saveBoard(state, user.id);
     }, 1000);
     return () => clearTimeout(saveTimerRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, user]);
 
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
@@ -279,12 +295,14 @@ export function App() {
         onUpdateHomeGroup={updateHomeGroup}
         onDeleteHomeGroup={deleteHomeGroup}
         onSetPersonHomeGroup={setPersonHomeGroup}
-        positionPresets={positionPresets}
-        hourPresets={hourPresets}
-        onAddPositionPreset={addPositionPreset}
-        onDeletePositionPreset={deletePositionPreset}
-        onAddHourPreset={addHourPreset}
-        onDeleteHourPreset={deleteHourPreset}
+        shiftSets={shiftSets}
+        positionSets={positionSets}
+        onAddShiftSet={addShiftSet}
+        onDeleteShiftSet={deleteShiftSet}
+        onLoadShiftSet={handleLoadShiftSet}
+        onAddPositionSet={addPositionSet}
+        onDeletePositionSet={deletePositionSet}
+        onLoadPositionSet={handleLoadPositionSet}
         isLoggedIn={!!user}
       />
 
@@ -354,6 +372,7 @@ export function App() {
         onClose={() => setAuthModalOpen(false)}
         onLogin={login}
         onRegister={register}
+        lang={lang}
       />
     </div>
   );
