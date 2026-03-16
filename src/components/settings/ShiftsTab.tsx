@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { AppState, Shift } from '../../types';
+import type { HourPreset } from '../../hooks/usePresets';
 import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -26,6 +27,7 @@ interface Props {
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
+  hourPresets?: HourPreset[];
 }
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
@@ -130,11 +132,22 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   );
 }
 
-export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours }: Props) {
+export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, hourPresets = [] }: Props) {
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState<number>(8);
   const lang = langFromDir(state.dir);
+
+  function applyHourPreset(p: HourPreset) {
+    setName(p.name);
+    setStartTime(p.start_time);
+    const [sh, sm] = p.start_time.split(':').map(Number);
+    const [eh, em] = p.end_time.split(':').map(Number);
+    let start = sh + (sm ?? 0) / 60;
+    let end = eh + (em ?? 0) / 60;
+    if (end <= start) end += 24;
+    setDuration(end - start);
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -255,6 +268,20 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             {t('addShift', lang)}
           </Button>
         </div>
+        {hourPresets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
+            <span className="text-xs text-gray-400">{t('quickPresets', lang)}</span>
+            {hourPresets.map(p => (
+              <button
+                key={p.id}
+                onClick={() => applyHourPreset(p)}
+                className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Min Break Hours */}

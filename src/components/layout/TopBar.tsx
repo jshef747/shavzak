@@ -18,6 +18,9 @@ interface Props {
   onToggleSidebar: () => void;
   onAutoAssign: () => void;
   onOpenHomePeriods: () => void;
+  userEmail?: string;
+  onOpenAuthModal?: () => void;
+  onLogout?: () => void;
 }
 
 export function TopBar({
@@ -32,6 +35,9 @@ export function TopBar({
   onToggleSidebar,
   onAutoAssign,
   onOpenHomePeriods,
+  userEmail,
+  onOpenAuthModal,
+  onLogout,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -131,6 +137,25 @@ export function TopBar({
                 {t('pdf', lang)}
               </Button>
             </>
+          )}
+          {/* Auth: login / user+logout */}
+          {userEmail ? (
+            <div className="flex items-center gap-1.5">
+              <span className="hidden md:block text-xs text-slate-400 truncate max-w-[140px]">{userEmail}</span>
+              <button
+                onClick={onLogout}
+                className="p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors text-xs px-2"
+              >
+                {t('logout', lang)}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={onOpenAuthModal}
+              className="p-1.5 rounded-md border border-slate-600 text-slate-100 hover:bg-slate-700 transition-colors text-xs px-2"
+            >
+              {t('login', lang)}
+            </button>
           )}
           <button
             onClick={() => setGuideOpen(true)}

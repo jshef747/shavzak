@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useAppState } from '../hooks/useAppState';
 import { useSchedule } from '../hooks/useSchedule';
 import { useShifts } from '../hooks/useShifts';
@@ -7,7 +7,11 @@ import { usePeople } from '../hooks/usePeople';
 import { useAssignments } from '../hooks/useAssignments';
 import { useHomeGroups } from '../hooks/useHomeGroups';
 import { useDateRange } from '../hooks/useDateRange';
+import { useAuth } from '../hooks/useAuth';
+import { useCloudSync } from '../hooks/useCloudSync';
+import { usePresets } from '../hooks/usePresets';
 import { langFromDir, t } from '../utils/i18n';
+import { normalizeState } from '../utils/normalizeState';
 import { TopBar } from './layout/TopBar';
 import { Sidebar } from './layout/Sidebar';
 import { ScheduleView } from './schedule/ScheduleView';
@@ -19,6 +23,7 @@ import { Modal } from './ui/Modal';
 import { NewScheduleModal } from './layout/NewScheduleModal';
 import { AutoAssignModal } from './layout/AutoAssignModal';
 import { HomePeriodsModal } from './layout/HomePeriodsModal';
+import { AuthModal } from './auth/AuthModal';
 import { exportToExcel } from '../utils/exportExcel';
 import { autoAssign, type AutoAssignResult } from '../utils/autoAssign';
 
@@ -48,9 +53,45 @@ export function App() {
   const [autoAssignResult, setAutoAssignResult] = useState<AutoAssignResult | null>(null);
   const [autoAssignReassign, setAutoAssignReassign] = useState<'partial' | 'full' | null>(null);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // Auth + cloud sync
+  const { user, loading: authLoading, login, register, logout } = useAuth();
+  const { loadBoard, saveBoard } = useCloudSync();
+  const {
+    positionPresets, hourPresets,
+    addPositionPreset, deletePositionPreset,
+    addHourPreset, deleteHourPreset,
+  } = usePresets(user?.id ?? null);
+
+  // Load board from Supabase when user logs in
+  const loadedUserRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!user) {
+      loadedUserRef.current = null;
+      return;
+    }
+    if (loadedUserRef.current === user.id) return;
+    loadedUserRef.current = user.id;
+    loadBoard(user.id).then(saved => {
+      if (saved) setState(normalizeState(saved));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Auto-save board to Supabase (debounced 1s) when logged in
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    if (!user) return;
+    clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveBoard(state, user.id);
+    }, 1000);
+    return () => clearTimeout(saveTimerRef.current);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state, user]);
 
   const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
-
   const lang = langFromDir(state.dir);
 
   function handleExportExcel() {
@@ -74,7 +115,6 @@ export function App() {
   function handleOpenAutoAssign() {
     if (!activeSchedule) return;
     if (activeSchedule.assignments.length > 0) {
-      // Some or all cells are filled — show confirmation before reassigning
       const totalCells = dates.length * state.shifts.length * state.positions.length;
       const mode = activeSchedule.assignments.length >= totalCells ? 'full' : 'partial';
       setAutoAssignResult(null);
@@ -101,11 +141,19 @@ export function App() {
       } else {
         batchAssign(autoAssignResult.proposed);
       }
-
     }
     setAutoAssignOpen(false);
     setAutoAssignResult(null);
     setAutoAssignReassign(null);
+  }
+
+  // Show a minimal spinner while Supabase resolves the session
+  if (authLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-100">
+        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   return (
@@ -126,6 +174,9 @@ export function App() {
         onToggleSidebar={() => setSidebarOpen(v => !v)}
         onAutoAssign={handleOpenAutoAssign}
         onOpenHomePeriods={() => setHomePeriodsOpen(true)}
+        userEmail={user?.email}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
+        onLogout={logout}
       />
 
       <DndProvider
@@ -228,6 +279,13 @@ export function App() {
         onUpdateHomeGroup={updateHomeGroup}
         onDeleteHomeGroup={deleteHomeGroup}
         onSetPersonHomeGroup={setPersonHomeGroup}
+        positionPresets={positionPresets}
+        hourPresets={hourPresets}
+        onAddPositionPreset={addPositionPreset}
+        onDeletePositionPreset={deletePositionPreset}
+        onAddHourPreset={addHourPreset}
+        onDeleteHourPreset={deleteHourPreset}
+        isLoggedIn={!!user}
       />
 
       {sidebarEditPersonId && (() => {
@@ -290,6 +348,13 @@ export function App() {
           onDeletePeriod={deleteHomeGroupPeriod}
         />
       )}
+
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onLogin={login}
+        onRegister={register}
+      />
     </div>
   );
 }

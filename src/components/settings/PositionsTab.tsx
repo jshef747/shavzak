@@ -15,6 +15,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type { AppState, Position } from '../../types';
+import type { PositionPreset } from '../../hooks/usePresets';
 import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
@@ -28,6 +29,7 @@ interface Props {
   onToggleOnCall: (id: string) => void;
   onToggleQualification: (personId: string, positionId: string) => void;
   onReorder: (orderedIds: string[]) => void;
+  positionPresets?: PositionPreset[];
 }
 
 function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, onToggleOnCall, onAssign }: {
@@ -115,7 +117,7 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
   );
 }
 
-export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification, onReorder }: Props) {
+export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification, onReorder, positionPresets = [] }: Props) {
   const [name, setName] = useState('');
   const [assigningPosition, setAssigningPosition] = useState<Position | null>(null);
   const [showBulkAssign, setShowBulkAssign] = useState(false);
@@ -231,6 +233,20 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
             {t('add', lang)}
           </Button>
         </div>
+        {positionPresets.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
+            <span className="text-xs text-gray-400">{t('quickPresets', lang)}</span>
+            {positionPresets.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setName(p.name)}
+                className="text-xs px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 transition-colors"
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Single-role Assign People Modal */}

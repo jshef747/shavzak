@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { AppState, Shift, UnavailabilityEntry, DayOfWeek } from '../../types';
+import type { PositionPreset, HourPreset } from '../../hooks/usePresets';
 import { Modal } from '../ui/Modal';
 import { Tabs } from '../ui/Tabs';
 import { langFromDir, t } from '../../utils/i18n';
@@ -7,6 +8,7 @@ import { ShiftsTab } from './ShiftsTab';
 import { PositionsTab } from './PositionsTab';
 import { PeopleTab } from './PeopleTab';
 import { HomeGroupsTab } from './HomeGroupsTab';
+import { PresetsTab } from './PresetsTab';
 
 interface Props {
   open: boolean;
@@ -41,12 +43,26 @@ interface Props {
   onUpdateHomeGroup: (id: string, name: string) => void;
   onDeleteHomeGroup: (id: string) => void;
   onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
+  positionPresets: PositionPreset[];
+  hourPresets: HourPreset[];
+  onAddPositionPreset: (name: string) => Promise<void>;
+  onDeletePositionPreset: (id: string) => Promise<void>;
+  onAddHourPreset: (name: string, start_time: string, end_time: string) => Promise<void>;
+  onDeleteHourPreset: (id: string) => Promise<void>;
+  isLoggedIn: boolean;
 }
 
 // Internal tab keys stay in English for logic comparisons
-const TABS = ['Shifts', 'Positions', 'People', 'Groups'];
+const TABS = ['Shifts', 'Positions', 'People', 'Groups', 'Presets'];
 
-export function SettingsModal({ open, onClose, state, dates, initialTab, ...handlers }: Props) {
+export function SettingsModal({
+  open, onClose, state, dates, initialTab,
+  positionPresets, hourPresets,
+  onAddPositionPreset, onDeletePositionPreset,
+  onAddHourPreset, onDeleteHourPreset,
+  isLoggedIn,
+  ...handlers
+}: Props) {
   const [activeTab, setActiveTab] = useState(initialTab ?? 'Shifts');
   const lang = langFromDir(state.dir);
 
@@ -54,7 +70,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
     if (open && initialTab) setActiveTab(initialTab);
   }, [open, initialTab]);
 
-  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang)];
+  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang), t('tabPresets', lang)];
 
   return (
     <Modal open={open} onClose={onClose} title={t('settingsTitle', lang)} size="xl">
@@ -67,6 +83,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onDelete={handlers.onDeleteShift}
           onReorder={handlers.onReorderShifts}
           onUpdateMinBreakHours={handlers.onUpdateMinBreakHours}
+          hourPresets={hourPresets}
         />
       )}
       {activeTab === 'Positions' && (
@@ -78,6 +95,7 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onToggleOnCall={handlers.onToggleOnCall}
           onReorder={handlers.onReorderPositions}
           onToggleQualification={handlers.onToggleQualification}
+          positionPresets={positionPresets}
         />
       )}
       {activeTab === 'People' && (
@@ -107,6 +125,18 @@ export function SettingsModal({ open, onClose, state, dates, initialTab, ...hand
           onUpdateGroup={handlers.onUpdateHomeGroup}
           onDeleteGroup={handlers.onDeleteHomeGroup}
           onSetPersonGroup={handlers.onSetPersonHomeGroup}
+        />
+      )}
+      {activeTab === 'Presets' && (
+        <PresetsTab
+          lang={lang}
+          positionPresets={positionPresets}
+          hourPresets={hourPresets}
+          onAddPositionPreset={onAddPositionPreset}
+          onDeletePositionPreset={onDeletePositionPreset}
+          onAddHourPreset={onAddHourPreset}
+          onDeleteHourPreset={onDeleteHourPreset}
+          isLoggedIn={isLoggedIn}
         />
       )}
     </Modal>
