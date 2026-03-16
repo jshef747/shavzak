@@ -36,10 +36,11 @@ interface Props {
   onUpdateConstraintMaxTotal: (personId: string, max: number | null) => void;
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
+  onUpdateForceMinimum: (personId: string, value: boolean) => void;
   onAddHomeGroup: (name: string) => void;
   onUpdateHomeGroup: (id: string, name: string) => void;
   onDeleteHomeGroup: (id: string) => void;
-  onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
+  onTogglePersonHomeGroup: (personId: string, groupId: string) => void;
   shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
   positionSets: import('../../hooks/usePresets').PositionSetPreset[];
   onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
@@ -122,7 +123,8 @@ export function SettingsModal({
           onUpdateConstraintMaxTotal={handlers.onUpdateConstraintMaxTotal}
           onUpdateConstraintMaxConsecutive={handlers.onUpdateConstraintMaxConsecutive}
           onUpdateConstraintMinRest={handlers.onUpdateConstraintMinRest}
-          onSetPersonHomeGroup={handlers.onSetPersonHomeGroup}
+          onUpdateForceMinimum={handlers.onUpdateForceMinimum}
+          onTogglePersonHomeGroup={handlers.onTogglePersonHomeGroup}
         />
       )}
       {activeTab === 'Groups' && (
@@ -131,7 +133,7 @@ export function SettingsModal({
           onAddGroup={handlers.onAddHomeGroup}
           onUpdateGroup={handlers.onUpdateHomeGroup}
           onDeleteGroup={handlers.onDeleteHomeGroup}
-          onSetPersonGroup={handlers.onSetPersonHomeGroup}
+          onTogglePersonGroup={handlers.onTogglePersonHomeGroup}
         />
       )}
     </Modal>

@@ -18,6 +18,7 @@ import type { AppState, Shift } from '../../types';
 import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
@@ -59,9 +60,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   };
 
   function handleDelete() {
-    if (window.confirm(t('deleteShiftConfirm', lang))) {
-      onDelete(shift.id);
-    }
+    onDelete(shift.id);
   }
 
   return (
@@ -142,7 +141,10 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [dialog, setDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
   const lang = langFromDir(state.dir);
+
+  function closeDialog() { setDialog({ open: false, message: '', onConfirm: () => {} }); }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -164,13 +166,15 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
     setSaving(false);
   }
 
+  function handleRequestDeleteShift(id: string) {
+    setDialog({ open: true, message: t('deleteShiftConfirm', lang), onConfirm: () => { onDelete(id); closeDialog(); } });
+  }
+
   function handleLoadTemplate(shifts: Omit<Shift, 'id'>[]) {
-    const msg = lang === 'he' 
+    const msg = lang === 'he'
       ? 'טעינת התבנית תחליף את כל המשמרות הקיימות. האם להמשיך?'
       : 'Loading this template will replace ALL current shifts. Are you sure?';
-    if (window.confirm(msg)) {
-      onLoadShiftSet(shifts);
-    }
+    setDialog({ open: true, message: msg, onConfirm: () => { onLoadShiftSet(shifts); closeDialog(); } });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -183,6 +187,8 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
   }
 
   return (
+    <>
+    <ConfirmDialog open={dialog.open} message={dialog.message} onConfirm={dialog.onConfirm} onCancel={closeDialog} lang={lang} />
     <div className="space-y-5">
       {/* Current Shifts */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
@@ -279,7 +285,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
                       canDelete={state.shifts.length > 1}
                       lang={lang}
                       onUpdate={onUpdate}
-                      onDelete={onDelete}
+                      onDelete={handleRequestDeleteShift}
                     />
                   ))}
                 </div>
@@ -364,5 +370,6 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
         </div>
       </div>
     </div>
+    </>
   );
 }

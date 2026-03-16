@@ -38,10 +38,11 @@ export interface Person {
   id: string;
   name: string;
   colorHex: string;             // unique pastel hex color assigned at creation
-  homeGroupId: string | null;
+  homeGroupIds: string[];
   qualifiedPositions: string[];
   unavailability: UnavailabilityEntry[];
   constraints: ShiftConstraint | null;
+  forceMinimum?: boolean;       // if true, prioritize this person for max assignments
 }
 
 export interface Assignment {

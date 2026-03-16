@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import type { AppState, Person, UnavailabilityEntry, DayOfWeek } from '../../types';
 import { langFromDir, t, DAY_LABELS_HE } from '../../utils/i18n';
 import { Button } from '../ui/Button';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 const DAY_LABELS_EN: { day: DayOfWeek; label: string }[] = [
   { day: 0, label: 'Sun' },
@@ -27,6 +29,7 @@ interface Props {
   onUpdateConstraintMaxTotal: (personId: string, max: number | null) => void;
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
+  onUpdateForceMinimum: (personId: string, value: boolean) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
 }
@@ -45,11 +48,13 @@ export function PersonEditor({
   onUpdateConstraintMaxTotal,
   onUpdateConstraintMaxConsecutive,
   onUpdateConstraintMinRest,
+  onUpdateForceMinimum,
   onDelete,
   onClose,
 }: Props) {
   const c = person.constraints;
   const lang = langFromDir(state.dir);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const dayLabels: { day: DayOfWeek; label: string }[] = lang === 'he'
     ? DAY_LABELS_HE.map((label, i) => ({ day: i as DayOfWeek, label }))
@@ -132,8 +137,10 @@ export function PersonEditor({
                 {dates.map((date, i) => (
                   <tr key={date} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
                     <td className="px-3 py-2 whitespace-nowrap">
-                      <span className="font-medium text-gray-700">{format(parseISO(date), 'EEE')}</span>
-                      <span dir="ltr" className="text-gray-400 ml-1.5">{date}</span>
+                      <div dir="ltr" className="flex flex-col items-start leading-tight">
+                        <span className="text-xs font-semibold text-gray-700">{format(parseISO(date), 'EEE')}</span>
+                        <span className="text-[10px] text-gray-400">{format(parseISO(date), 'dd/MM')}</span>
+                      </div>
                     </td>
                     {state.shifts.map(shift => {
                       const unavail = person.unavailability.some(u => u.date === date && u.shiftId === shift.id);
@@ -269,53 +276,56 @@ export function PersonEditor({
           {/* Numeric Limits */}
           <div className="p-3 bg-gray-50 rounded-lg">
             <p className="text-xs font-medium text-gray-600 mb-3">{t('limitsLabel', lang)}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-gray-600 flex-1">{t('maxPerWeek', lang)}</label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder={t('noLimit', lang)}
-                  value={c?.maxShiftsPerWeek ?? ''}
-                  onChange={e => onUpdateConstraintMaxWeek(person.id, parseMax(e.target.value))}
-                  className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-gray-600 flex-1">{t('maxTotal', lang)}</label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder={t('noLimit', lang)}
-                  value={c?.maxShiftsTotal ?? ''}
-                  onChange={e => onUpdateConstraintMaxTotal(person.id, parseMax(e.target.value))}
-                  className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-gray-600 flex-1">{t('maxConsecutive', lang)}</label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder={t('noLimit', lang)}
-                  value={c?.maxConsecutiveDays ?? ''}
-                  onChange={e => onUpdateConstraintMaxConsecutive(person.id, parseMax(e.target.value))}
-                  className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
-                />
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="text-xs text-gray-600 flex-1">{t('minRest', lang)}</label>
-                <input
-                  type="number"
-                  min={1}
-                  placeholder={t('noLimit', lang)}
-                  value={c?.minRestDays ?? ''}
-                  onChange={e => onUpdateConstraintMinRest(person.id, parseMax(e.target.value))}
-                  className="w-24 border border-gray-200 rounded-lg px-3 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
-                />
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {([
+                { label: t('maxPerWeek', lang), value: c?.maxShiftsPerWeek ?? '', onChange: (v: string) => onUpdateConstraintMaxWeek(person.id, parseMax(v)) },
+                { label: t('maxTotal', lang), value: c?.maxShiftsTotal ?? '', onChange: (v: string) => onUpdateConstraintMaxTotal(person.id, parseMax(v)) },
+                { label: t('maxConsecutive', lang), value: c?.maxConsecutiveDays ?? '', onChange: (v: string) => onUpdateConstraintMaxConsecutive(person.id, parseMax(v)) },
+                { label: t('minRest', lang), value: c?.minRestDays ?? '', onChange: (v: string) => onUpdateConstraintMinRest(person.id, parseMax(v)) },
+              ] as const).map(({ label, value, onChange }) => (
+                <div key={label} className="flex flex-col gap-1 items-center text-center justify-between">
+                  <label className="text-[11px] font-medium text-gray-500 leading-tight">{label}</label>
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder={t('noLimit', lang)}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
+                  />
+                </div>
+              ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Force Minimum Duty */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">{t('forceMinimumLabel', lang)}</h3>
+              <p className="text-xs text-gray-500 mt-0.5">{t('forceMinimumDesc', lang)}</p>
+            </div>
+          </div>
+          <button
+            role="switch"
+            aria-checked={!!person.forceMinimum}
+            onClick={() => onUpdateForceMinimum(person.id, !person.forceMinimum)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${
+              person.forceMinimum ? 'bg-amber-400' : 'bg-gray-200'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              person.forceMinimum ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'
+            }`} />
+          </button>
         </div>
       </div>
 
@@ -336,18 +346,20 @@ export function PersonEditor({
           <Button
             variant="danger"
             size="sm"
-            onClick={() => {
-              if (window.confirm(t('deletePersonConfirm', lang))) {
-                onDelete(person.id);
-                onClose();
-              }
-            }}
+            onClick={() => setDeleteDialogOpen(true)}
           >
             {t('deletePerson', lang)}
           </Button>
           <Button variant="secondary" size="sm" onClick={onClose}>{t('close', lang)}</Button>
         </div>
       </div>
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        message={t('deletePersonConfirm', lang)}
+        onConfirm={() => { onDelete(person.id); setDeleteDialogOpen(false); onClose(); }}
+        onCancel={() => setDeleteDialogOpen(false)}
+        lang={lang}
+      />
     </div>
   );
 }

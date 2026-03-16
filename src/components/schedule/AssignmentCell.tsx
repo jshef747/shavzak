@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import type { CSSProperties } from 'react';
 import { useDroppable, useDndContext } from '@dnd-kit/core';
 import type { AppState, Assignment, CellAddress, CellStatus, DragData, HomeGroupPeriod } from '../../types';
 import { serializeCellAddress } from '../../utils/cellKey';
@@ -14,16 +15,31 @@ interface Props {
   homeGroupPeriods: HomeGroupPeriod[];
 }
 
-const STATUS_CLASSES: Record<CellStatus, string> = {
-  empty:                  'bg-white border-gray-200 hover:border-blue-300',
-  valid:                  'bg-emerald-100 border-emerald-400',
-  unavailable:            'bg-red-100 border-red-500',
-  'home-group':           'bg-blue-100 border-blue-400',
-  'double-booked':        'bg-orange-100 border-orange-500',
-  unqualified:            'bg-yellow-100 border-yellow-500',
-  'insufficient-break':   'bg-sky-100 border-sky-500',
-  'constraint-violation': 'bg-purple-100 border-purple-500',
-  'oncall-short-break':   'bg-orange-50 border-orange-400',
+// Outline colors for each status (used via inline style to avoid border-collapse clipping)
+// Valid cells use no outline — the person color tint is enough distinction.
+// Warning statuses get a 1px outline to flag the issue without overwhelming the cell.
+const STATUS_OUTLINE: Record<CellStatus, string | null> = {
+  empty:                  null,
+  valid:                  null,
+  unavailable:            '#ef4444',
+  'home-group':           '#60a5fa',
+  'double-booked':        '#f97316',
+  unqualified:            '#eab308',
+  'insufficient-break':   '#38bdf8',
+  'constraint-violation': '#a855f7',
+  'oncall-short-break':   '#fb923c',
+};
+
+const STATUS_BG: Record<CellStatus, string> = {
+  empty:                  'bg-white hover:bg-blue-50',
+  valid:                  '', // bg applied via inline style (person color)
+  unavailable:            'bg-red-100',
+  'home-group':           'bg-blue-100',
+  'double-booked':        'bg-orange-100',
+  unqualified:            'bg-yellow-100',
+  'insufficient-break':   'bg-sky-100',
+  'constraint-violation': 'bg-purple-100',
+  'oncall-short-break':   'bg-orange-50',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
@@ -47,7 +63,8 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     : 'empty';
 
   // Detect drag-over scenario
-  let dragOverClass = 'bg-blue-50 border-blue-400';
+  let dragOverBg = 'bg-blue-50';
+  let dragOverOutline = '#93c5fd'; // blue-300 — DnD keeps 2px to be clearly visible
   let isSwapHover = false;
   if (isOver && active) {
     const dragData = active.data.current as DragData | undefined;
@@ -56,8 +73,8 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
       isSwapHover = !!(isFromCell && person);
 
       if (isSwapHover) {
-        // Swap: show indigo indicator regardless of validity
-        dragOverClass = 'bg-blue-100 border-blue-500 ring-1 ring-blue-400';
+        dragOverBg = 'bg-blue-100';
+        dragOverOutline = '#3b82f6'; // blue-500
       } else {
         const dragPerson = state.people.find(p => p.id === dragData.personId);
         if (dragPerson) {
@@ -70,15 +87,27 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
               ))
             : assignments;
           const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
-          dragOverClass = (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break')
-            ? 'bg-emerald-100 border-emerald-500 ring-1 ring-emerald-400'
-            : 'bg-red-100 border-red-500 ring-1 ring-red-400';
+          if (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break') {
+            dragOverBg = 'bg-emerald-100';
+            dragOverOutline = '#10b981'; // emerald-500
+          } else {
+            dragOverBg = 'bg-red-100';
+            dragOverOutline = '#ef4444'; // red-500
+          }
         }
       }
     }
   }
 
-  const colorClass = isOver ? dragOverClass : STATUS_CLASSES[status];
+  const bgClass = isOver ? dragOverBg : STATUS_BG[status];
+  const outlineColor = isOver ? dragOverOutline : STATUS_OUTLINE[status];
+  // For valid cells, tint background with person's color; drag-over and warning statuses use their own bg
+  const cellStyle: CSSProperties = {
+    ...((!isOver && status === 'valid' && person) ? { backgroundColor: person.colorHex + '50' } : {}),
+    ...(outlineColor
+      ? { outline: `${isOver ? '2px' : '1px'} solid ${outlineColor}`, outlineOffset: isOver ? '-2px' : '-1px' }
+      : {}),
+  };
 
   const statusTooltip: Record<CellStatus, string> = {
     empty: '',
@@ -101,7 +130,8 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   return (
     <td
       ref={setNodeRef}
-      className={`relative border px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${colorClass}`}
+      style={cellStyle}
+      className={`relative border border-gray-200 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
     >
       {person && (
         <PersonChip

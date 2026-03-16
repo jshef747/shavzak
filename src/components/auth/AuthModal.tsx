@@ -19,6 +19,7 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showWhy, setShowWhy] = useState(false);
 
   const pwChecks = {
     length: password.length >= 8,
@@ -75,6 +76,41 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
       size="sm"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <button
+            type="button"
+            onClick={() => setShowWhy(w => !w)}
+            className="text-xs text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition-colors"
+          >
+            <span className="w-4 h-4 rounded-full border border-current flex items-center justify-center font-bold leading-none">?</span>
+            {lang === 'he' ? 'למה להירשם?' : 'Why sign up?'}
+          </button>
+          {showWhy && (
+            <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-1.5 text-xs text-gray-600">
+              <p className="text-gray-400 text-[11px] mb-2">
+                {lang === 'he'
+                  ? 'כרגע הנתונים שלך נשמרים רק בדפדפן הזה — ניקוי הדפדפן ימחק הכל.'
+                  : 'Right now your data lives only in this browser — clearing it means losing everything.'}
+              </p>
+              {[
+                lang === 'he'
+                  ? ['גיבוי לענן', 'לוחות נשמרים אוטומטית, ללא אובדן נתונים']
+                  : ['Cloud backup', 'Schedules saved automatically, never lost'],
+                lang === 'he'
+                  ? ['גישה מכל מקום', 'טלפון, טאבלט, כל מחשב']
+                  : ['Access anywhere', 'Phone, tablet, any computer'],
+                lang === 'he'
+                  ? ['תבניות מסונכרנות', 'משמרות ותפקידים קשורים לחשבון שלך']
+                  : ['Synced presets', 'Your shifts & positions follow your account'],
+              ].map(([title, desc]) => (
+                <div key={title} className="flex items-start gap-2">
+                  <span className="text-indigo-400 font-bold mt-0.5">·</span>
+                  <span><span className="font-semibold text-gray-700">{title}</span> — {desc}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         <Input
           label={t('emailLabel', lang)}
           type="email"

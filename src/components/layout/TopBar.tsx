@@ -1,15 +1,16 @@
-import { useState, useEffect, type RefObject } from 'react';
-import { useReactToPrint } from 'react-to-print';
+import { useState, useEffect } from 'react';
+import type { RefObject } from 'react';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { NewScheduleModal } from './NewScheduleModal';
 import { QuickStartModal } from './QuickStartModal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
   activeSchedule: Schedule | null;
-  printRef: RefObject<HTMLDivElement | null>;
+  printRef?: RefObject<HTMLDivElement | null>;
   onCreateSchedule: (name: string, start: string, end: string) => void;
   onDeleteSchedule: (id: string) => void;
   onSetActiveSchedule: (id: string | null) => void;
@@ -26,7 +27,6 @@ interface Props {
 export function TopBar({
   state,
   activeSchedule,
-  printRef,
   onCreateSchedule,
   onDeleteSchedule,
   onSetActiveSchedule,
@@ -41,6 +41,7 @@ export function TopBar({
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const lang = langFromDir(state.dir);
 
   // Auto-show Quick Start on first ever visit (no schedules yet)
@@ -62,14 +63,9 @@ export function TopBar({
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  const handlePrint = useReactToPrint({
-    contentRef: printRef,
-    documentTitle: activeSchedule?.name ?? 'Schedule',
-  });
-
   return (
     <>
-      <div className="no-print h-14 bg-white border-b border-gray-200 px-4 flex items-center gap-4 shrink-0 rtl:flex-row-reverse">
+      <div className="no-print h-14 bg-white border-b border-gray-200 px-4 flex items-center gap-4 shrink-0">
         {/* Hamburger — mobile LTR only (appears on left) */}
         <button
           onClick={onToggleSidebar}
@@ -86,7 +82,7 @@ export function TopBar({
         <div className="w-px h-5 bg-gray-200 shrink-0" />
 
         {/* Zone 2: Schedule selector */}
-        <div className="flex gap-2 items-center rtl:flex-row-reverse">
+        <div className="flex gap-2 items-center">
           <select
             aria-label={t('selectSchedule', lang)}
             className="text-sm rounded px-2 py-1 text-gray-800 bg-white border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -109,7 +105,7 @@ export function TopBar({
             <Button
               variant="danger"
               size="sm"
-              onClick={() => { if (window.confirm(t('deleteScheduleConfirm', lang))) onDeleteSchedule(activeSchedule.id); }}
+              onClick={() => setDeleteConfirmOpen(true)}
               className="hidden md:inline-flex"
             >
               {t('delete', lang)}
@@ -118,7 +114,7 @@ export function TopBar({
         </div>
 
         {/* Zone 3: Right actions */}
-        <div className="ml-auto rtl:ml-0 rtl:mr-auto flex items-center gap-2 shrink-0 rtl:flex-row-reverse">
+        <div className="ml-auto rtl:ml-0 rtl:mr-auto flex items-center gap-2 shrink-0">
           {activeSchedule && (
             <>
               <Button variant="primary" size="sm" onClick={onAutoAssign}>
@@ -131,10 +127,6 @@ export function TopBar({
               <Button variant="secondary" size="sm" onClick={onExportExcel}
                 className="hidden md:inline-flex">
                 {t('excel', lang)}
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => handlePrint()}
-                className="hidden md:inline-flex">
-                {t('pdf', lang)}
               </Button>
             </>
           )}
@@ -189,6 +181,13 @@ export function TopBar({
         </div>
       </div>
 
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        message={t('deleteScheduleConfirm', lang)}
+        onConfirm={() => { if (activeSchedule) onDeleteSchedule(activeSchedule.id); setDeleteConfirmOpen(false); }}
+        onCancel={() => setDeleteConfirmOpen(false)}
+        lang={lang}
+      />
       <NewScheduleModal
         open={newModalOpen}
         onClose={() => setNewModalOpen(false)}

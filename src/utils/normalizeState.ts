@@ -14,7 +14,8 @@ export function normalizeState(raw: unknown): AppState {
       ...p,
       colorHex,
       constraints: p.constraints ?? null,
-      homeGroupId: p.homeGroupId ?? null,
+      // Migrate legacy single homeGroupId to homeGroupIds array
+      homeGroupIds: p.homeGroupIds ?? ((p as unknown as { homeGroupId?: string | null }).homeGroupId ? [(p as unknown as { homeGroupId: string }).homeGroupId] : []),
     };
   });
 

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import type { AppState } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { PersonChip } from './PersonChip';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
@@ -13,14 +15,17 @@ interface Props {
 export function PeoplePool({ state, assignedPersonIds, onEditPerson, onDeletePerson }: Props) {
   const { isOver, setNodeRef } = useDroppable({ id: 'pool' });
   const lang = langFromDir(state.dir);
-
-  function handleDelete(personId: string, name: string) {
-    if (window.confirm(t('deletePersonConfirm', lang) + ` (${name})`)) {
-      onDeletePerson(personId);
-    }
-  }
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null);
 
   return (
+    <>
+    <ConfirmDialog
+      open={!!pendingDelete}
+      message={`${t('deletePersonConfirm', lang)}${pendingDelete ? ` (${pendingDelete.name})` : ''}`}
+      onConfirm={() => { if (pendingDelete) { onDeletePerson(pendingDelete.id); } setPendingDelete(null); }}
+      onCancel={() => setPendingDelete(null)}
+      lang={lang}
+    />
     <div
       ref={setNodeRef}
       className={`h-full p-3 transition-colors ${isOver ? 'bg-indigo-50' : 'bg-gray-50'}`}
@@ -44,6 +49,13 @@ export function PeoplePool({ state, assignedPersonIds, onEditPerson, onDeletePer
                 dimmed={assignedPersonIds.has(person.id)}
               />
             </div>
+            <span className="w-4 shrink-0 flex items-center justify-center" title={person.forceMinimum ? t('forceMinimumLabel', lang) : undefined}>
+              {person.forceMinimum && (
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-amber-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              )}
+            </span>
             <button
               onClick={() => onEditPerson(person.id)}
               title={t('edit', lang)}
@@ -55,7 +67,7 @@ export function PeoplePool({ state, assignedPersonIds, onEditPerson, onDeletePer
               </svg>
             </button>
             <button
-              onClick={() => handleDelete(person.id, person.name)}
+              onClick={() => setPendingDelete({ id: person.id, name: person.name })}
               title={t('deletePerson', lang)}
               className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0"
             >
@@ -67,5 +79,6 @@ export function PeoplePool({ state, assignedPersonIds, onEditPerson, onDeletePer
         ))}
       </div>
     </div>
+    </>
   );
 }

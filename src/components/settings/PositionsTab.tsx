@@ -19,6 +19,7 @@ import { type Lang, langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Modal } from '../ui/Modal';
+import { ConfirmDialog } from '../ui/ConfirmDialog';
 
 interface Props {
   state: AppState;
@@ -127,7 +128,10 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [dialog, setDialog] = useState<{ open: boolean; message: string; onConfirm: () => void }>({ open: false, message: '', onConfirm: () => {} });
   const lang = langFromDir(state.dir);
+
+  function closeDialog() { setDialog({ open: false, message: '', onConfirm: () => {} }); }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -143,13 +147,15 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
     setSaving(false);
   }
 
+  function handleRequestDeletePosition(id: string) {
+    setDialog({ open: true, message: t('deletePositionConfirm', lang), onConfirm: () => { onDelete(id); closeDialog(); } });
+  }
+
   function handleLoadTemplate(positions: Omit<Position, 'id'>[]) {
-    const msg = lang === 'he' 
+    const msg = lang === 'he'
       ? 'טעינת התבנית תחליף את כל התפקידים הקיימים. האם להמשיך?'
       : 'Loading this template will replace ALL current positions. Are you sure?';
-    if (window.confirm(msg)) {
-      onLoadPositionSet(positions);
-    }
+    setDialog({ open: true, message: msg, onConfirm: () => { onLoadPositionSet(positions); closeDialog(); } });
   }
 
   function handleDragEnd(event: DragEndEvent) {
@@ -162,6 +168,8 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
   }
 
   return (
+    <>
+    <ConfirmDialog open={dialog.open} message={dialog.message} onConfirm={dialog.onConfirm} onCancel={closeDialog} lang={lang} />
     <div className="space-y-5">
       {/* Current Positions */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 sm:p-5 shadow-sm">
@@ -269,7 +277,7 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                         qualifiedCount={qualifiedCount}
                         lang={lang}
                         onUpdate={onUpdate}
-                        onDelete={onDelete}
+                        onDelete={handleRequestDeletePosition}
                         onToggleOnCall={onToggleOnCall}
                         onAssign={setAssigningPosition}
                       />
@@ -448,5 +456,6 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
         </div>
       </Modal>
     </div>
+    </>
   );
 }

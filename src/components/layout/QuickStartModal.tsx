@@ -25,7 +25,7 @@ const STEPS_EN = [
       </svg>
     ),
     title: '2. Setup Defaults',
-    description: 'Open Settings (⚙) to define Shifts (e.g. Morning, Night) and Positions (roles). You can also use Presets to save common names for quick entry.',
+    description: 'Open Settings (⚙) to define Shifts (e.g. Morning, Night) and Positions (roles). Mark a position as On-Call if it should be treated as a standby role — this affects how auto-assign fills last-resort slots. Use Presets to save common shift/position sets for quick reuse.',
   },
   {
     icon: (
@@ -34,7 +34,18 @@ const STEPS_EN = [
       </svg>
     ),
     title: '3. Manage Your Team',
-    description: 'Under Settings → People, add team members. Click Edit to set their Qualified Positions and scheduling limits (e.g., Min Rest, Max/Week). You can also use the Bulk Assign feature to assign roles quickly.',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600">
+        <p>Under Settings → People, add team members. Click Edit on any person to configure:</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Qualified Positions</span> — which roles they can fill</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Limits</span> — Max/Week, Max Total, Min Rest between shifts</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Unavailability</span> — block specific dates or recurring days/shifts</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Home Groups</span> — assign to one or more groups for leave tracking</span></li>
+        </ul>
+        <p className="text-gray-400 text-xs">Use multi-select in the People list to bulk-assign roles or groups to many people at once.</p>
+      </div>
+    ),
   },
   {
     icon: (
@@ -48,10 +59,30 @@ const STEPS_EN = [
   {
     icon: (
       <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    title: '5. Force Minimum & On-Call',
+    description: (
+      <div className="space-y-3 text-sm text-gray-600">
+        <div>
+          <p className="font-semibold text-gray-800 mb-1">⚡ Force Minimum Duty</p>
+          <p>Mark a person with Force Minimum (in their Edit panel, or bulk-select in the People list) and auto-assign will prioritize them for every available slot — as long as their minimum rest time has passed. Good for people who need to accumulate maximum hours. The ⚡ bolt appears next to their name in the sidebar so you always know who's flagged.</p>
+        </div>
+        <div>
+          <p className="font-semibold text-gray-800 mb-1">On-Call fallback</p>
+          <p>If every qualified person for an on-call position is blocked by a constraint, auto-assign will assign the least-constrained one anyway and mark the cell purple. This prevents on-call slots from being left empty when there's no clean option.</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
       </svg>
     ),
-    title: '5. Home Groups',
+    title: '6. Home Groups',
     description: 'In Settings → Groups, organise people into "Home Groups". Then, click "Periods" in the top bar to mark dates when entire groups go home.',
   },
   {
@@ -60,7 +91,7 @@ const STEPS_EN = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
-    title: '6. Cell Colors & Validation',
+    title: '7. Cell Colors & Validation',
     description: (
       <div className="space-y-1.5">
         <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-400 shrink-0" /> Valid assignment</div>
@@ -79,8 +110,27 @@ const STEPS_EN = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
     ),
-    title: '7. Export & Cloud Sync',
-    description: 'Use the top bar buttons to export the schedule to Excel (includes a Constraints sheet) or print to PDF. You can also Login to automatically sync your board to the cloud.',
+    title: '8. Export',
+    description: 'Use the top bar buttons to export the schedule to Excel (includes a Constraints sheet) or print to PDF.',
+  },
+  {
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+      </svg>
+    ),
+    title: '8. Sign In — It\'s Worth It',
+    description: (
+      <div className="space-y-3 text-gray-600 leading-relaxed">
+        <p className="text-sm">Right now your data lives only in this browser — clear it and it's gone. Signing in takes 10 seconds and gives you:</p>
+        <ul className="space-y-1.5 text-sm">
+          <li className="flex items-start gap-2"><span className="text-indigo-500 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Cloud backup</span> — schedules saved automatically, never lost</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-500 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Access anywhere</span> — phone, tablet, any computer</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-500 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">Synced presets</span> — your saved shifts &amp; positions follow your account</span></li>
+        </ul>
+        <p className="text-xs text-gray-400">Free. No credit card.</p>
+      </div>
+    ),
   },
 ];
 
@@ -93,12 +143,23 @@ const STEPS_HE = [
   {
     icon: STEPS_EN[1].icon,
     title: '2. הגדרות בסיס',
-    description: 'פתח הגדרות (⚙) כדי להגדיר משמרות ותפקידים. ניתן להשתמש ב"תבניות" (Presets) למילוי מהיר.',
+    description: 'פתח הגדרות (⚙) כדי להגדיר משמרות ותפקידים. סמן תפקיד כ"כוננות" (On-Call) אם הוא תפקיד המתנה — זה משפיע על אופן מילוי התאים האחרונים בשיבוץ אוטומטי. השתמש ב"תבניות" לשמירת קבוצות משמרות ותפקידים לשימוש חוזר.',
   },
   {
     icon: STEPS_EN[2].icon,
     title: '3. ניהול סגל',
-    description: 'תחת הגדרות ← אנשים, הוסף חברי צוות. לחץ "ערוך" לכל אדם להגדרת תפקידים מותרים ואילוצים. אפשר גם להשתמש ב"שיבוץ מרובה" (Bulk Assign) כדי להקצות תפקידים במהירות.',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600">
+        <p>תחת הגדרות ← אנשים, הוסף חברי צוות. לחץ "ערוך" לכל אדם להגדרת:</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">תפקידים מותרים</span> — אילו תפקידים הוא יכול למלא</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">מגבלות</span> — מקס' בשבוע, מקס' סה"כ, מינימום מנוחה בין משמרות</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">חוסר זמינות</span> — חסימת תאריכים ספציפיים או ימים/משמרות חוזרים</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">קבוצות יציאה</span> — שיוך לקבוצה אחת או יותר</span></li>
+        </ul>
+        <p className="text-gray-400 text-xs">השתמש בבחירה מרובה ברשימת האנשים לשיבוץ תפקידים או קבוצות לכמה אנשים בבת אחת.</p>
+      </div>
+    ),
   },
   {
     icon: STEPS_EN[3].icon,
@@ -107,12 +168,28 @@ const STEPS_HE = [
   },
   {
     icon: STEPS_EN[4].icon,
-    title: '5. קבוצות יציאה',
-    description: 'בהגדרות ← קבוצות, סדר את הסגל ב"קבוצות יציאה הביתה". לאחר מכן, לחץ על "יציאות" בסרגל העליון כדי לסמן תאריכים בהם קבוצות שלמות נמצאות בבית.',
+    title: '5. מינימום מאולץ וכוננות',
+    description: (
+      <div className="space-y-3 text-sm text-gray-600">
+        <div>
+          <p className="font-semibold text-gray-800 mb-1">⚡ מינימום מאולץ</p>
+          <p>סמן אדם כ"מינימום מאולץ" (בפאנל העריכה שלו, או בבחירה מרובה ברשימת האנשים) — השיבוץ האוטומטי יתעדף אותו לכל משבצת פנויה כל עוד עבר זמן המנוחה המינימלי. מתאים לאנשים שצריכים לצבור מקסימום שעות. סמל ⚡ יופיע ליד שמם בסרגל הצד.</p>
+        </div>
+        <div>
+          <p className="font-semibold text-gray-800 mb-1">גיבוי כוננות</p>
+          <p>אם כל המועמדים המוסמכים לתפקיד כוננות חסומים על ידי אילוץ, השיבוץ האוטומטי ישבץ את הפחות מוגבל מביניהם בכל זאת וסמן את התא בסגול. כך לא יישארו משבצות כוננות ריקות.</p>
+        </div>
+      </div>
+    ),
   },
   {
     icon: STEPS_EN[5].icon,
-    title: '6. צבעי תאים וולידציה',
+    title: '6. קבוצות יציאה',
+    description: 'בהגדרות ← קבוצות, סדר את הסגל ב"קבוצות יציאה הביתה". לאחר מכן, לחץ על "יציאות" בסרגל העליון כדי לסמן תאריכים בהם קבוצות שלמות נמצאות בבית.',
+  },
+  {
+    icon: STEPS_EN[6].icon,
+    title: '7. צבעי תאים וולידציה',
     description: (
       <div className="space-y-1.5">
         <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-emerald-400 shrink-0" /> שיבוץ תקין</div>
@@ -126,9 +203,24 @@ const STEPS_HE = [
     ),
   },
   {
-    icon: STEPS_EN[6].icon,
-    title: '7. ייצוא וסנכרון',
-    description: 'השתמש בכפתורי הסרגל העליון כדי לייצא את הלוח לאקסל או להדפיס כ-PDF. בנוסף, התחבר (Login) כדי לגבות ולסנכרן אוטומטית לענן.',
+    icon: STEPS_EN[7].icon,
+    title: '8. ייצוא',
+    description: 'השתמש בכפתורי הסרגל העליון כדי לייצא את הלוח לאקסל (כולל גיליון אילוצים).',
+  },
+  {
+    icon: STEPS_EN[8].icon,
+    title: '9. התחברות — שווה את זה',
+    description: (
+      <div className="space-y-3 text-gray-600 leading-relaxed">
+        <p className="text-sm">כרגע המידע שלך נשמר רק בדפדפן הזה — ניקוי הדפדפן ימחק הכל. התחברות לוקחת 10 שניות ונותנת לך:</p>
+        <ul className="space-y-1.5 text-sm">
+          <li className="flex items-start gap-2"><span className="text-indigo-500 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">גיבוי לענן</span> — הלוחות נשמרים אוטומטית, ללא אובדן נתונים</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-500 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">גישה מכל מקום</span> — טלפון, טאבלט, כל מחשב</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-500 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800">תבניות מסונכרנות</span> — משמרות ותפקידים שמורים קשורים לחשבון שלך</span></li>
+        </ul>
+        <p className="text-xs text-gray-400">חינם. ללא כרטיס אשראי.</p>
+      </div>
+    ),
   },
 ];
 

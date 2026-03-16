@@ -3,7 +3,7 @@ import type { Assignment, CellAddress, CellStatus, HomeGroup, HomeGroupPeriod, P
 import { type Lang, tf, DAY_LABELS_HE } from './i18n';
 
 /**
- * Returns true if the person (by homeGroupId) is blocked for the given date+shift
+ * Returns true if the person (by homeGroupIds) is blocked for the given date+shift
  * based on their home group periods. Applies half-day rules:
  *   - departure day: shifts starting at or after 12:00 are blocked
  *   - return day: shifts starting before 12:00 are blocked
@@ -12,27 +12,30 @@ import { type Lang, tf, DAY_LABELS_HE } from './i18n';
 export function isHomeGroupBlocked(
   date: string,
   shift: Shift,
-  homeGroupId: string | null,
+  homeGroupIds: string[],
   homeGroups: HomeGroup[],
   homeGroupPeriods: HomeGroupPeriod[],
 ): boolean {
-  if (!homeGroupId) return false;
-  const group = homeGroups.find(g => g.id === homeGroupId);
-  if (!group) return false;
+  if (!homeGroupIds || homeGroupIds.length === 0) return false;
 
-  for (const period of homeGroupPeriods) {
-    if (period.groupId !== homeGroupId) continue;
-    if (date < period.startDate || date > period.endDate) continue;
+  for (const homeGroupId of homeGroupIds) {
+    const group = homeGroups.find(g => g.id === homeGroupId);
+    if (!group) continue;
 
-    if (date === period.startDate) {
-      // Departure day: shifts starting at or after 12 are blocked
-      if (shift.startHour >= 12) return true;
-    } else if (date === period.endDate) {
-      // Return day: shifts starting before 12 are blocked
-      if (shift.startHour < 12) return true;
-    } else {
-      // Full home day
-      return true;
+    for (const period of homeGroupPeriods) {
+      if (period.groupId !== homeGroupId) continue;
+      if (date < period.startDate || date > period.endDate) continue;
+
+      if (date === period.startDate) {
+        // Departure day: shifts starting at or after 12 are blocked
+        if (shift.startHour >= 12) return true;
+      } else if (date === period.endDate) {
+        // Return day: shifts starting before 12 are blocked
+        if (shift.startHour < 12) return true;
+      } else {
+        // Full home day
+        return true;
+      }
     }
   }
   return false;
@@ -97,7 +100,7 @@ export function computeCellStatus(
   if (unavailable) return 'unavailable';
 
   // 2b. Home group
-  if (isHomeGroupBlocked(cell.date, targetShift, person.homeGroupId ?? null, homeGroups, homeGroupPeriods)) {
+  if (isHomeGroupBlocked(cell.date, targetShift, person.homeGroupIds ?? [], homeGroups, homeGroupPeriods)) {
     return 'home-group';
   }
 

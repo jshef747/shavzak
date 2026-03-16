@@ -40,9 +40,10 @@ export function App() {
     toggleConstraintDay, toggleConstraintBlockedDay,
     updateConstraintMaxWeek, updateConstraintMaxTotal,
     updateConstraintMaxConsecutive, updateConstraintMinRest,
+    updateForceMinimum,
   } = usePeople(state, setState);
   const { assign, unassign, moveAssignment, swapAssignments, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
-  const { addHomeGroup, updateHomeGroup, deleteHomeGroup, setPersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
+  const { addHomeGroup, updateHomeGroup, deleteHomeGroup, togglePersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -55,6 +56,7 @@ export function App() {
   const [autoAssignReassign, setAutoAssignReassign] = useState<'partial' | 'full' | null>(null);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [exportError, setExportError] = useState('');
 
   // Auth + cloud sync
   const { user, loading: authLoading, login, register, logout } = useAuth();
@@ -115,7 +117,7 @@ export function App() {
     try {
       exportToExcel(state, activeSchedule, dates);
     } catch {
-      window.alert(t('exportError', lang));
+      setExportError(t('exportError', lang));
     }
   }
 
@@ -215,7 +217,13 @@ export function App() {
             onClose={() => setSidebarOpen(false)}
           />
 
-          <main className="flex-1 overflow-hidden p-4 relative">
+          <main className="flex-1 overflow-hidden p-4 relative flex flex-col">
+            {exportError && (
+              <div className="mb-3 flex items-center justify-between gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-2.5 rounded-lg shrink-0">
+                <span>{exportError}</span>
+                <button onClick={() => setExportError('')} className="text-red-400 hover:text-red-700 font-bold leading-none shrink-0">×</button>
+              </div>
+            )}
             {!activeSchedule ? (
               <div className="flex items-center justify-center h-full text-gray-400">
                 <div className="text-center space-y-3">
@@ -291,10 +299,11 @@ export function App() {
         onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
         onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
         onUpdateConstraintMinRest={updateConstraintMinRest}
+        onUpdateForceMinimum={updateForceMinimum}
         onAddHomeGroup={addHomeGroup}
         onUpdateHomeGroup={updateHomeGroup}
         onDeleteHomeGroup={deleteHomeGroup}
-        onSetPersonHomeGroup={setPersonHomeGroup}
+        onTogglePersonHomeGroup={togglePersonHomeGroup}
         shiftSets={shiftSets}
         positionSets={positionSets}
         onAddShiftSet={addShiftSet}
@@ -329,6 +338,7 @@ export function App() {
               onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
               onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
               onUpdateConstraintMinRest={updateConstraintMinRest}
+              onUpdateForceMinimum={updateForceMinimum}
               onDelete={(id) => { deletePerson(id); setSidebarEditPersonId(null); }}
               onClose={() => setSidebarEditPersonId(null)}
             />

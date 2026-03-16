@@ -18,6 +18,13 @@ export interface AutoAssignResult {
   skipped: SkippedCell[];
 }
 
+/** Returns the number of on-call assignments a person has in the given list. */
+function onCallCount(personId: string, assignments: Assignment[], positions: Position[]): number {
+  return assignments.filter(
+    a => a.personId === personId && (positions.find(p => p.id === a.positionId)?.isOnCall ?? false)
+  ).length;
+}
+
 /** Returns total shift hours a person has in the given assignments array. */
 function totalHours(personId: string, assignments: Assignment[], shifts: Shift[]): number {
   return assignments
@@ -120,7 +127,12 @@ export function autoAssign(
     const valid = statuses.filter(s => s.status === 'valid');
     // On-call short-break candidates are allowed but only used as a last resort
     const oncallWarn = statuses.filter(s => s.status === 'oncall-short-break');
-    const candidates = valid.length > 0 ? valid : oncallWarn;
+    // Constraint-violated persons allowed as final fallback only for on-call positions
+    const isOnCallPosition = positions.find(p => p.id === cell.positionId)?.isOnCall ?? false;
+    const constraintFallback = (valid.length === 0 && oncallWarn.length === 0 && isOnCallPosition)
+      ? statuses.filter(s => s.status === 'constraint-violation')
+      : [];
+    const candidates = valid.length > 0 ? valid : oncallWarn.length > 0 ? oncallWarn : constraintFallback;
 
     if (candidates.length === 0) {
       // Determine the dominant reason for skipping.
@@ -141,21 +153,41 @@ export function autoAssign(
       continue;
     }
 
-    // Step 3: Sort candidates by fairness:
-    //   1. Total assigned hours (asc) — load balancing
-    //   2. Times assigned to THIS specific position (asc) — rotation across positions
-    //   3. Name alphabetically (asc) — stable tiebreaker
-    candidates.sort((a, b) => {
+    // Step 3: Sort candidates by priority:
+    //   1. forceMinimum persons first (higher duty priority tier)
+    //   2. On-call interleave (count-based): for on-call cell prefer fewer on-call assignments;
+    //      for regular cell prefer more on-call assignments (they deserve regular after on-call)
+    //   3. Total assigned hours (asc) — load balancing
+    //   4. Times assigned to THIS specific position (asc) — rotation across positions
+    //   5. Random — avoids alphabetical bias, distributes ties fairly
+    const cellIsOnCall = isOnCallPosition;
+    // Pre-attach random values so the final tiebreaker is stable within this sort call
+    const withRand = candidates.map(c => ({ ...c, rand: Math.random() }));
+    withRand.sort((a, b) => {
+      // Tier 1: forceMinimum persons first
+      const fA = a.person.forceMinimum ? 0 : 1;
+      const fB = b.person.forceMinimum ? 0 : 1;
+      if (fA !== fB) return fA - fB;
+      // On-call interleave (count-based, best-effort)
+      const ocA = onCallCount(a.person.id, working, positions);
+      const ocB = onCallCount(b.person.id, working, positions);
+      if (ocA !== ocB) {
+        return cellIsOnCall
+          ? ocA - ocB   // on-call cell: prefer fewer on-call assignments (needs more on-call)
+          : ocB - ocA;  // regular cell: prefer more on-call assignments (deserves regular)
+      }
+      // Fairness tiebreakers
       const hoursA = totalHours(a.person.id, working, shifts);
       const hoursB = totalHours(b.person.id, working, shifts);
       if (hoursA !== hoursB) return hoursA - hoursB;
       const posA = positionCount(a.person.id, cell.positionId, working);
       const posB = positionCount(b.person.id, cell.positionId, working);
       if (posA !== posB) return posA - posB;
-      return a.person.name.localeCompare(b.person.name);
+      return a.rand - b.rand; // random final tiebreaker — avoids alphabetical bias
     });
+    const candidates_sorted = withRand;
 
-    const chosen = candidates[0].person;
+    const chosen = candidates_sorted[0].person;
     const newAssignment: Assignment = {
       personId: chosen.id,
       date: cell.date,

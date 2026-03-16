@@ -9,7 +9,7 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
       id: crypto.randomUUID(),
       name,
       colorHex: pickPersonColor(usedColors),
-      homeGroupId: null,
+      homeGroupIds: [],
       qualifiedPositions: [],
       unavailability: [],
       constraints: null,
@@ -156,6 +156,13 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
     patchConstraints(personId, { minRestDays: min });
   }
 
+  function updateForceMinimum(personId: string, value: boolean) {
+    setState(prev => ({
+      ...prev,
+      people: prev.people.map(p => p.id === personId ? { ...p, forceMinimum: value } : p),
+    }));
+  }
+
   return {
     addPerson,
     deletePerson,
@@ -170,5 +177,6 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
     updateConstraintMaxTotal,
     updateConstraintMaxConsecutive,
     updateConstraintMinRest,
+    updateForceMinimum,
   };
 }

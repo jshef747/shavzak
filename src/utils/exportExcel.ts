@@ -26,17 +26,21 @@ const STYLE_HEADER = {
   alignment: { horizontal: 'center', vertical: 'center' },
 };
 
-const STYLE_DATE_ROW = {
-  fill: { patternType: 'solid', fgColor: { rgb: 'E2E8F0' } }, // slate-200
-  font: { bold: true, color: { rgb: '1E293B' }, sz: 11 },     // slate-800
-  alignment: { horizontal: 'left', vertical: 'center' },
-};
+function styleDateRow(isRtl: boolean) {
+  return {
+    fill: { patternType: 'solid', fgColor: { rgb: 'E2E8F0' } },
+    font: { bold: true, color: { rgb: '1E293B' }, sz: 11 },
+    alignment: { horizontal: isRtl ? 'right' : 'left', vertical: 'center' },
+  };
+}
 
-const STYLE_SHIFT_LABEL = {
-  fill: { patternType: 'solid', fgColor: { rgb: 'F8FAFC' } }, // slate-50
-  font: { color: { rgb: '475569' }, sz: 10 },                 // slate-600
-  alignment: { horizontal: 'left', vertical: 'center', wrapText: true },
-};
+function styleShiftLabel(isRtl: boolean) {
+  return {
+    fill: { patternType: 'solid', fgColor: { rgb: 'F8FAFC' } },
+    font: { color: { rgb: '475569' }, sz: 10 },
+    alignment: { horizontal: isRtl ? 'right' : 'left', vertical: 'center', wrapText: true },
+  };
+}
 
 const STYLE_EMPTY_CELL = {
   font: { color: { rgb: '000000' }, sz: 10 },
@@ -66,27 +70,32 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
 
   const totalCols = 1 + positions.length; // shift label col + one col per position
 
-  // ws is a plain object we'll populate manually
+  // In RTL: shift label is the LAST (rightmost) column, positions go right→left
+  // In LTR: shift label is column 0 (leftmost), positions go left→right
+  function colIndex(positionIndex: number | 'shift'): number {
+    if (isRtl) {
+      return positionIndex === 'shift' ? positions.length : positions.length - 1 - (positionIndex as number);
+    }
+    return positionIndex === 'shift' ? 0 : (positionIndex as number) + 1;
+  }
+
   const ws: XLSX.WorkSheet = {};
   const merges: XLSX.Range[] = [];
 
   // ── Row 0: Column header ──────────────────────────────────────────────────
   let rowIndex = 0;
 
-  ws[XLSX.utils.encode_cell({ r: rowIndex, c: 0 })] = cell(t('shiftCol', lang), STYLE_HEADER);
+  ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex('shift') })] = cell(t('shiftCol', lang), STYLE_HEADER);
   for (let ci = 0; ci < positions.length; ci++) {
-    ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci + 1 })] = cell(positions[ci].name, STYLE_HEADER);
+    ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(positions[ci].name, STYLE_HEADER);
   }
   rowIndex++;
 
   // ── Rows per date ──────────────────────────────────────────────────────────
   for (const date of dates) {
-    // Date separator row (merged)
     const dateLabel = format(parseISO(date), isRtl ? 'EEE, d MMM yyyy' : 'EEE, MMM d, yyyy', { locale });
-    ws[XLSX.utils.encode_cell({ r: rowIndex, c: 0 })] = cell(dateLabel, STYLE_DATE_ROW);
-    // Fill remaining columns with same style so the merge background is correct
-    for (let ci = 1; ci < totalCols; ci++) {
-      ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci })] = cell('', STYLE_DATE_ROW);
+    for (let ci = 0; ci < totalCols; ci++) {
+      ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci })] = cell(ci === 0 ? dateLabel : '', styleDateRow(isRtl));
     }
     merges.push({ s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: totalCols - 1 } });
     rowIndex++;
@@ -95,7 +104,7 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
     for (const shift of shifts) {
       const endHour = shift.startHour + shift.durationHours;
       const shiftLabel = `${shift.name}\n${formatTime(shift.startHour)}–${formatTime(endHour)}`;
-      ws[XLSX.utils.encode_cell({ r: rowIndex, c: 0 })] = cell(shiftLabel, STYLE_SHIFT_LABEL);
+      ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex('shift') })] = cell(shiftLabel, styleShiftLabel(isRtl));
 
       for (let ci = 0; ci < positions.length; ci++) {
         const pos = positions[ci];
@@ -105,9 +114,9 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
         if (assignment) {
           const person = people.find(p => p.id === assignment.personId);
           const name = person?.name ?? '';
-          ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci + 1 })] = cell(name, personStyle(person?.colorHex ?? '#e2e8f0'));
+          ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(name, personStyle(person?.colorHex ?? '#e2e8f0'));
         } else {
-          ws[XLSX.utils.encode_cell({ r: rowIndex, c: ci + 1 })] = cell('', STYLE_EMPTY_CELL);
+          ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
         }
       }
       rowIndex++;
@@ -117,18 +126,19 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
   // ── Sheet metadata ─────────────────────────────────────────────────────────
   ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rowIndex - 1, c: totalCols - 1 } });
   ws['!merges'] = merges;
-  ws['!cols'] = [{ wch: 22 }, ...positions.map(() => ({ wch: 18 }))];
-  ws['!rows'] = [{ hpt: 22 }]; // header row height
-
-  // RTL sheet direction
-  if (isRtl) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (ws as any)['!sheetView'] = { rightToLeft: true };
-  }
-
+  // In RTL: shift col is last, in LTR: shift col is first
+  const colWidths = isRtl
+    ? [...positions.map(() => ({ wch: 18 })), { wch: 22 }]
+    : [{ wch: 22 }, ...positions.map(() => ({ wch: 18 }))];
+  ws['!cols'] = colWidths;
+  ws['!rows'] = [{ hpt: 22 }];
   // ── Workbook ───────────────────────────────────────────────────────────────
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, isRtl ? 'לוח' : 'Schedule');
+  if (isRtl) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (wb as any).Workbook = { Views: [{ RTL: true }] };
+  }
 
   // Constraints sheet (unchanged, plain text)
   const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];

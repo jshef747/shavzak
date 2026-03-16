@@ -22,7 +22,8 @@ interface Props {
   onUpdateConstraintMaxTotal: (personId: string, max: number | null) => void;
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
-  onSetPersonHomeGroup: (personId: string, groupId: string | null) => void;
+  onTogglePersonHomeGroup: (personId: string, groupId: string) => void;
+  onUpdateForceMinimum: (personId: string, value: boolean) => void;
 }
 
 export function PeopleTab({
@@ -32,7 +33,7 @@ export function PeopleTab({
   onToggleConstraintDay, onToggleConstraintBlockedDay,
   onUpdateConstraintMaxWeek, onUpdateConstraintMaxTotal,
   onUpdateConstraintMaxConsecutive, onUpdateConstraintMinRest,
-  onSetPersonHomeGroup,
+  onTogglePersonHomeGroup, onUpdateForceMinimum,
 }: Props) {
   const [newName, setNewName] = useState('');
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
@@ -65,11 +66,24 @@ export function PeopleTab({
     setSelectedPeople(new Set());
   }
 
-  function handleBulkAssignGroup(groupId: string | null) {
-    for (const personId of selectedPeople) {
-      onSetPersonHomeGroup(personId, groupId);
+  function handleBulkToggleGroup(groupId: string) {
+    const selected = state.people.filter(p => selectedPeople.has(p.id));
+    const allHaveIt = selected.every(p => (p.homeGroupIds ?? []).includes(groupId));
+    for (const person of selected) {
+      const has = (person.homeGroupIds ?? []).includes(groupId);
+      if (allHaveIt && has) onTogglePersonHomeGroup(person.id, groupId); // remove from all
+      if (!allHaveIt && !has) onTogglePersonHomeGroup(person.id, groupId); // add to those missing
     }
     setShowBulkGroup(false);
+    setSelectedPeople(new Set());
+  }
+
+  function handleBulkForceMinimum() {
+    const selected = state.people.filter(p => selectedPeople.has(p.id));
+    const allHaveIt = selected.every(p => p.forceMinimum);
+    for (const person of selected) {
+      onUpdateForceMinimum(person.id, !allHaveIt);
+    }
     setSelectedPeople(new Set());
   }
 
@@ -156,6 +170,17 @@ export function PeopleTab({
                       {t('assignGroupToSelected', lang)}
                     </Button>
                   )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleBulkForceMinimum}
+                    className="flex items-center gap-1.5 bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    {t('forceMinimumBulk', lang)}
+                  </Button>
                   <button
                     onClick={() => setSelectedPeople(new Set())}
                     className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
@@ -195,9 +220,16 @@ export function PeopleTab({
                   <span className="text-xs font-medium bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full flex-shrink-0">
                     {person.qualifiedPositions.length} {t('roles', lang)}
                   </span>
-                  {person.homeGroupId && (
+                  {person.forceMinimum && (
+                    <span className="flex items-center gap-0.5 text-xs font-medium bg-amber-50 text-amber-700 px-2 py-1 rounded-full flex-shrink-0 border border-amber-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                    </span>
+                  )}
+                  {(person.homeGroupIds ?? []).length > 0 && (
                     <span className="text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full flex-shrink-0">
-                      {state.homeGroups.find(g => g.id === person.homeGroupId)?.name ?? ''}
+                      {(person.homeGroupIds ?? []).map(id => state.homeGroups.find(g => g.id === id)?.name).filter(Boolean).join(', ')}
                     </span>
                   )}
                   <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0">
@@ -259,6 +291,7 @@ export function PeopleTab({
             onUpdateConstraintMaxTotal={onUpdateConstraintMaxTotal}
             onUpdateConstraintMaxConsecutive={onUpdateConstraintMaxConsecutive}
             onUpdateConstraintMinRest={onUpdateConstraintMinRest}
+            onUpdateForceMinimum={onUpdateForceMinimum}
             onDelete={onDelete}
             onClose={() => setEditingPerson(null)}
           />
@@ -274,25 +307,35 @@ export function PeopleTab({
       >
         <div className="space-y-2 py-1">
           <p className="text-sm text-slate-500 mb-3">{t('assignGroupToSelectedDesc', lang)}</p>
-          <button
-            onClick={() => handleBulkAssignGroup(null)}
-            className="w-full flex items-center gap-3 p-3 rounded-lg border border-slate-100 bg-slate-50 hover:bg-slate-100 text-start rtl:text-end transition-colors"
-          >
-            <span className="w-5 h-5 rounded-full border-2 border-slate-300 flex-shrink-0" />
-            <span className="text-sm text-slate-500 italic">{t('noGroup', lang)}</span>
-          </button>
-          {state.homeGroups.map(group => (
-            <button
-              key={group.id}
-              onClick={() => handleBulkAssignGroup(group.id)}
-              className="w-full flex items-center gap-3 p-3 rounded-lg border border-blue-100 bg-blue-50 hover:bg-blue-100 text-start rtl:text-end transition-colors"
-            >
-              <span className="w-5 h-5 rounded-full bg-blue-400 flex-shrink-0" />
-              <span className="text-sm font-medium text-blue-800">{group.name}</span>
-            </button>
-          ))}
+          {state.homeGroups.map(group => {
+            const count = state.people.filter(p => selectedPeople.has(p.id) && (p.homeGroupIds ?? []).includes(group.id)).length;
+            const total = selectedPeople.size;
+            const allHave = count === total;
+            const someHave = count > 0 && count < total;
+            return (
+              <button
+                key={group.id}
+                onClick={() => handleBulkToggleGroup(group.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg border text-start rtl:text-end transition-colors ${
+                  allHave ? 'bg-emerald-50 border-emerald-200' : someHave ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100 hover:bg-slate-100'
+                }`}
+              >
+                <span className={`w-5 h-5 rounded flex items-center justify-center flex-shrink-0 border text-xs font-bold ${
+                  allHave ? 'bg-emerald-600 border-emerald-600 text-white' : someHave ? 'bg-amber-400 border-amber-400 text-white' : 'bg-white border-slate-300 text-transparent'
+                }`}>
+                  {allHave ? '✓' : someHave ? '–' : ''}
+                </span>
+                <span className={`text-sm font-medium flex-1 ${allHave ? 'text-emerald-900' : someHave ? 'text-amber-900' : 'text-slate-700'}`}>
+                  {group.name}
+                </span>
+                <span className={`text-xs flex-shrink-0 ${allHave ? 'text-emerald-500' : someHave ? 'text-amber-600' : 'text-slate-400'}`}>
+                  {count}/{total}
+                </span>
+              </button>
+            );
+          })}
           <div className="flex justify-end pt-2">
-            <Button variant="secondary" size="sm" onClick={() => setShowBulkGroup(false)}>{t('cancel', lang)}</Button>
+            <Button variant="secondary" size="sm" onClick={() => setShowBulkGroup(false)}>{t('close', lang)}</Button>
           </div>
         </div>
       </Modal>

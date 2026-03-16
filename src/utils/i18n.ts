@@ -9,6 +9,8 @@ const strings: Record<string, { en: string; he: string }> = {
   newBtn: { en: '+ New', he: '+ חדש' },
   delete: { en: 'Delete', he: 'מחק' },
   deleteScheduleConfirm: { en: 'Delete this schedule?', he: 'למחוק את הלוח הזה?' },
+  confirmTitle: { en: 'Confirm', he: 'אישור' },
+  deletePositionConfirm: { en: 'Delete this position? All assignments to it will be removed.', he: 'למחוק תפקיד זה? כל השיבוצים בו יוסרו.' },
   excel: { en: 'Excel', he: 'Excel' },
   pdf: { en: 'PDF', he: 'PDF' },
   quickStartTitle: { en: 'Quick Start Guide', he: 'מדריך התחלה מהירה' },
@@ -200,6 +202,9 @@ const strings: Record<string, { en: string; he: string }> = {
   pwReqNumber: { en: 'Number', he: 'ספרה' },
   pwReqSpecial: { en: 'Special character (@$!%*?&)', he: 'תו מיוחד (@$!%*?&)' },
   save: { en: 'Save', he: 'שמור' },
+  forceMinimumLabel: { en: 'Force Minimum Duty', he: 'כוננות מינימום מאולצת' },
+  forceMinimumDesc: { en: 'Always assign this person as often as the minimum break allows.', he: 'שבץ אדם זה בכל משמרת אפשרית לאחר זמן המנוחה המינימלי.' },
+  forceMinimumBulk: { en: 'Force Minimum', he: 'מינימום מאולץ' },
 };
 
 export function t(key: string, lang: Lang): string {
