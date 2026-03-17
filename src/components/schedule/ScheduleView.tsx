@@ -1,5 +1,5 @@
 import { forwardRef, useMemo } from 'react';
-import type { AppState, Assignment, HomeGroupPeriod, Position } from '../../types';
+import type { AppState, Assignment, CellAddress, HomeGroupPeriod, Position } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { DaySection } from './DaySection';
 import { HomeGroupsSection } from './HomeGroupsSection';
@@ -9,10 +9,13 @@ interface Props {
   dates: string[];
   assignments: Assignment[];
   homeGroupPeriods: HomeGroupPeriod[];
+  isAdmin?: boolean;
+  myPersonId?: string | null;
+  onRequestSwap?: (cell: CellAddress) => void;
 }
 
 export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleView(
-  { state, dates, assignments, homeGroupPeriods },
+  { state, dates, assignments, homeGroupPeriods, isAdmin = true, myPersonId, onRequestSwap },
   ref
 ) {
   if (dates.length === 0) return null;
@@ -48,6 +51,9 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
               dayIndex={dayIndex}
               positions={positions}
               homeGroupPeriods={homeGroupPeriods}
+              isAdmin={isAdmin}
+              myPersonId={myPersonId}
+              onRequestSwap={onRequestSwap}
             />
           ))}
         </tbody>

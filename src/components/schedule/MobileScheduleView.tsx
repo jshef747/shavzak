@@ -11,8 +11,11 @@ interface Props {
   dates: string[];
   assignments: Assignment[];
   homeGroupPeriods: HomeGroupPeriod[];
-  onAssign: (cell: CellAddress, personId: string) => void;
-  onUnassign: (cell: CellAddress) => void;
+  onAssign?: (cell: CellAddress, personId: string) => void;
+  onUnassign?: (cell: CellAddress) => void;
+  isAdmin?: boolean;
+  myPersonId?: string | null;
+  onRequestSwap?: (cell: CellAddress) => void;
 }
 
 const STATUS_OUTLINE: Record<CellStatus, string | null> = {
@@ -119,13 +122,13 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
 
   function handleAssign(personId: string) {
     if (!activeCell) return;
-    onAssign(activeCell.cell, personId);
+    onAssign?.(activeCell.cell, personId);
     setActiveCell(null);
   }
 
   function handleClear() {
     if (!activeCell) return;
-    onUnassign(activeCell.cell);
+    onUnassign?.(activeCell.cell);
     setActiveCell(null);
   }
 

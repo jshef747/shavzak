@@ -87,3 +87,46 @@ export interface AppState {
   theme: 'light' | 'dark' | 'system';
   minBreakHours: number;
 }
+
+// --- Role / team system ---
+
+export type UserRole = 'admin' | 'user';
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface BoardMember {
+  id: string;
+  board_id: string;
+  user_id: string;
+  person_id: string;
+  created_at: string;
+}
+
+export interface Invite {
+  id: string;        // UUID — also the token in the invite URL
+  board_id: string;
+  revoked_at: string | null;
+  created_at: string;
+}
+
+export type SwapStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export interface SwapRequest {
+  id: string;
+  board_id: string;
+  requester_person_id: string;
+  requester_date: string;
+  requester_shift_id: string;
+  requester_position_id: string;
+  target_person_id: string;
+  target_date: string | null;
+  target_shift_id: string | null;
+  target_position_id: string | null;
+  status: SwapStatus;
+  created_at: string;
+}

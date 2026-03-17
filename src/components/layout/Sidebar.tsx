@@ -10,14 +10,15 @@ interface Props {
   onDeletePerson: (personId: string) => void;
   open: boolean;
   onClose: () => void;
+  isAdmin?: boolean;
 }
 
-function SidebarContent({ state, assignments, onEditPerson, onDeletePerson }: Omit<Props, 'open' | 'onClose'>) {
+function SidebarContent({ state, assignments, onEditPerson, onDeletePerson, isAdmin = true }: Omit<Props, 'open' | 'onClose'>) {
   const assignedPersonIds = new Set(assignments.map(a => a.personId));
   return (
     <>
       <div className="flex-1">
-        <PeoplePool state={state} assignedPersonIds={assignedPersonIds} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+        <PeoplePool state={state} assignedPersonIds={assignedPersonIds} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} isAdmin={isAdmin} />
       </div>
       <div className="border-t border-gray-200 dark:border-slate-700">
         <HoursTracker state={state} assignments={assignments} />
@@ -26,13 +27,13 @@ function SidebarContent({ state, assignments, onEditPerson, onDeletePerson }: Om
   );
 }
 
-export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open, onClose }: Props) {
+export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open, onClose, isAdmin = true }: Props) {
   const isMobile = useIsMobile();
 
   if (!isMobile) {
     return (
       <aside className="no-print flex flex-col w-56 overflow-y-auto bg-white dark:bg-slate-800 border-r rtl:border-r-0 rtl:border-l border-gray-200 dark:border-slate-700">
-        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} isAdmin={isAdmin} />
       </aside>
     );
   }
@@ -65,7 +66,7 @@ export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open
             </svg>
           </button>
         </div>
-        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} isAdmin={isAdmin} />
       </aside>
     </>
   );

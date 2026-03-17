@@ -25,6 +25,10 @@ interface Props {
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
   hideSidebar?: boolean;
+  isAdmin?: boolean;
+  onOpenMyProfile?: () => void;
+  swapBadgeCount?: number;
+  onOpenSwapPanel?: () => void;
 }
 
 export function TopBar({
@@ -44,6 +48,10 @@ export function TopBar({
   onOpenAuthModal,
   onLogout,
   hideSidebar = false,
+  isAdmin = true,
+  onOpenMyProfile,
+  swapBadgeCount = 0,
+  onOpenSwapPanel,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -87,40 +95,42 @@ export function TopBar({
         <span className="hidden md:block text-base font-semibold text-gray-900 dark:text-slate-100 shrink-0">שבצק</span>
         <div className="hidden md:block w-px h-5 bg-gray-200 dark:bg-slate-600 shrink-0" />
 
-        {/* Zone 2: Schedule selector */}
-        <div className="flex gap-2 items-center">
-          <select
-            aria-label={t('selectSchedule', lang)}
-            className="text-sm rounded px-2 py-1 text-gray-800 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            value={state.activeScheduleId ?? ''}
-            onChange={e => onSetActiveSchedule(e.target.value || null)}
-          >
-            <option value="">{t('selectSchedule', lang)}</option>
-            {state.schedules.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setNewModalOpen(true)}
-          >
-            {t('newBtn', lang)}
-          </Button>
-          {activeSchedule && (
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => setDeleteConfirmOpen(true)}
+        {/* Zone 2: Schedule selector (admin only) */}
+        {isAdmin ? (
+          <div className="flex gap-2 items-center">
+            <select
+              aria-label={t('selectSchedule', lang)}
+              className="text-sm rounded px-2 py-1 text-gray-800 dark:text-slate-200 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              value={state.activeScheduleId ?? ''}
+              onChange={e => onSetActiveSchedule(e.target.value || null)}
             >
-              {t('delete', lang)}
+              <option value="">{t('selectSchedule', lang)}</option>
+              {state.schedules.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <Button variant="primary" size="sm" onClick={() => setNewModalOpen(true)}>
+              {t('newBtn', lang)}
             </Button>
-          )}
-        </div>
+            {activeSchedule && (
+              <Button variant="danger" size="sm" onClick={() => setDeleteConfirmOpen(true)}>
+                {t('delete', lang)}
+              </Button>
+            )}
+          </div>
+        ) : (
+          /* User view: show active schedule name read-only */
+          activeSchedule && (
+            <span className="text-sm font-medium text-gray-700 dark:text-slate-300 truncate max-w-[160px]">
+              {activeSchedule.name}
+            </span>
+          )
+        )}
 
         {/* Zone 3: Right actions */}
         <div className="ml-auto rtl:ml-0 rtl:mr-auto flex items-center gap-2 shrink-0">
-          {activeSchedule && (
+          {/* Admin-only action buttons */}
+          {isAdmin && activeSchedule && (
             <>
               <Button variant="primary" size="sm" onClick={onAutoAssign} className="hidden md:inline-flex">
                 {t('autoAssign', lang)}
@@ -133,6 +143,32 @@ export function TopBar({
                 className="hidden md:inline-flex">
                 {t('excel', lang)}
               </Button>
+            </>
+          )}
+          {/* User-role: My Profile + Swap Requests badge */}
+          {!isAdmin && userEmail && (
+            <>
+              {onOpenMyProfile && (
+                <Button variant="secondary" size="sm" onClick={onOpenMyProfile} className="hidden md:inline-flex">
+                  {t('myProfile', lang)}
+                </Button>
+              )}
+              {onOpenSwapPanel && (
+                <button
+                  onClick={onOpenSwapPanel}
+                  className="relative p-1.5 rounded-md border border-gray-200 dark:border-slate-600 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors duration-150"
+                  title={t('swapRequests', lang)}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                  {swapBadgeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {swapBadgeCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </>
           )}
           {/* Auth: login / user+logout */}

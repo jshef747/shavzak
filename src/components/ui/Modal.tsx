@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from 'react';
 
 interface ModalProps {
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   title: string;
   children: ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -12,7 +12,7 @@ interface ModalProps {
 export function Modal({ open, onClose, title, children, size = 'md', dir }: ModalProps) {
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose?.(); };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [open, onClose]);
@@ -23,7 +23,7 @@ export function Modal({ open, onClose, title, children, size = 'md', dir }: Moda
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose ?? undefined} />
       <div
         role="dialog"
         aria-modal="true"
@@ -36,7 +36,7 @@ export function Modal({ open, onClose, title, children, size = 'md', dir }: Moda
           <button
             onClick={onClose}
             aria-label="Close"
-            className="absolute top-3 right-3 rtl:right-auto rtl:left-3 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 p-2.5 rounded-full text-xl leading-none transition-colors duration-150"
+            className={`absolute top-3 right-3 rtl:right-auto rtl:left-3 text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 p-2.5 rounded-full text-xl leading-none transition-colors duration-150 ${!onClose ? 'hidden' : ''}`}
           >
             <span className="sr-only">Close</span>
             ×

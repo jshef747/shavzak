@@ -13,6 +13,9 @@ interface Props {
   assignments: Assignment[];
   refDate: string;
   homeGroupPeriods: HomeGroupPeriod[];
+  isAdmin?: boolean;
+  isMyCell?: boolean;
+  onRequestSwap?: (cell: CellAddress) => void;
 }
 
 // Outline colors for each status (used via inline style to avoid border-collapse clipping)
@@ -46,10 +49,13 @@ const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
-const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
+const AssignmentCellBase = function AssignmentCell({
+  cell, state, assignments, refDate, homeGroupPeriods,
+  isAdmin = true, isMyCell = false, onRequestSwap,
+}: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
-  const { isOver, setNodeRef } = useDroppable({ id: cellKey });
+  const { isOver, setNodeRef } = useDroppable({ id: cellKey, disabled: !isAdmin });
   const { active } = useDndContext();
 
   const assignment = assignments.find(
@@ -62,7 +68,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
     : 'empty';
 
-  // Detect drag-over scenario
+  // Detect drag-over scenario (only relevant when isAdmin)
   let dragOverBg = 'bg-blue-50';
   let dragOverOutline = '#93c5fd'; // blue-300 — DnD keeps 2px to be clearly visible
   let isSwapHover = false;
@@ -134,7 +140,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     <td
       ref={setNodeRef}
       style={cellStyle}
-      className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
+      className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass} ${isMyCell && !isAdmin ? 'ring-2 ring-inset ring-indigo-400' : ''}`}
     >
       {person && (
         <PersonChip
@@ -144,6 +150,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           source="cell"
           sourceCell={cell}
           variant="cell"
+          draggable={isAdmin}
         />
       )}
 
@@ -153,6 +160,19 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
           </svg>
         </span>
+      )}
+
+      {/* Swap request button — shown only on user's own cell when not admin */}
+      {!isAdmin && isMyCell && person && onRequestSwap && (
+        <button
+          onClick={() => onRequestSwap(cell)}
+          title={t('requestSwap', lang)}
+          className="absolute bottom-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 p-0.5 rounded text-indigo-500 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors opacity-0 group-hover/cell:opacity-100"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
+          </svg>
+        </button>
       )}
 
       {warningText && (
@@ -174,9 +194,12 @@ function areEqual(prev: Props, next: Props) {
   if (prev.state !== next.state) return false;
   if (prev.refDate !== next.refDate) return false;
   if (prev.homeGroupPeriods !== next.homeGroupPeriods) return false;
+  if (prev.isAdmin !== next.isAdmin) return false;
+  if (prev.isMyCell !== next.isMyCell) return false;
+  if (prev.onRequestSwap !== next.onRequestSwap) return false;
   if (
-    prev.cell.date !== next.cell.date || 
-    prev.cell.positionId !== next.cell.positionId || 
+    prev.cell.date !== next.cell.date ||
+    prev.cell.positionId !== next.cell.positionId ||
     prev.cell.shiftId !== next.cell.shiftId
   ) return false;
 
@@ -185,7 +208,7 @@ function areEqual(prev: Props, next: Props) {
   // 2. OR the assignments for the person CURRENTLY in this cell changed (which might alter their validity)
   if (prev.assignments === next.assignments) return true;
 
-  const getPersonForCell = (assignments: Assignment[]) => 
+  const getPersonForCell = (assignments: Assignment[]) =>
     assignments.find(a => a.date === prev.cell.date && a.shiftId === prev.cell.shiftId && a.positionId === prev.cell.positionId)?.personId;
 
   const prevPersonId = getPersonForCell(prev.assignments);
@@ -201,7 +224,7 @@ function areEqual(prev: Props, next: Props) {
     const nextPersonAssignments = next.assignments.filter(a => a.personId === prevPersonId);
     // Rough check: did the total number of assignments for this person change?
     if (prevPersonAssignments.length !== nextPersonAssignments.length) return false;
-    
+
     // Deep check: did the specific dates/shifts change?
     for (let i = 0; i < prevPersonAssignments.length; i++) {
         const pa = prevPersonAssignments[i];

@@ -2,6 +2,8 @@ import { memo } from 'react';
 import type { AppState, HomeGroupPeriod, Shift, Assignment, Position } from '../../types';
 import { AssignmentCell } from './AssignmentCell';
 
+import type { CellAddress } from '../../types';
+
 interface Props {
   date: string;
   shift: Shift;
@@ -11,6 +13,9 @@ interface Props {
   dayIndex: number;
   positions: Position[];
   homeGroupPeriods: HomeGroupPeriod[];
+  isAdmin?: boolean;
+  myPersonId?: string | null;
+  onRequestSwap?: (cell: CellAddress) => void;
 }
 
 function formatShiftTime(h: number) {
@@ -20,7 +25,7 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods }: Props) {
+export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods, isAdmin = true, myPersonId, onRequestSwap }: Props) {
   const endHour = shift.startHour + shift.durationHours;
   const rowBg = dayIndex % 2 === 0
     ? 'bg-gray-50 dark:bg-slate-800'
@@ -32,16 +37,26 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
         {shift.name}
         <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>
-      {positions.map(pos => (
-        <AssignmentCell
-          key={pos.id}
-          cell={{ date, shiftId: shift.id, positionId: pos.id }}
-          state={state}
-          assignments={assignments}
-          refDate={refDate}
-          homeGroupPeriods={homeGroupPeriods}
-        />
-      ))}
+      {positions.map(pos => {
+        const cellAddr: CellAddress = { date, shiftId: shift.id, positionId: pos.id };
+        const cellAssignment = assignments.find(
+          a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id
+        );
+        const isMyCell = !isAdmin && !!myPersonId && cellAssignment?.personId === myPersonId;
+        return (
+          <AssignmentCell
+            key={pos.id}
+            cell={cellAddr}
+            state={state}
+            assignments={assignments}
+            refDate={refDate}
+            homeGroupPeriods={homeGroupPeriods}
+            isAdmin={isAdmin}
+            isMyCell={isMyCell}
+            onRequestSwap={onRequestSwap}
+          />
+        );
+      })}
     </tr>
   );
 });

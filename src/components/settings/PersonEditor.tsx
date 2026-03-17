@@ -19,7 +19,7 @@ interface Props {
   person: Person;
   state: AppState;
   dates: string[];
-  onToggleQualification: (personId: string, positionId: string) => void;
+  onToggleQualification?: (personId: string, positionId: string) => void;
   onToggleUnavailability: (personId: string, entry: UnavailabilityEntry) => void;
   onToggleConstraintShift: (personId: string, shiftId: string) => void;
   onToggleConstraintBlockedShift: (personId: string, shiftId: string) => void;
@@ -30,7 +30,7 @@ interface Props {
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
   onUpdateForceMinimum: (personId: string, value: boolean) => void;
-  onDelete: (id: string) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
 }
 
@@ -89,7 +89,7 @@ export function PersonEditor({
               return (
                 <button
                   key={pos.id}
-                  onClick={() => onToggleQualification(person.id, pos.id)}
+                  onClick={() => onToggleQualification?.(person.id, pos.id)}
                   className={`px-3.5 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                     qualified
                       ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-700 text-indigo-700 dark:text-indigo-300 shadow-sm'
@@ -329,8 +329,8 @@ export function PersonEditor({
         </div>
       </div>
 
-      {/* Danger Zone */}
-      <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 sm:p-5">
+      {/* Danger Zone — only shown for admins who can delete */}
+      {onDelete && <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl p-4 sm:p-5">
         <div className="flex items-start gap-3 mb-3">
           <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -342,7 +342,7 @@ export function PersonEditor({
             <p className="text-xs text-red-600/70 dark:text-red-500/80 mt-0.5">{t('dangerZoneDesc', lang)}</p>
           </div>
         </div>
-        <div className="flex justify-between items-center">
+        <div className="flex items-center">
           <Button
             variant="danger"
             size="sm"
@@ -350,13 +350,15 @@ export function PersonEditor({
           >
             {t('deletePerson', lang)}
           </Button>
-          <Button variant="secondary" size="sm" onClick={onClose}>{t('close', lang)}</Button>
         </div>
+      </div>}
+      <div className="flex justify-end">
+        <Button variant="secondary" size="sm" onClick={onClose}>{t('close', lang)}</Button>
       </div>
       <ConfirmDialog
         open={deleteDialogOpen}
         message={t('deletePersonConfirm', lang)}
-        onConfirm={() => { onDelete(person.id); setDeleteDialogOpen(false); onClose(); }}
+        onConfirm={() => { onDelete?.(person.id); setDeleteDialogOpen(false); onClose(); }}
         onCancel={() => setDeleteDialogOpen(false)}
         lang={lang}
       />

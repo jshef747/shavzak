@@ -13,9 +13,10 @@ interface Props {
   sourceCell?: CellAddress;
   variant?: 'pool' | 'cell';
   dimmed?: boolean;
+  draggable?: boolean;
 }
 
-export const PersonChip = memo(function PersonChip({ personId, name, colorHex, source, sourceCell, variant = 'pool', dimmed = false }: Props) {
+export const PersonChip = memo(function PersonChip({ personId, name, colorHex, source, sourceCell, variant = 'pool', dimmed = false, draggable = true }: Props) {
   const draggableId = sourceCell
     ? `${personId}::cell::${serializeCellAddress(sourceCell)}`
     : `${personId}::pool`;
@@ -29,6 +30,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: draggableId,
     data: dragData,
+    disabled: !draggable,
   });
 
   const style = {
@@ -49,7 +51,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
         style={chipStyle}
         {...attributes}
         {...listeners}
-        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 dark:border shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
+        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 dark:border shadow-sm text-xs font-medium select-none ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} ${dimmed ? 'opacity-50' : ''}`}
       >
         <span
           className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
@@ -69,7 +71,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
       style={{ ...style, backgroundColor: colorHex, borderColor: colorHex }}
       {...attributes}
       {...listeners}
-      className={`flex rtl:flex-row-reverse items-center gap-2 px-2 py-1 rounded border text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-opacity ${dimmed ? 'opacity-40' : ''}`}
+      className={`flex rtl:flex-row-reverse items-center gap-2 px-2 py-1 rounded border text-xs font-medium select-none transition-opacity ${draggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'} ${dimmed ? 'opacity-40' : ''}`}
     >
       <span
         className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"

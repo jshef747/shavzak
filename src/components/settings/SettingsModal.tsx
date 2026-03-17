@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { AppState, Shift, UnavailabilityEntry, DayOfWeek, Position } from '../../types';
+import type { AppState, Shift, UnavailabilityEntry, DayOfWeek, Position, UserProfile, UserRole } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Tabs } from '../ui/Tabs';
 import { langFromDir, t } from '../../utils/i18n';
@@ -7,6 +7,9 @@ import { ShiftsTab } from './ShiftsTab';
 import { PositionsTab } from './PositionsTab';
 import { PeopleTab } from './PeopleTab';
 import { HomeGroupsTab } from './HomeGroupsTab';
+import { UsersTab } from './UsersTab';
+import type { BoardMemberWithEmail } from '../../hooks/useBoardMembers';
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -50,10 +53,20 @@ interface Props {
   onDeletePositionSet: (id: string) => Promise<void>;
   onLoadPositionSet: (positions: Omit<Position, 'id'>[]) => void;
   isLoggedIn: boolean;
+  isAdmin?: boolean;
+  boardId?: string | null;
+  members?: BoardMemberWithEmail[];
+  allProfiles?: UserProfile[];
+  inviteUrl?: string | null;
+  onGenerateInvite?: () => Promise<void>;
+  onRevokeInvite?: () => Promise<void>;
+  onUnlinkMember?: (memberId: string) => Promise<void>;
+  onUpdateRole?: (userId: string, role: UserRole) => Promise<void>;
 }
 
 // Internal tab keys stay in English for logic comparisons
-const TABS = ['Shifts', 'Positions', 'People', 'Groups'];
+const TABS_BASE = ['Shifts', 'Positions', 'People', 'Groups'];
+const TABS_ADMIN = [...TABS_BASE, 'Users'];
 
 export function SettingsModal({
   open, onClose, state, dates, initialTab,
@@ -61,8 +74,18 @@ export function SettingsModal({
   onAddShiftSet, onDeleteShiftSet, onLoadShiftSet,
   onAddPositionSet, onDeletePositionSet, onLoadPositionSet,
   isLoggedIn,
+  isAdmin = true,
+  boardId,
+  members = [],
+  allProfiles = [],
+  inviteUrl,
+  onGenerateInvite,
+  onRevokeInvite,
+  onUnlinkMember,
+  onUpdateRole,
   ...handlers
 }: Props) {
+  const TABS = isAdmin ? TABS_ADMIN : TABS_BASE;
   const [activeTab, setActiveTab] = useState(initialTab ?? 'Shifts');
   const lang = langFromDir(state.dir);
 
@@ -70,7 +93,11 @@ export function SettingsModal({
     if (open && initialTab) setActiveTab(initialTab);
   }, [open, initialTab]);
 
-  const tabLabels = [t('tabShifts', lang), t('tabPositions', lang), t('tabPeople', lang), t('tabGroups', lang)];
+  const tabLabels = [
+    t('tabShifts', lang), t('tabPositions', lang),
+    t('tabPeople', lang), t('tabGroups', lang),
+    ...(isAdmin ? [t('tabUsers', lang)] : []),
+  ];
 
   return (
     <Modal open={open} onClose={onClose} title={t('settingsTitle', lang)} size="xl" dir={state.dir}>
@@ -134,6 +161,22 @@ export function SettingsModal({
           onUpdateGroup={handlers.onUpdateHomeGroup}
           onDeleteGroup={handlers.onDeleteHomeGroup}
           onTogglePersonGroup={handlers.onTogglePersonHomeGroup}
+        />
+      )}
+      {activeTab === 'Users' && isAdmin && (
+        <UsersTab
+          state={state}
+          boardId={boardId ?? null}
+          members={members.map(m => ({
+            ...m,
+            role: allProfiles.find(p => p.id === m.user_id)?.role ?? 'user',
+          }))}
+          allProfiles={allProfiles}
+          inviteUrl={inviteUrl ?? null}
+          onGenerateInvite={onGenerateInvite ?? (async () => {})}
+          onRevokeInvite={onRevokeInvite ?? (async () => {})}
+          onUnlinkMember={onUnlinkMember ?? (async () => {})}
+          onUpdateRole={onUpdateRole ?? (async () => {})}
         />
       )}
     </Modal>

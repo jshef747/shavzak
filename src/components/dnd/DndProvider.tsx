@@ -22,9 +22,14 @@ interface Props {
   onMove: (source: CellAddress, target: CellAddress, personId: string) => void;
   onSwap: (cellA: CellAddress, cellB: CellAddress) => void;
   onDragStart?: () => void;
+  isAdmin?: boolean;
 }
 
-export function DndProvider({ state, assignments, refDate: _refDate, children, onAssign, onUnassign, onMove, onSwap, onDragStart }: Props) {
+export function DndProvider({ state, assignments, refDate: _refDate, children, onAssign, onUnassign, onMove, onSwap, onDragStart, isAdmin = true }: Props) {
+  // Non-admin users get a plain wrapper — no DnD context
+  if (!isAdmin) {
+    return <>{children}</>;
+  }
   const [activeDragData, setActiveDragData] = useState<DragData | null>(null);
 
   const sensors = useSensors(
