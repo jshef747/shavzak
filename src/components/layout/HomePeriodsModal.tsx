@@ -60,9 +60,9 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="bg-slate-100 text-slate-600 text-xs uppercase tracking-wide">
-                  <th className="px-3 py-2 text-start rtl:text-end font-semibold">{t('groupLabel', lang)}</th>
-                  <th className="px-3 py-2 text-start rtl:text-end font-semibold">{t('departure', lang)}</th>
-                  <th className="px-3 py-2 text-start rtl:text-end font-semibold">{t('returnDate', lang)}</th>
+                  <th className="px-3 py-2 text-start  font-semibold">{t('groupLabel', lang)}</th>
+                  <th className="px-3 py-2 text-start  font-semibold">{t('departure', lang)}</th>
+                  <th className="px-3 py-2 text-start  font-semibold">{t('returnDate', lang)}</th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
@@ -74,7 +74,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
                       <td className="px-3 py-2 font-medium text-slate-800">{groupName(period.groupId)}</td>
                       <td className="px-3 py-2 text-slate-600">{formatDate(period.startDate)}</td>
                       <td className="px-3 py-2 text-slate-600">{formatDate(period.endDate)}</td>
-                      <td className="px-3 py-2 text-end rtl:text-start">
+                      <td className="px-3 py-2 text-end ">
                         <Button
                           size="sm"
                           variant="danger"
@@ -143,7 +143,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
                 maxDate={activeSchedule.endDate}
               />
             </div>
-            <div className="flex justify-end rtl:justify-start">
+            <div className="flex justify-end ">
               <Button variant="primary" onClick={handleAdd} disabled={!canAdd}>
                 {t('addPeriod', lang)}
               </Button>

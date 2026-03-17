@@ -1,7 +1,9 @@
 import type { AppState, Assignment } from '../../types';
+import { X } from 'lucide-react';
 import { PeoplePool } from '../roster/PeoplePool';
 import { HoursTracker } from '../tracker/HoursTracker';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { IconButton } from '../ui/IconButton';
 
 interface Props {
   state: AppState;
@@ -31,8 +33,10 @@ export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open
 
   if (!isMobile) {
     return (
-      <aside className="no-print flex flex-col w-56 overflow-y-auto bg-white dark:bg-slate-800 border-r rtl:border-r-0 rtl:border-l border-gray-200 dark:border-slate-700">
-        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+      <aside className="no-print flex flex-col w-[260px] overflow-y-auto bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border-e border-gray-200/60 dark:border-slate-800 relative z-10 shadow-[2px_0_8px_-4px_rgba(0,0,0,0.05)]">
+        <div className="flex-1 pt-2">
+          <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+        </div>
       </aside>
     );
   }
@@ -49,21 +53,18 @@ export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open
       />
       {/* Drawer panel */}
       <aside
-        className={`no-print fixed inset-y-0 left-0 rtl:left-auto rtl:right-0 z-30 w-64 flex flex-col overflow-y-auto bg-white dark:bg-slate-800 border-r rtl:border-r-0 rtl:border-l border-gray-200 dark:border-slate-700 transition-transform duration-200 ease-out ${
-          open ? 'translate-x-0' : '-translate-x-full rtl:translate-x-full'
+        className={`no-print fixed inset-y-0 start-0  z-30 w-64 flex flex-col overflow-y-auto bg-white dark:bg-slate-800 border-e  border-gray-200 dark:border-slate-700 transition-transform duration-200 ease-out ${
+          open ? 'translate-x-0' : '-translate-x-full '
         }`}
       >
         <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-slate-700 shrink-0">
           <span className="text-sm font-semibold text-gray-700 dark:text-slate-200">Roster</span>
-          <button
+          <IconButton
+            icon={<X className="w-4 h-4" />}
             onClick={onClose}
             aria-label="Close roster"
-            className="p-1 rounded text-gray-400 dark:text-slate-500 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors duration-150"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+            size="sm"
+          />
         </div>
         <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
       </aside>

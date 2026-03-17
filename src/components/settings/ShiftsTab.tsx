@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { GripVertical, Save, Trash2, Clock, CalendarClock, Coffee } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -76,14 +77,12 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
         title={t('dragToReorder', lang)}
         tabIndex={-1}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 8h16M4 16h16" />
-        </svg>
+        <GripVertical className="w-5 h-5" strokeWidth={1.5} />
       </button>
 
       <div className="flex-1 min-w-0">
         <input
-          className="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow"
+          className="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-indigo-500 transition-shadow text-start"
           value={shift.name}
           onChange={e => onUpdate(shift.id, { name: e.target.value })}
           placeholder={t('shiftNamePlaceholder', lang)}
@@ -126,9 +125,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
         onClick={handleDelete}
         className="text-red-500 hover:text-red-700 hover:bg-red-50 flex-shrink-0"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
+        <Trash2 className="w-4 h-4" strokeWidth={2} />
       </Button>
     </div>
   );
@@ -191,12 +188,10 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
     <ConfirmDialog open={dialog.open} message={dialog.message} onConfirm={dialog.onConfirm} onCancel={closeDialog} lang={lang} />
     <div className="space-y-5">
       {/* Current Shifts */}
-      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Clock className="w-5 h-5 text-blue-600" strokeWidth={1.5} />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
@@ -209,9 +204,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
           </div>
           {isLoggedIn && state.shifts.length > 0 && !savingTemplate && (
             <Button variant="secondary" size="sm" onClick={() => setSavingTemplate(true)} className="flex-shrink-0 flex items-center gap-1.5" title={t('saveAsPreset', lang)}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-              </svg>
+              <Save className="w-3.5 h-3.5" strokeWidth={2} />
               {lang === 'he' ? 'שמור כתבנית' : 'Save as Template'}
             </Button>
           )}
@@ -224,7 +217,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
               value={templateName}
               onChange={e => setTemplateName(e.target.value)}
               placeholder={lang === 'he' ? 'שם התבנית...' : 'Template name...'}
-              className="flex-1 text-sm border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="flex-1 text-sm border border-blue-200 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 text-start"
             />
             <Button type="submit" variant="primary" size="sm" disabled={!templateName.trim() || saving}>
               {saving ? '...' : t('save', lang)}
@@ -260,9 +253,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
 
         {state.shifts.length === 0 ? (
           <div className="text-center py-8 border border-dashed border-gray-200 dark:border-slate-600 rounded-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+            <Clock className="w-8 h-8 text-gray-300 dark:text-slate-600 mx-auto mb-2" strokeWidth={1.5} />
             <p className="text-sm text-gray-400 dark:text-slate-500">{t('noShiftsEmpty', lang)}</p>
           </div>
         ) : (
@@ -296,12 +287,10 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
       </div>
 
       {/* Add Shift */}
-      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-start gap-3 mb-4">
           <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-900/40 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+            <CalendarClock className="w-5 h-5 text-emerald-600" strokeWidth={2} />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('addShift', lang)}</h3>
@@ -314,7 +303,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder={t('shiftExample', lang)}
-            className="sm:w-36"
+            className="sm:w-36 h-[38px]"
             onKeyDown={e => { if (e.key === 'Enter') handleAdd(); }}
           />
           <Input
@@ -323,7 +312,7 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             dir="ltr"
             value={startTime}
             onChange={e => setStartTime(e.target.value)}
-            className="sm:w-28"
+            className="sm:w-28 h-[38px]"
           />
           <Input
             label={t('durationH', lang)}
@@ -331,21 +320,19 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             value={duration}
             min={0.5} max={24} step={0.5}
             onChange={e => setDuration(parseFloat(e.target.value) || 0.5)}
-            className="sm:w-24"
+            className="sm:w-24 h-[38px]"
           />
-          <Button onClick={handleAdd} variant="primary" size="sm" className="sm:self-end">
+          <Button onClick={handleAdd} variant="primary" size="md" className="sm:self-end h-[38px]">
             {t('addShift', lang)}
           </Button>
         </div>
       </div>
 
       {/* Min Break Hours */}
-      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm ring-1 ring-black/[0.02]">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/40 flex items-center justify-center flex-shrink-0">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+            <Coffee className="w-5 h-5 text-amber-600" strokeWidth={1.5} />
           </div>
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('minBreakHoursLabel', lang)}</h3>

@@ -26,7 +26,7 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
     upper: /[A-Z]/.test(password),
     lower: /[a-z]/.test(password),
     number: /\d/.test(password),
-    special: /[@$!%*?&]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
   };
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,7 +38,7 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
       if (mode === 'login') {
         await onLogin(email.trim(), password);
       } else {
-        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
         if (!passwordRegex.test(password)) {
           setError(t('passwordRequirements', lang));
           setLoading(false);

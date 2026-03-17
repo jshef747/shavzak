@@ -142,7 +142,7 @@ export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup,
       <p className="text-sm text-slate-500 dark:text-slate-400">{t('homeGroupsDesc', lang)}</p>
 
       {/* ── Groups management ── */}
-      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm ring-1 ring-black/[0.02]">
         <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">{t('homeGroupsTitle', lang)}</h3>
 
         {state.homeGroups.length === 0 ? (
@@ -205,7 +205,7 @@ export function HomeGroupsTab({ state, onAddGroup, onUpdateGroup, onDeleteGroup,
 
       {/* ── People ↔ group assignment ── */}
       {state.people.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl shadow-sm">
+        <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl shadow-sm ring-1 ring-black/[0.02] overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700 rounded-t-xl">
             <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-100">{t('assignGroupToEach', lang)}</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{t('assignGroupToEachDesc', lang)}</p>

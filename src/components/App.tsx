@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { Toaster, toast } from 'react-hot-toast';
+import { CalendarX2, UsersRound } from 'lucide-react';
 import { useAppState } from '../hooks/useAppState';
 import { useSchedule } from '../hooks/useSchedule';
 import { useShifts } from '../hooks/useShifts';
@@ -59,7 +61,6 @@ export function App() {
   const [autoAssignReassign, setAutoAssignReassign] = useState<'partial' | 'full' | null>(null);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [exportError, setExportError] = useState('');
 
   // Auth + cloud sync
   const { user, loading: authLoading, login, register, logout } = useAuth();
@@ -145,7 +146,7 @@ export function App() {
     try {
       exportToExcel(state, activeSchedule, dates);
     } catch {
-      setExportError(t('exportError', lang));
+      toast.error(t('exportError', lang));
     }
   }
 
@@ -222,7 +223,6 @@ export function App() {
         onAutoAssign={handleOpenAutoAssign}
         onOpenHomePeriods={() => setHomePeriodsOpen(true)}
         onToggleTheme={toggleTheme}
-        isDark={isDark}
         userEmail={user?.email}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onLogout={logout}
@@ -250,43 +250,39 @@ export function App() {
             />
           )}
 
-          <main className="flex-1 overflow-hidden md:p-4 relative flex flex-col bg-gray-50 dark:bg-slate-950">
-            {exportError && (
-              <div className="mb-3 flex items-center justify-between gap-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm px-4 py-2.5 rounded-lg shrink-0">
-                <span>{exportError}</span>
-                <button onClick={() => setExportError('')} className="text-red-400 hover:text-red-700 font-bold leading-none shrink-0">×</button>
-              </div>
-            )}
+          <main className="flex-1 overflow-hidden md:p-6 relative flex flex-col bg-gray-50 dark:bg-slate-950/50">
             {!activeSchedule ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <div className="text-center space-y-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-lg font-medium text-gray-600 dark:text-slate-400">{t('noSchedule', lang)}</p>
-                  <p className="text-sm text-gray-400 dark:text-slate-500">{t('noScheduleHint', lang)}</p>
-                  <button
+              <div className="flex items-center justify-center h-full p-6">
+                <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-10 shadow-sm">
+                  <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CalendarX2 className="w-10 h-10 text-blue-500 dark:text-blue-400" strokeWidth={1.5} />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2 tracking-tight">{t('noSchedule', lang)}</h2>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mb-8 leading-relaxed">{t('noScheduleHint', lang)}</p>
+                  <Button
                     onClick={() => setNewScheduleOpen(true)}
-                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-150"
+                    variant="primary"
+                    className="w-full sm:w-auto px-8 py-2.5 text-base shadow-md hover:shadow-lg transition-all"
                   >
                     {t('newScheduleBtn', lang)}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : state.positions.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <div className="text-center space-y-3">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto text-slate-300 dark:text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <p className="text-lg font-medium text-gray-600 dark:text-slate-400">{t('noPositions', lang)}</p>
-                  <p className="text-sm text-gray-400 dark:text-slate-500">{t('noPositionsHint', lang)}</p>
-                  <button
+              <div className="flex items-center justify-center h-full p-6">
+                <div className="text-center max-w-md w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-3xl p-10 shadow-sm">
+                  <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <UsersRound className="w-10 h-10 text-indigo-500 dark:text-indigo-400" strokeWidth={1.5} />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2 tracking-tight">{t('noPositions', lang)}</h2>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 mb-8 leading-relaxed">{t('noPositionsHint', lang)}</p>
+                  <Button
                     onClick={() => openSettings('Positions')}
-                    className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-150"
+                    variant="primary"
+                    className="w-full sm:w-auto px-8 py-2.5 text-base shadow-md hover:shadow-lg transition-all"
                   >
                     {t('openSettings', lang)}
-                  </button>
+                  </Button>
                 </div>
               </div>
             ) : isMobile ? (
@@ -456,6 +452,7 @@ export function App() {
         onRegister={register}
         lang={lang}
       />
+      <Toaster position="bottom-right" />
     </div>
   );
 }
