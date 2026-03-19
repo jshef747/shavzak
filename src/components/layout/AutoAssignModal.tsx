@@ -32,7 +32,7 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
           <p className="text-sm text-slate-600 leading-relaxed">
             {t(bodyKey, lang)}
           </p>
-          <div className="flex justify-end gap-2 pt-2 border-t rtl:flex-row-reverse">
+          <div className="flex justify-end gap-2 pt-2 border-t ">
             <Button variant="secondary" size="sm" onClick={onClose}>
               {t('cancel', lang)}
             </Button>
@@ -77,7 +77,7 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
         ) : (
           <>
             {/* Summary chips */}
-            <div className="flex gap-3 flex-wrap rtl:flex-row-reverse">
+            <div className="flex gap-3 flex-wrap ">
               {proposed.length > 0 && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800">
                   <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,7 +108,7 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
         )}
 
         {/* Footer actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t rtl:flex-row-reverse">
+        <div className="flex justify-end gap-2 pt-2 border-t ">
           <Button variant="secondary" size="sm" onClick={onClose}>
             {t('cancel', lang)}
           </Button>

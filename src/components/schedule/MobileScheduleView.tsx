@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
+import { ChevronDown, ChevronRight, ChevronLeft, UserPlus, X, Check } from 'lucide-react';
 import type { AppState, Assignment, CellAddress, CellStatus, HomeGroupPeriod } from '../../types';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
 import { langFromDir, t } from '../../utils/i18n';
@@ -18,12 +19,12 @@ interface Props {
 const STATUS_OUTLINE: Record<CellStatus, string | null> = {
   empty:                  null,
   valid:                  null,
-  unavailable:            '#ef4444',
-  'home-group':           '#60a5fa',
-  'double-booked':        '#f97316',
-  unqualified:            '#eab308',
-  'insufficient-break':   '#38bdf8',
-  'constraint-violation': '#a855f7',
+  unavailable:            '#ef4444', // Red-500 equivalent, keeping hex for inline boxShadow
+  'home-group':           '#3b82f6', // Blue-500
+  'double-booked':        '#f97316', // Orange-500
+  unqualified:            '#eab308', // Yellow-500
+  'insufficient-break':   '#0ea5e9', // Sky-500
+  'constraint-violation': '#a855f7', // Purple-500
   'oncall-short-break':   null,
 };
 
@@ -159,16 +160,14 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
         {/* Color dot / indicator */}
         {person ? (
           <span
-            className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+            className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white"
             style={{ backgroundColor: person.colorHex }}
           >
             {person.name.charAt(0)}
           </span>
         ) : (
           <span className="w-6 h-6 rounded-full shrink-0 border-2 border-dashed border-gray-200 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
+            <UserPlus className="w-3 h-3 text-gray-300" strokeWidth={2.5} />
           </span>
         )}
 
@@ -181,9 +180,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
         </div>
 
         {/* Chevron */}
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-300 shrink-0 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
+        <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 rtl:rotate-180" strokeWidth={2} />
       </button>
     );
   }
@@ -201,14 +198,12 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
             disabled={dayIndex === 0}
             className="p-2 rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors shrink-0"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="w-4 h-4 rtl:rotate-180" strokeWidth={2} />
           </button>
 
           <div className="flex-1 text-center">
             <p className="text-sm font-semibold text-gray-800">{dateLabel}</p>
-            <p className="text-[11px] text-gray-400" dir="ltr">{dayIndex + 1} / {dates.length}</p>
+            <p className="text-xs text-gray-400" dir="ltr">{dayIndex + 1} / {dates.length}</p>
           </div>
 
           <button
@@ -216,9 +211,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
             disabled={dayIndex >= dates.length - 1}
             className="p-2 rounded-lg border border-gray-200 text-gray-500 disabled:opacity-30 disabled:cursor-not-allowed hover:bg-gray-50 active:bg-gray-100 transition-colors shrink-0"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            <ChevronRight className="w-4 h-4 rtl:rotate-180" strokeWidth={2} />
           </button>
         </div>
 
@@ -260,13 +253,10 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                       {filledCells}/{totalCells}
                     </span>
                     {/* Chevron */}
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
+                    <ChevronDown
                       className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
+                      strokeWidth={2}
+                    />
                   </button>
 
                   {/* Expandable positions */}
@@ -283,10 +273,8 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                             className="w-full px-4 py-2.5 bg-orange-50/60 flex items-center justify-between text-start active:bg-orange-100 transition-colors"
                             onClick={() => toggleOnCall(shift.id)}
                           >
-                            <span className="text-[10px] font-semibold text-orange-500 uppercase tracking-wide">{t('onCall', lang)}</span>
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`w-3.5 h-3.5 text-orange-400 shrink-0 transition-transform duration-200 ${expandedOnCall.has(shift.id) ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                            </svg>
+                            <span className="text-xs font-semibold text-orange-500 uppercase tracking-wide">{t('onCall', lang)}</span>
+                            <ChevronDown className={`w-3.5 h-3.5 text-orange-400 shrink-0 transition-transform duration-200 ${expandedOnCall.has(shift.id) ? 'rotate-180' : ''}`} strokeWidth={2} />
                           </button>
                           {expandedOnCall.has(shift.id) && (
                             <div className="bg-orange-50/40">
@@ -321,9 +309,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                 className="w-full flex items-center gap-3 px-4 py-3 border-b border-gray-100 hover:bg-red-50 transition-colors text-start"
               >
                 <span className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-3.5 h-3.5 text-red-400" strokeWidth={2.5} />
                 </span>
                 <span className="text-sm font-medium text-red-500">{t('clearAssignment', lang)}</span>
               </button>
@@ -361,7 +347,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                   `}
                 >
                   <span
-                    className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-bold text-white mt-0.5"
+                    className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
                     style={{ backgroundColor: person.colorHex }}
                   >
                     {person.name.charAt(0)}
@@ -370,7 +356,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                     <p className="text-sm text-gray-800 font-medium leading-tight">{person.name}</p>
                     {statusLabel && (
                       <p
-                        className="text-[11px] mt-0.5 leading-snug font-medium"
+                        className="text-xs mt-0.5 leading-snug font-medium"
                         style={{ color: outlineColor ?? '#6b7280' }}
                       >
                         {statusLabel}
@@ -378,9 +364,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                     )}
                   </div>
                   {isCurrent && (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-blue-500 shrink-0 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
+                    <Check className="w-4 h-4 text-blue-500 shrink-0 mt-1" strokeWidth={2.5} />
                   )}
                 </button>
               );

@@ -127,7 +127,7 @@ export function PersonEditor({
             <table className="min-w-full text-xs">
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-600">
-                  <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{t('dateCol', lang)}</th>
+                  <th className="px-3 py-2.5 text-start text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{t('dateCol', lang)}</th>
                   {state.shifts.map(s => (
                     <th key={s.id} className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{s.name}</th>
                   ))}
@@ -291,7 +291,7 @@ export function PersonEditor({
                     placeholder={t('noLimit', lang)}
                     value={value}
                     onChange={e => onChange(e.target.value)}
-                    className="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-600 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-2.5 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow"
+                    className="w-full border border-gray-200 dark:border-slate-600 dark:bg-slate-600 dark:text-slate-100 dark:placeholder-slate-400 rounded-lg px-2.5 py-1.5 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:border-purple-400 transition-shadow text-start"
                   />
                 </div>
               ))}

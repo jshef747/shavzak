@@ -21,16 +21,16 @@ export const StatusLegend = memo(function StatusLegend({ dir }: Props) {
   ];
 
   return (
-    <div className="no-print fixed bottom-20 md:bottom-4 right-4 rtl:right-auto rtl:left-4 z-40">
+    <div className="no-print fixed bottom-20 md:bottom-4 end-4   z-40">
       <button
         onClick={() => setOpen(v => !v)}
         aria-expanded={open}
-        className="bg-gray-900 text-white text-xs px-2.5 py-1.5 rounded-md shadow-sm hover:bg-gray-700 transition-colors duration-150"
+        className="bg-gray-900/90 backdrop-blur-md dark:bg-white/90 text-white dark:text-gray-900 font-medium text-xs px-3 py-2 rounded-full shadow-md hover:bg-gray-800 dark:hover:bg-white transition-colors duration-150"
       >
         {open ? t('hideLegend', lang) : t('legend', lang)}
       </button>
       {open && (
-        <div className="absolute bottom-full mb-1 right-0 rtl:right-auto rtl:left-0 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg shadow-lg p-3 space-y-1.5 min-w-[190px]">
+        <div className="absolute bottom-full mb-2 end-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-gray-200/80 dark:border-slate-800/80 rounded-2xl shadow-xl ring-1 ring-black/[0.02] p-4 space-y-2 min-w-[200px]">
           {legendItems.map(item => (
             <div key={item.labelKey} className="flex items-center gap-2 text-xs text-gray-700 dark:text-slate-300">
               <span className={`w-4 h-4 rounded border-2 shrink-0 ${item.color}`} />

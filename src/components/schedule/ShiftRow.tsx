@@ -28,7 +28,7 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
 
   return (
     <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
-      <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-r border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
+      <td className={`sticky start-0  z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
         {shift.name}
         <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>

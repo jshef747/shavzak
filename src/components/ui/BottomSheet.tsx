@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 interface Props {
   open: boolean;
@@ -12,28 +13,26 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
     <>
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/40"
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           onClick={onClose}
         />
       )}
       <div
-        className={`fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl transition-transform duration-300 ${
+        className={`fixed bottom-0 start-0 end-0 z-50 bg-white dark:bg-slate-900 rounded-t-3xl shadow-2xl ring-1 ring-black/[0.05] transition-transform duration-300 ease-out ${
           open ? 'translate-y-0' : 'translate-y-full'
         }`}
       >
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-800">{title}</h3>
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100 dark:border-slate-800">
+          <h3 className="text-base font-bold text-gray-900 dark:text-slate-100 tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 p-1 transition-colors"
+            className="text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-300 bg-gray-50 hover:bg-gray-100 dark:bg-slate-800 dark:hover:bg-slate-700 p-2 rounded-full transition-colors"
             aria-label="Close"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="w-5 h-5" strokeWidth={2} />
           </button>
         </div>
-        <div className="overflow-y-auto max-h-[60vh] pb-6">{children}</div>
+        <div className="overflow-y-auto max-h-[60vh] pb-6 bg-white dark:bg-slate-900">{children}</div>
       </div>
     </>
   );

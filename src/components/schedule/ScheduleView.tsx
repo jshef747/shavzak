@@ -24,49 +24,53 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
 
   function renderTable(positions: Position[], headerClass: string) {
     return (
-      <table className="border-collapse text-sm min-w-max">
-        <thead className="sticky top-0 z-10 shadow-sm">
-          <tr className={headerClass}>
-            <th className="sticky left-0 rtl:left-auto rtl:right-0 z-20 bg-inherit px-3 py-2 text-left rtl:text-right text-xs font-semibold uppercase tracking-wide min-w-[120px] border-b border-gray-200 dark:border-slate-600">
-              {t('shiftCol', lang)}
-            </th>
-            {positions.map(pos => (
-              <th key={pos.id} className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wide min-w-[120px]">
-                {pos.name}
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden ring-1 ring-black/[0.02]">
+        <table className="border-collapse text-sm min-w-max w-full">
+          <thead className="sticky top-0 z-10 shadow-sm">
+            <tr className={headerClass}>
+              <th className="sticky start-0 z-20 bg-inherit px-4 py-3 text-start text-xs font-bold uppercase tracking-wider min-w-[120px] border-b border-gray-200/80 dark:border-slate-700">
+                {t('shiftCol', lang)}
               </th>
+              {positions.map(pos => (
+                <th key={pos.id} className="px-4 py-3 text-center text-xs font-bold uppercase tracking-wider min-w-[120px] border-b border-gray-200/80 dark:border-slate-700 border-s border-gray-100/50 dark:border-slate-800">
+                  {pos.name}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-slate-800/80">
+            {dates.map((date, dayIndex) => (
+              <DaySection
+                key={date}
+                date={date}
+                state={state}
+                assignments={assignments}
+                refDate={refDate}
+                dayIndex={dayIndex}
+                positions={positions}
+                homeGroupPeriods={homeGroupPeriods}
+              />
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {dates.map((date, dayIndex) => (
-            <DaySection
-              key={date}
-              date={date}
-              state={state}
-              assignments={assignments}
-              refDate={refDate}
-              dayIndex={dayIndex}
-              positions={positions}
-              homeGroupPeriods={homeGroupPeriods}
-            />
-          ))}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     );
   }
 
   return (
-    <div ref={ref} className="overflow-auto h-full print-overflow">
-      <div className="flex gap-4 min-w-max flex-col">
-        <div className="flex gap-4 min-w-max">
-          {regularPositions.length > 0 && renderTable(regularPositions, 'bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-400')}
-          {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300')}
+    <div ref={ref} className="overflow-auto h-full print-overflow w-full">
+      <div className="flex gap-6 min-w-max flex-col pb-12">
+        <div className="flex gap-6 min-w-max items-start">
+          {regularPositions.length > 0 && renderTable(regularPositions, 'bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300')}
+          {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-50/80 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400')}
         </div>
-        <HomeGroupsSection
-          state={state}
-          dates={dates}
-          homeGroupPeriods={homeGroupPeriods}
-        />
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden ring-1 ring-black/[0.02]">
+          <HomeGroupsSection
+            state={state}
+            dates={dates}
+            homeGroupPeriods={homeGroupPeriods}
+          />
+        </div>
       </div>
     </div>
   );

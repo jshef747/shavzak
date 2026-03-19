@@ -49,7 +49,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
         style={chipStyle}
         {...attributes}
         {...listeners}
-        className={`flex rtl:flex-row-reverse items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 dark:border shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
+        className={`flex  items-center gap-1.5 px-1.5 py-0.5 rounded bg-white/90 dark:border shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing select-none ${dimmed ? 'opacity-50' : ''}`}
       >
         <span
           className="w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0"
@@ -57,7 +57,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
         >
           {initials}
         </span>
-        <span className="flex-1 truncate text-right text-gray-800" style={{ color: isDarkMode ? '#1e293b' : undefined }}>{name}</span>
+        <span className="flex-1 truncate text-end text-gray-800" style={{ color: isDarkMode ? '#1e293b' : undefined }}>{name}</span>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
       style={{ ...style, backgroundColor: colorHex, borderColor: colorHex }}
       {...attributes}
       {...listeners}
-      className={`flex rtl:flex-row-reverse items-center gap-2 px-2 py-1 rounded border text-xs font-medium cursor-grab active:cursor-grabbing select-none transition-opacity ${dimmed ? 'opacity-40' : ''}`}
+      className={`flex  items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-gray-200/80 dark:border-slate-700 shadow-sm text-xs font-medium cursor-grab active:cursor-grabbing active:scale-95 select-none transition-all ${dimmed ? 'opacity-40' : 'hover:shadow-md'}`}
     >
       <span
         className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
@@ -77,7 +77,7 @@ export const PersonChip = memo(function PersonChip({ personId, name, colorHex, s
       >
         {initials}
       </span>
-      <span className="flex-1 text-right" style={{ color: '#1e293b' }}>{name}</span>
+      <span className="flex-1 text-end" style={{ color: '#1e293b' }}>{name}</span>
     </div>
   );
 });

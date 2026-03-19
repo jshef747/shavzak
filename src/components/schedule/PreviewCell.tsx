@@ -86,11 +86,11 @@ export function PreviewCell({ cell, state, mergedAssignments, skippedCells, refD
         </span>
       )}
       {warningText && (
-        <span className="absolute top-0.5 right-0.5 rtl:right-auto rtl:left-0.5 z-10 group/info">
+        <span className="absolute top-0.5 end-0.5   z-10 group/info">
           <span className="flex items-center justify-center w-4 h-4 rounded-full bg-white border border-gray-300 text-[10px] font-bold text-gray-500 cursor-help hover:text-gray-800 hover:border-gray-500 transition-colors leading-none select-none">
             i
           </span>
-          <span className="pointer-events-none absolute bottom-full right-0 rtl:right-auto rtl:left-0 mb-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 opacity-0 group-hover/info:opacity-100 transition-opacity duration-150 z-50 whitespace-normal leading-snug shadow-xl">
+          <span className="pointer-events-none absolute bottom-full end-0   mb-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 opacity-0 group-hover/info:opacity-100 transition-opacity duration-150 z-50 whitespace-normal leading-snug shadow-xl">
             {warningText}
           </span>
         </span>

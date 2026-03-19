@@ -35,7 +35,7 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, skippedCe
       <table className="border-collapse text-sm min-w-max">
         <thead>
           <tr className={headerClass}>
-            <th className="px-3 py-2 text-left rtl:text-right text-xs uppercase tracking-wide min-w-[120px]">
+            <th className="px-3 py-2 text-start  text-xs uppercase tracking-wide min-w-[120px]">
               {t('shiftCol', lang)}
             </th>
             {positions.map(pos => (
@@ -60,7 +60,7 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, skippedCe
                 const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
                 return (
                   <tr key={`${date}-${shift.id}`} className={`border-b ${rowBg}`}>
-                    <td className={`px-3 py-2 text-xs text-gray-600 border-r whitespace-nowrap font-medium ${rowBg}`}>
+                    <td className={`px-3 py-2 text-xs text-gray-600 border-e whitespace-nowrap font-medium ${rowBg}`}>
                       {shift.name}
                       <div dir="ltr" className="text-gray-400 font-normal">
                         {formatShiftTime(shift.startHour)}–{formatShiftTime(shift.startHour + shift.durationHours)}

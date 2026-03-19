@@ -59,7 +59,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
       <table className="border-collapse text-sm min-w-max">
         <thead className="sticky top-0 z-10 shadow-sm">
           <tr className="bg-blue-800 text-white">
-            <th className="sticky left-0 rtl:left-auto rtl:right-0 z-20 bg-blue-800 px-3 py-2 text-start rtl:text-end text-xs uppercase tracking-wide min-w-[120px]">
+            <th className="sticky start-0  z-20 bg-blue-800 px-3 py-2 text-start text-end text-xs uppercase tracking-wide min-w-[120px]">
               {t('homeGroupsSection', lang)}
             </th>
             {dates.map(date => {
@@ -80,7 +80,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
             const members = state.people.filter(p => (p.homeGroupIds ?? []).includes(group.id)).map(p => p.name);
             return (
               <tr key={group.id} className={`border-b ${rowBg}`}>
-                <td className={`sticky left-0 rtl:left-auto rtl:right-0 z-10 px-3 py-2 text-xs border-r min-w-[160px] ${rowBg}`}>
+                <td className={`sticky start-0  z-10 px-3 py-2 text-xs border-e min-w-[160px] ${rowBg}`}>
                   <div className="font-medium text-slate-700">{group.name}</div>
                   {members.length > 0 && (
                     <div className="text-[10px] text-slate-400 mt-0.5 leading-tight">{members.join(' · ')}</div>
