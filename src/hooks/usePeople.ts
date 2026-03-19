@@ -56,11 +56,17 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
       ...prev,
       people: prev.people.map(p => {
         if (p.id !== personId) return p;
-        const exists = p.unavailability.some(u => u.date === entry.date && u.shiftId === entry.shiftId);
+        const exists = p.unavailability.some(
+          u => u.date === entry.date && u.shiftId === entry.shiftId &&
+               (u.half ?? undefined) === (entry.half ?? undefined)
+        );
         return {
           ...p,
           unavailability: exists
-            ? p.unavailability.filter(u => !(u.date === entry.date && u.shiftId === entry.shiftId))
+            ? p.unavailability.filter(u => !(
+                u.date === entry.date && u.shiftId === entry.shiftId &&
+                (u.half ?? undefined) === (entry.half ?? undefined)
+              ))
             : [...p.unavailability, entry],
         };
       }),

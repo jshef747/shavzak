@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, Fragment } from 'react';
 import type { AppState, HomeGroupPeriod, Shift, Assignment, Position } from '../../types';
 import { AssignmentCell } from './AssignmentCell';
 
@@ -26,10 +26,69 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
     ? 'bg-gray-50 dark:bg-slate-800'
     : 'bg-white dark:bg-slate-900';
 
+  if (shift.isHalfShift) {
+    const midHour = shift.startHour + shift.durationHours / 2;
+
+    // Positions where the same person covers both halves — merge into one rowspan=2 cell.
+    const mergedPositionIds = new Set(
+      positions
+        .filter(pos => {
+          const h1 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
+          const h2 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
+          return h1 && h2 && h1.personId === h2.personId;
+        })
+        .map(pos => pos.id)
+    );
+
+    return (
+      <Fragment>
+        {/* First half row */}
+        <tr className={`border-b border-gray-100 dark:border-slate-700/60 ${rowBg}`}>
+          <td className={`sticky start-0 z-10 px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
+            <div>{shift.name}</div>
+            <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(midHour)}</div>
+          </td>
+          {positions.map(pos => (
+            <AssignmentCell
+              key={pos.id}
+              cell={{ date, shiftId: shift.id, positionId: pos.id, half: 1 }}
+              state={state}
+              assignments={assignments}
+              refDate={refDate}
+              homeGroupPeriods={homeGroupPeriods}
+              rowSpan={mergedPositionIds.has(pos.id) ? 2 : undefined}
+            />
+          ))}
+        </tr>
+        {/* Second half row */}
+        <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
+          <td className={`sticky start-0 z-10 px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
+            <div className="text-gray-400 dark:text-slate-500 text-[10px]">{shift.name}</div>
+            <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(midHour)}–{formatShiftTime(endHour)}</div>
+          </td>
+          {positions.map(pos =>
+            mergedPositionIds.has(pos.id) ? null : (
+              <AssignmentCell
+                key={pos.id}
+                cell={{ date, shiftId: shift.id, positionId: pos.id, half: 2 }}
+                state={state}
+                assignments={assignments}
+                refDate={refDate}
+                homeGroupPeriods={homeGroupPeriods}
+              />
+            )
+          )}
+        </tr>
+      </Fragment>
+    );
+  }
+
   return (
     <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
       <td className={`sticky start-0  z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
-        {shift.name}
+        <div className="flex items-center gap-1">
+          {shift.name}
+        </div>
         <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>
       {positions.map(pos => (

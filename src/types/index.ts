@@ -3,11 +3,12 @@ export interface Shift {
   name: string;
   startHour: number;
   durationHours: number;
+  isHalfShift?: boolean;
 }
 
 export interface Position { id: string; name: string; isOnCall?: boolean; }
 
-export interface UnavailabilityEntry { shiftId: string; date: string; }
+export interface UnavailabilityEntry { shiftId: string; date: string; half?: 1 | 2; }
 
 export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6; // 0=Sun, matches date-fns getDay()
 
@@ -51,6 +52,7 @@ export interface Assignment {
   date: string;
   shiftId: string;
   positionId: string;
+  half?: 1 | 2;
 }
 
 export interface Schedule {
@@ -63,7 +65,7 @@ export interface Schedule {
   updatedAt: string;
 }
 
-export interface CellAddress { date: string; shiftId: string; positionId: string; }
+export interface CellAddress { date: string; shiftId: string; positionId: string; half?: 1 | 2; }
 
 export interface DragData {
   type: 'from-pool' | 'from-cell';

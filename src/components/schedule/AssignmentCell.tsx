@@ -2,7 +2,7 @@ import { memo } from 'react';
 import type { CSSProperties } from 'react';
 import { useDroppable, useDndContext } from '@dnd-kit/core';
 import type { AppState, Assignment, CellAddress, CellStatus, DragData, HomeGroupPeriod } from '../../types';
-import { serializeCellAddress } from '../../utils/cellKey';
+import { serializeCellAddress, assignmentMatchesCell } from '../../utils/cellKey';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
 import { langFromDir, t } from '../../utils/i18n';
 import { PersonChip } from '../roster/PersonChip';
@@ -13,6 +13,7 @@ interface Props {
   assignments: Assignment[];
   refDate: string;
   homeGroupPeriods: HomeGroupPeriod[];
+  rowSpan?: number;
 }
 
 // Outline colors for each status (used via inline style to avoid border-collapse clipping)
@@ -46,15 +47,13 @@ const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
-const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
+const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods, rowSpan }: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
   const { isOver, setNodeRef } = useDroppable({ id: cellKey });
   const { active } = useDndContext();
 
-  const assignment = assignments.find(
-    a => a.date === cell.date && a.shiftId === cell.shiftId && a.positionId === cell.positionId
-  );
+  const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
 
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
@@ -81,9 +80,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           const previewAssignments = isFromCell
             ? assignments.filter(a => !(
                 a.personId === dragData.personId &&
-                a.date === dragData.sourceCell!.date &&
-                a.shiftId === dragData.sourceCell!.shiftId &&
-                a.positionId === dragData.sourceCell!.positionId
+                assignmentMatchesCell(a, dragData.sourceCell!)
               ))
             : assignments;
           const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
@@ -134,6 +131,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     <td
       ref={setNodeRef}
       style={cellStyle}
+      rowSpan={rowSpan}
       className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
     >
       {person && (
@@ -175,9 +173,10 @@ function areEqual(prev: Props, next: Props) {
   if (prev.refDate !== next.refDate) return false;
   if (prev.homeGroupPeriods !== next.homeGroupPeriods) return false;
   if (
-    prev.cell.date !== next.cell.date || 
-    prev.cell.positionId !== next.cell.positionId || 
-    prev.cell.shiftId !== next.cell.shiftId
+    prev.cell.date !== next.cell.date ||
+    prev.cell.positionId !== next.cell.positionId ||
+    prev.cell.shiftId !== next.cell.shiftId ||
+    (prev.cell.half ?? undefined) !== (next.cell.half ?? undefined)
   ) return false;
 
   // Have assignments changed? We only care if:
@@ -185,8 +184,8 @@ function areEqual(prev: Props, next: Props) {
   // 2. OR the assignments for the person CURRENTLY in this cell changed (which might alter their validity)
   if (prev.assignments === next.assignments) return true;
 
-  const getPersonForCell = (assignments: Assignment[]) => 
-    assignments.find(a => a.date === prev.cell.date && a.shiftId === prev.cell.shiftId && a.positionId === prev.cell.positionId)?.personId;
+  const getPersonForCell = (assignments: Assignment[]) =>
+    assignments.find(a => assignmentMatchesCell(a, prev.cell))?.personId;
 
   const prevPersonId = getPersonForCell(prev.assignments);
   const nextPersonId = getPersonForCell(next.assignments);

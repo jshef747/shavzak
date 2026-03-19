@@ -56,16 +56,24 @@ export function isHomeGroupBlocked(
 // Shifts with startHour < 6 (00:00–05:59) are "night shifts": in this schedule's
 // convention they represent the overnight period of the PREVIOUS calendar day, so
 // they physically occur one calendar day AFTER the date they are labelled with.
-function shiftStartMins(date: string, shift: Shift, refDate: string): number {
+// For half-shift assignments (half=1 or half=2), the effective start is offset by
+// half the duration for the second half.
+function shiftStartMins(date: string, shift: Shift, refDate: string, half?: 1 | 2): number {
   const dayOffset = differenceInCalendarDays(parseISO(date), parseISO(refDate));
   const nightOffset = shift.startHour < 6 ? 1 : 0;
-  return (dayOffset + nightOffset) * 1440 + shift.startHour * 60;
+  const halfOffset = (half === 2 && shift.isHalfShift) ? shift.durationHours / 2 * 60 : 0;
+  return (dayOffset + nightOffset) * 1440 + shift.startHour * 60 + halfOffset;
 }
-function shiftEndMins(date: string, shift: Shift, refDate: string): number {
-  return shiftStartMins(date, shift, refDate) + shift.durationHours * 60;
+function shiftEndMins(date: string, shift: Shift, refDate: string, half?: 1 | 2): number {
+  const duration = (half !== undefined && shift.isHalfShift) ? shift.durationHours / 2 : shift.durationHours;
+  return shiftStartMins(date, shift, refDate, half) + duration * 60;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function shiftWeight(shift: Shift): number {
+  return shift.isHalfShift ? 0.5 : 1;
+}
 
 function countConsecutiveStreak(cellDate: Date, assignedDateSet: Set<string>): number {
   let streak = 1;
@@ -99,16 +107,19 @@ export function computeCellStatus(
 
   const personAssignments = assignments.filter(a => a.personId === personId);
 
-  // 1. Double-booked: same person, same date, same shiftId, different position
+  // 1. Double-booked: same person, same date, same shiftId, same half, different position
   const doubleBooked = personAssignments.some(
-    a => a.date === cell.date && a.shiftId === cell.shiftId && a.positionId !== cell.positionId
+    a => a.date === cell.date && a.shiftId === cell.shiftId &&
+         (a.half ?? undefined) === (cell.half ?? undefined) && a.positionId !== cell.positionId
   );
   if (doubleBooked) return 'double-booked';
 
-  // 2. Unavailable
-  const unavailable = person.unavailability.some(
-    u => u.date === cell.date && u.shiftId === cell.shiftId
-  );
+  // 2. Unavailable — entry with matching half (or no half = whole shift blocked)
+  const unavailable = person.unavailability.some(u => {
+    if (u.date !== cell.date || u.shiftId !== cell.shiftId) return false;
+    if (cell.half === undefined) return u.half === undefined;
+    return u.half === cell.half || u.half === undefined;
+  });
   if (unavailable) return 'unavailable';
 
   // 2b. Home group
@@ -120,18 +131,20 @@ export function computeCellStatus(
   if (!person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';
 
   // 4. Insufficient break
-  const targetStart = shiftStartMins(cell.date, targetShift, refDate);
-  const targetEnd = shiftEndMins(cell.date, targetShift, refDate);
+  const targetStart = shiftStartMins(cell.date, targetShift, refDate, cell.half);
+  const targetEnd = shiftEndMins(cell.date, targetShift, refDate, cell.half);
   const targetPosition = positions.find(p => p.id === cell.positionId);
 
   let shortBreakOnCall = false; // tracks if we hit an on-call reduced-break situation
 
   for (const a of personAssignments) {
-    if (a.date === cell.date && a.shiftId === cell.shiftId) continue; // same slot, skip
+    // Skip any assignment to the same shift on the same date — both halves form
+    // one continuous block, so no break is required between them.
+    if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
     const existingShift = shifts.find(s => s.id === a.shiftId);
     if (!existingShift) continue;
-    const existingStart = shiftStartMins(a.date, existingShift, refDate);
-    const existingEnd = shiftEndMins(a.date, existingShift, refDate);
+    const existingStart = shiftStartMins(a.date, existingShift, refDate, a.half);
+    const existingEnd = shiftEndMins(a.date, existingShift, refDate, a.half);
 
     // gap between the two shifts (negative means overlap)
     const gap = Math.max(targetStart - existingEnd, existingStart - targetEnd);
@@ -179,7 +192,11 @@ export function computeCellStatus(
         const diff = Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate));
         return diff < 7;
       });
-      if (weekAssignments.length >= c.maxShiftsPerWeek) {
+      const weekLoad = weekAssignments.reduce((sum, a) => {
+        const s = shifts.find(sh => sh.id === a.shiftId);
+        return sum + (s ? shiftWeight(s) : 1);
+      }, 0) + shiftWeight(targetShift);
+      if (weekLoad > c.maxShiftsPerWeek) {
         return 'constraint-violation';
       }
     }
@@ -189,7 +206,11 @@ export function computeCellStatus(
       const otherAssignments = personAssignments.filter(
         a => !(a.date === cell.date && a.shiftId === cell.shiftId)
       );
-      if (otherAssignments.length >= c.maxShiftsTotal) {
+      const totalLoad = otherAssignments.reduce((sum, a) => {
+        const s = shifts.find(sh => sh.id === a.shiftId);
+        return sum + (s ? shiftWeight(s) : 1);
+      }, 0) + shiftWeight(targetShift);
+      if (totalLoad > c.maxShiftsTotal) {
         return 'constraint-violation';
       }
     }
@@ -281,7 +302,12 @@ export function computeConstraintReason(
       if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
       return Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7;
     });
-    if (weekAssignments.length >= c.maxShiftsPerWeek) {
+    const targetShift = shifts.find(s => s.id === cell.shiftId);
+    const weekLoad = weekAssignments.reduce((sum, a) => {
+      const s = shifts.find(sh => sh.id === a.shiftId);
+      return sum + (s ? shiftWeight(s) : 1);
+    }, 0) + (targetShift ? shiftWeight(targetShift) : 1);
+    if (weekLoad > c.maxShiftsPerWeek) {
       return tf.maxWeek(lang, c.maxShiftsPerWeek);
     }
   }
@@ -290,7 +316,12 @@ export function computeConstraintReason(
     const otherAssignments = personAssignments.filter(
       a => !(a.date === cell.date && a.shiftId === cell.shiftId)
     );
-    if (otherAssignments.length >= c.maxShiftsTotal) {
+    const targetShift = shifts.find(s => s.id === cell.shiftId);
+    const totalLoad = otherAssignments.reduce((sum, a) => {
+      const s = shifts.find(sh => sh.id === a.shiftId);
+      return sum + (s ? shiftWeight(s) : 1);
+    }, 0) + (targetShift ? shiftWeight(targetShift) : 1);
+    if (totalLoad > c.maxShiftsTotal) {
       return tf.maxTotal(lang, c.maxShiftsTotal);
     }
   }

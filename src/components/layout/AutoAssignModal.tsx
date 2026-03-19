@@ -73,6 +73,11 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-base font-medium">{t('autoAssignAllFilled', lang)}</p>
+            {!reassign && (
+              <p className="text-xs text-slate-400 mt-1">
+                {lang === 'he' ? 'שיבוצים קיימים לא שונו — האלגוריתם מילא רק תאים ריקים' : 'Existing assignments were not changed — only empty cells were filled'}
+              </p>
+            )}
           </div>
         ) : (
           <>
@@ -95,6 +100,11 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
                 </span>
               )}
             </div>
+            {!reassign && (
+              <p className="text-xs text-slate-400">
+                {lang === 'he' ? 'שיבוצים קיימים לא שונו — האלגוריתם מילא רק תאים ריקים' : 'Existing assignments were not changed — only empty cells were filled'}
+              </p>
+            )}
 
             {/* Full schedule preview */}
             <PreviewScheduleView

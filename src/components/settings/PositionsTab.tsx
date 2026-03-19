@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { GripVertical, Save, Trash2, Users, PlusCircle } from 'lucide-react';
+import { GripVertical, Save, Trash2, Users, PlusCircle, Phone } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -81,7 +81,8 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
 
       {/* On-Call toggle switch + label */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className={`text-[10px] font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400 dark:text-slate-500'}`}>
+        <Phone className={`sm:hidden w-3 h-3 flex-shrink-0 ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400 dark:text-slate-500'}`} strokeWidth={2} />
+        <span className={`hidden sm:inline text-[10px] font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400 dark:text-slate-500'}`}>
           {t('onCall', lang)}
         </span>
         <button
