@@ -81,7 +81,7 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
 
       {/* On-Call toggle switch + label */}
       <div className="flex items-center gap-1.5 shrink-0">
-        <span className={`text-[10px] font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400 dark:text-slate-500'}`}>
+        <span className={`hidden sm:inline text-[10px] font-medium ${pos.isOnCall ? 'text-orange-500' : 'text-gray-400 dark:text-slate-500'}`}>
           {t('onCall', lang)}
         </span>
         <button
