@@ -140,21 +140,29 @@ export function TopBar({
           {/* User Section */}
           <div className="flex items-center gap-2 border-s border-gray-200 dark:border-slate-700 ps-4">
             {userEmail ? (
-              <div className="hidden sm:flex items-center gap-3 bg-gray-50 dark:bg-slate-800/50 rounded-full pe-2 ps-3 py-1 border border-gray-100 dark:border-slate-700/50">
-                <span className="text-xs font-medium text-gray-600 dark:text-slate-300 truncate max-w-[140px]">{userEmail}</span>
+              <>
+                <div className="hidden sm:flex items-center gap-3 bg-gray-50 dark:bg-slate-800/50 rounded-full pe-2 ps-3 py-1 border border-gray-100 dark:border-slate-700/50">
+                  <span className="text-xs font-medium text-gray-600 dark:text-slate-300 truncate max-w-[140px]">{userEmail}</span>
+                  <button
+                    onClick={onLogout}
+                    className="text-[10px] uppercase tracking-wider font-bold text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
+                  >
+                    {t('logout', lang)}
+                  </button>
+                </div>
                 <button
                   onClick={onLogout}
-                  className="text-[10px] uppercase tracking-wider font-bold text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
+                  className="sm:hidden text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
                 >
                   {t('logout', lang)}
                 </button>
-              </div>
+              </>
             ) : (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={onOpenAuthModal}
-                className="hidden sm:inline-flex font-semibold text-blue-600"
+                className="font-semibold text-blue-600"
               >
                 {t('login', lang)}
               </Button>

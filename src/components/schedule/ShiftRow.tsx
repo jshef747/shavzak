@@ -29,7 +29,12 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
   return (
     <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
       <td className={`sticky start-0  z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
-        {shift.name}
+        <div className="flex items-center gap-1">
+          {shift.name}
+          {shift.isHalfShift && (
+            <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded px-1 py-0.5 leading-none">½</span>
+          )}
+        </div>
         <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>
       {positions.map(pos => (
