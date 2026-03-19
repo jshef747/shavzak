@@ -13,6 +13,7 @@ interface Props {
   assignments: Assignment[];
   refDate: string;
   homeGroupPeriods: HomeGroupPeriod[];
+  rowSpan?: number;
 }
 
 // Outline colors for each status (used via inline style to avoid border-collapse clipping)
@@ -46,7 +47,7 @@ const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
-const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods }: Props) {
+const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods, rowSpan }: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
   const { isOver, setNodeRef } = useDroppable({ id: cellKey });
@@ -130,6 +131,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     <td
       ref={setNodeRef}
       style={cellStyle}
+      rowSpan={rowSpan}
       className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
     >
       {person && (
