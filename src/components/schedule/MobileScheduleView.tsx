@@ -239,7 +239,12 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                     onClick={() => toggleShift(shift.id)}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white leading-tight">{shift.name}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-semibold text-white leading-tight">{shift.name}</p>
+                        {shift.isHalfShift && (
+                          <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-400 text-white rounded px-1 py-0.5 leading-none shrink-0">½</span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-400 mt-0.5" dir="ltr">{formatTime(shift.startHour)}–{formatTime(endHour)}</p>
                     </div>
                     {/* Fill badge */}

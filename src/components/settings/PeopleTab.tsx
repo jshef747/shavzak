@@ -218,7 +218,7 @@ export function PeopleTab({
               return (
                 <div
                   key={person.id}
-                  className={`flex gap-3 items-center p-3 rounded-lg border transition-colors group ${
+                  className={`flex gap-3 items-start p-3 rounded-lg border transition-colors group ${
                     isSelected
                       ? 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-200 dark:border-indigo-700'
                       : 'bg-gray-50 dark:bg-slate-700 border-gray-100 dark:border-slate-600 hover:border-gray-200 dark:hover:border-slate-500'
@@ -228,68 +228,73 @@ export function PeopleTab({
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => togglePerson(person.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
+                    className="w-4 h-4 mt-1 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer flex-shrink-0"
                   />
                   <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
                     <span className="text-xs font-bold text-indigo-600">{person.name.charAt(0).toUpperCase()}</span>
                   </div>
-                  <input
-                    className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-0 min-w-0"
-                    value={person.name}
-                    onChange={e => onUpdateName(person.id, e.target.value)}
-                  />
-                  <span className="text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full flex-shrink-0">
-                    {person.qualifiedPositions.length} {t('roles', lang)}
-                  </span>
-                  {(person.homeGroupIds ?? []).length > 0 && (
-                    <span className="text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full flex-shrink-0">
-                      {(person.homeGroupIds ?? []).map(id => state.homeGroups.find(g => g.id === id)?.name).filter(Boolean).join(', ')}
-                    </span>
-                  )}
-                  
-                  {/* Force Minimum Toggle */}
-                  <div className="flex items-center gap-1.5 ms-2 shrink-0 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 px-2 py-1 rounded-full">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider hidden sm:inline ${person.forceMinimum ? 'text-amber-600 dark:text-amber-500' : 'text-gray-400 dark:text-slate-500'}`} title={t('forceMinimumDesc', lang)}>
-                      {lang === 'he' ? 'מינימום' : 'MINIMUM'}
-                    </span>
-                    <button
-                      role="switch"
-                      aria-checked={!!person.forceMinimum}
-                      onClick={() => onUpdateForceMinimum(person.id, !person.forceMinimum)}
-                      title={t('forceMinimumLabel', lang)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1 ${
-                        person.forceMinimum ? 'bg-amber-400' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
-                      }`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                        person.forceMinimum ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
-                      }`} />
-                    </button>
+                  <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                    {/* Top row: name + badges + edit */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        className="flex-1 bg-transparent border-0 px-0 py-0 text-sm font-medium text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-0 min-w-0"
+                        value={person.name}
+                        onChange={e => onUpdateName(person.id, e.target.value)}
+                      />
+                      <span className="text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2.5 py-1 rounded-full flex-shrink-0">
+                        {person.qualifiedPositions.length} {t('roles', lang)}
+                      </span>
+                      {(person.homeGroupIds ?? []).length > 0 && (
+                        <span className="text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-full flex-shrink-0">
+                          {(person.homeGroupIds ?? []).map(id => state.homeGroups.find(g => g.id === id)?.name).filter(Boolean).join(', ')}
+                        </span>
+                      )}
+                      <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0">
+                        {t('edit', lang)}
+                      </Button>
+                    </div>
+                    {/* Bottom row: toggles */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Force Minimum Toggle */}
+                      <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-1 rounded-full">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${person.forceMinimum ? 'text-amber-600 dark:text-amber-500' : 'text-gray-400 dark:text-slate-500'}`} title={t('forceMinimumDesc', lang)}>
+                          {lang === 'he' ? 'מינימום' : 'Min'}
+                        </span>
+                        <button
+                          role="switch"
+                          aria-checked={!!person.forceMinimum}
+                          onClick={() => onUpdateForceMinimum(person.id, !person.forceMinimum)}
+                          title={t('forceMinimumLabel', lang)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1 ${
+                            person.forceMinimum ? 'bg-amber-400' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
+                          }`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                            person.forceMinimum ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
+                          }`} />
+                        </button>
+                      </div>
+                      {/* Never Auto-Assign Toggle */}
+                      <div className="flex items-center gap-1.5 shrink-0 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 px-2 py-1 rounded-full">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${person.neverAutoAssign ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400 dark:text-slate-500'}`} title={t('neverAutoAssignDesc', lang)}>
+                          {lang === 'he' ? 'לא אוטו' : 'No auto'}
+                        </span>
+                        <button
+                          role="switch"
+                          aria-checked={!!person.neverAutoAssign}
+                          onClick={() => onUpdateNeverAutoAssign(person.id, !person.neverAutoAssign)}
+                          title={t('neverAutoAssignLabel', lang)}
+                          className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1 ${
+                            person.neverAutoAssign ? 'bg-rose-500' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
+                          }`}
+                        >
+                          <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                            person.neverAutoAssign ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
+                          }`} />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Never Auto-Assign Toggle */}
-                  <div className="flex items-center gap-1.5 ms-1 shrink-0 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 px-2 py-1 rounded-full">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider hidden sm:inline ${person.neverAutoAssign ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400 dark:text-slate-500'}`} title={t('neverAutoAssignDesc', lang)}>
-                      {lang === 'he' ? 'לא אוטו' : 'NO AUTO'}
-                    </span>
-                    <button
-                      role="switch"
-                      aria-checked={!!person.neverAutoAssign}
-                      onClick={() => onUpdateNeverAutoAssign(person.id, !person.neverAutoAssign)}
-                      title={t('neverAutoAssignLabel', lang)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1 ${
-                        person.neverAutoAssign ? 'bg-rose-500' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
-                      }`}
-                    >
-                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                        person.neverAutoAssign ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
-                      }`} />
-                    </button>
-                  </div>
-
-                  <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0 ms-1">
-                    {t('edit', lang)}
-                  </Button>
                 </div>
               );
             })}

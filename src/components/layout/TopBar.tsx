@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RefObject } from 'react';
-import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2 } from 'lucide-react';
+import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut } from 'lucide-react';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
@@ -150,22 +150,30 @@ export function TopBar({
                     {t('logout', lang)}
                   </button>
                 </div>
-                <button
+                <IconButton
+                  icon={<LogOut className="w-4 h-4" strokeWidth={2} />}
                   onClick={onLogout}
-                  className="sm:hidden text-xs font-semibold text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-                >
-                  {t('logout', lang)}
-                </button>
+                  title={t('logout', lang)}
+                  className="sm:hidden text-gray-500 hover:text-gray-700"
+                />
               </>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenAuthModal}
-                className="font-semibold text-blue-600"
-              >
-                {t('login', lang)}
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onOpenAuthModal}
+                  className="hidden sm:inline-flex font-semibold text-blue-600"
+                >
+                  {t('login', lang)}
+                </Button>
+                <IconButton
+                  icon={<LogIn className="w-4 h-4" strokeWidth={2} />}
+                  onClick={onOpenAuthModal}
+                  title={t('login', lang)}
+                  className="sm:hidden text-blue-600"
+                />
+              </>
             )}
 
             {/* Global Actions */}
