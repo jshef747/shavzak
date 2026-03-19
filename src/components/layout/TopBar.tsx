@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RefObject } from 'react';
-import { Menu, Settings, Moon, Sun, Monitor, HelpCircle } from 'lucide-react';
+import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2 } from 'lucide-react';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
@@ -111,6 +111,14 @@ export function TopBar({
           >
             {t('newBtn', lang)}
           </Button>
+          {activeSchedule && (
+            <IconButton
+              icon={<Trash2 className="w-4 h-4" strokeWidth={2} />}
+              onClick={() => setDeleteConfirmOpen(true)}
+              title={t('deleteSchedule', lang)}
+              className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
+            />
+          )}
         </div>
 
         {/* Zone 3: Right actions */}

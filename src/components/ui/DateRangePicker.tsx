@@ -34,11 +34,10 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
   const start = startDate ? parseISO(startDate) : null;
   const end = endDate ? parseISO(endDate) : null;
 
-  // Build calendar grid: all days in viewMonth + leading/trailing blanks
   const monthStart = startOfMonth(viewMonth);
   const monthEnd = endOfMonth(viewMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  const leadingBlanks = getDay(monthStart); // 0=Sun
+  const leadingBlanks = getDay(monthStart);
 
   function isDayOutOfRange(day: Date): boolean {
     const iso = format(day, 'yyyy-MM-dd');
@@ -51,17 +50,13 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
     if (isDayOutOfRange(day)) return;
     const iso = format(day, 'yyyy-MM-dd');
     if (!start || (start && end)) {
-      // Start fresh: set start only, clear end
       onStartChange(iso);
       onEndChange('');
     } else {
-      // start is set, end is not yet
       if (isBefore(day, start)) {
-        // Clicked before start → reset to new start
         onStartChange(iso);
         onEndChange('');
       } else if (isSameDay(day, start)) {
-        // Clicked same day → clear
         onStartChange('');
         onEndChange('');
       } else {
@@ -88,18 +83,18 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
         <button
           type="button"
           onClick={() => setViewMonth(m => subMonths(m, 1))}
-          className="p-2.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors duration-150"
           aria-label={t('prevMonth', lang)}
         >
           ‹
         </button>
-        <span className="text-sm font-semibold text-gray-700">
+        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
           {format(viewMonth, 'MMMM yyyy', { locale })}
         </span>
         <button
           type="button"
           onClick={() => setViewMonth(m => addMonths(m, 1))}
-          className="p-2.5 rounded hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+          className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors duration-150"
           aria-label={t('nextMonth', lang)}
         >
           ›
@@ -109,7 +104,7 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
       {/* Day headers */}
       <div className="grid grid-cols-7 mb-1">
         {dayHeaders.map(h => (
-          <div key={h} className="text-center text-xs font-medium text-gray-400 py-1">{h}</div>
+          <div key={h} className="text-center text-[11px] font-semibold text-slate-400 dark:text-slate-500 py-1 uppercase tracking-wide">{h}</div>
         ))}
       </div>
 
@@ -125,27 +120,38 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
           const dayIsEnd = isEnd(day);
           const dayIsToday = isToday(day);
           const isSelected = dayIsStart || dayIsEnd;
+          const hasEnd = !!end || (!!start && !!hoverDate && !isSameDay(hoverDate, start));
+
+          // Range background: full-width strip with caps on start/end
+          const showRangeBg = inRange || isSelected;
+          const capStart = dayIsStart && hasEnd;
+          const capEnd = dayIsEnd;
 
           return (
             <div
               key={day.toISOString()}
-              className={`relative flex items-center justify-center h-10 transition-colors
-                ${outOfRange ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
-                ${inRange && !isSelected ? 'bg-indigo-50' : ''}
-                ${dayIsStart ? 'rounded-l-full' : ''}
-                ${dayIsEnd ? 'rounded-r-full' : ''}
+              className={`relative flex items-center justify-center h-9 cursor-pointer
+                ${outOfRange ? 'opacity-25 cursor-not-allowed' : ''}
               `}
               onClick={() => handleDayClick(day)}
               onMouseEnter={() => !outOfRange && setHoverDate(day)}
               onMouseLeave={() => setHoverDate(null)}
             >
+              {/* Continuous range strip */}
+              {showRangeBg && (
+                <div className={`absolute inset-y-1 inset-x-0 bg-indigo-500/20 dark:bg-indigo-500/25
+                  ${capStart ? 'rounded-s-full' : ''}
+                  ${capEnd ? 'rounded-e-full' : ''}
+                `} />
+              )}
+              {/* Day circle */}
               <span
-                className={`w-9 h-9 flex items-center justify-center rounded-full text-xs font-medium transition-colors
-                  ${isSelected ? 'bg-indigo-600 text-white' : ''}
-                  ${!isSelected && inRange ? 'text-indigo-700' : ''}
-                  ${!isSelected && !inRange && !outOfRange ? 'text-gray-700 hover:bg-gray-100' : ''}
-                  ${!isSelected && outOfRange ? 'text-gray-400' : ''}
-                  ${dayIsToday && !isSelected ? 'ring-2 ring-indigo-400 ring-offset-1' : ''}
+                className={`relative z-10 w-8 h-8 flex items-center justify-center rounded-full text-xs font-medium transition-colors duration-100
+                  ${isSelected ? 'bg-indigo-600 text-white shadow-sm' : ''}
+                  ${!isSelected && inRange ? 'text-indigo-300 dark:text-indigo-200' : ''}
+                  ${!isSelected && !inRange && !outOfRange ? 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700' : ''}
+                  ${!isSelected && outOfRange ? 'text-slate-400 dark:text-slate-600' : ''}
+                  ${dayIsToday && !isSelected ? 'ring-2 ring-indigo-500 dark:ring-indigo-400 ring-offset-1 ring-offset-white dark:ring-offset-slate-800' : ''}
                 `}
               >
                 {format(day, 'd')}
@@ -156,14 +162,14 @@ export function DateRangePicker({ startDate, endDate, onStartChange, onEndChange
       </div>
 
       {/* Selected range summary */}
-      <div className="mt-3 pt-3 border-t flex gap-2 text-xs text-gray-500">
+      <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex gap-2 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex-1">
-          <span className="font-medium text-gray-600">{t('dateStart', lang)}</span>{' '}
-          {startDate ? format(parseISO(startDate), 'MMM d, yyyy', { locale }) : <span className="text-gray-300">—</span>}
+          <span className="font-semibold text-slate-600 dark:text-slate-300">{t('dateStart', lang)}</span>{' '}
+          {startDate ? format(parseISO(startDate), 'MMM d, yyyy', { locale }) : <span className="text-slate-300 dark:text-slate-600">—</span>}
         </div>
         <div className="flex-1">
-          <span className="font-medium text-gray-600">{t('dateEnd', lang)}</span>{' '}
-          {endDate ? format(parseISO(endDate), 'MMM d, yyyy', { locale }) : <span className="text-gray-300">—</span>}
+          <span className="font-semibold text-slate-600 dark:text-slate-300">{t('dateEnd', lang)}</span>{' '}
+          {endDate ? format(parseISO(endDate), 'MMM d, yyyy', { locale }) : <span className="text-slate-300 dark:text-slate-600">—</span>}
         </div>
       </div>
     </div>

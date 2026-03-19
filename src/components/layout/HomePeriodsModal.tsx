@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { AppState, HomeGroupPeriod, Schedule } from '../../types';
+import type { AppState, HomeGroupPeriod } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { DateRangePicker } from '../ui/DateRangePicker';
@@ -12,12 +12,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   state: AppState;
-  activeSchedule: Schedule;
-  onAddPeriod: (scheduleId: string, groupId: string, startDate: string, endDate: string) => void;
-  onDeletePeriod: (scheduleId: string, periodId: string) => void;
+  onAddPeriod: (groupId: string, startDate: string, endDate: string) => void;
+  onDeletePeriod: (periodId: string) => void;
 }
 
-export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPeriod, onDeletePeriod }: Props) {
+export function HomePeriodsModal({ open, onClose, state, onAddPeriod, onDeletePeriod }: Props) {
   const lang = langFromDir(state.dir);
   const locale = state.dir === 'rtl' ? heLocale : undefined;
 
@@ -26,7 +25,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
   const [newEnd, setNewEnd] = useState('');
   const [pendingDeletePeriodId, setPendingDeletePeriodId] = useState<string | null>(null);
 
-  const periods = activeSchedule.homeGroupPeriods ?? [];
+  const periods = state.homeGroupPeriods ?? [];
 
   function formatDate(iso: string) {
     try { return format(parseISO(iso), 'dd/MM/yyyy', { locale }); } catch { return iso; }
@@ -39,7 +38,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
   function handleAdd() {
     if (!newGroupId || !newStart || !newEnd) return;
     if (newEnd < newStart) return;
-    onAddPeriod(activeSchedule.id, newGroupId, newStart, newEnd);
+    onAddPeriod(newGroupId, newStart, newEnd);
     setNewGroupId('');
     setNewStart('');
     setNewEnd('');
@@ -59,21 +58,21 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="bg-slate-100 text-slate-600 text-xs uppercase tracking-wide">
+                <tr className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs uppercase tracking-wide">
                   <th className="px-3 py-2 text-start  font-semibold">{t('groupLabel', lang)}</th>
                   <th className="px-3 py-2 text-start  font-semibold">{t('departure', lang)}</th>
                   <th className="px-3 py-2 text-start  font-semibold">{t('returnDate', lang)}</th>
                   <th className="px-3 py-2" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                 {[...periods]
                   .sort((a, b) => a.startDate.localeCompare(b.startDate))
                   .map((period: HomeGroupPeriod) => (
-                    <tr key={period.id} className="hover:bg-slate-50">
-                      <td className="px-3 py-2 font-medium text-slate-800">{groupName(period.groupId)}</td>
-                      <td className="px-3 py-2 text-slate-600">{formatDate(period.startDate)}</td>
-                      <td className="px-3 py-2 text-slate-600">{formatDate(period.endDate)}</td>
+                    <tr key={period.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60">
+                      <td className="px-3 py-2 font-medium text-slate-800 dark:text-slate-100">{groupName(period.groupId)}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{formatDate(period.startDate)}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-slate-400">{formatDate(period.endDate)}</td>
                       <td className="px-3 py-2 text-end ">
                         <Button
                           size="sm"
@@ -90,40 +89,17 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
           </div>
         )}
 
-        {/* Groups & Members summary */}
-        {state.homeGroups.length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {state.homeGroups.map(g => {
-              const members = state.people.filter(p => (p.homeGroupIds ?? []).includes(g.id)).map(p => p.name);
-              return (
-                <div key={g.id} className="border border-slate-200 rounded-lg px-3 py-2 bg-white min-w-[120px]">
-                  <p className="text-xs font-semibold text-slate-700">{g.name}</p>
-                  {members.length === 0 ? (
-                    <p className="text-[11px] text-slate-400 italic mt-0.5">{lang === 'he' ? 'אין חברים' : 'No members'}</p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {members.map(name => (
-                        <span key={name} className="text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.5">{name}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
         {/* Add period form */}
         {state.homeGroups.length > 0 ? (
-          <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50">
-            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{t('addPeriod', lang)}</p>
+          <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-3 bg-slate-50 dark:bg-slate-800/60">
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">{t('addPeriod', lang)}</p>
             {/* Group selector */}
             <div className="space-y-1">
-              <label className="text-xs text-slate-500">{t('groupLabel', lang)}</label>
+              <label className="text-xs text-slate-500 dark:text-slate-400">{t('groupLabel', lang)}</label>
               <select
                 value={newGroupId}
                 onChange={e => setNewGroupId(e.target.value)}
-                className="w-full text-sm border border-slate-300 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
+                className="w-full text-sm border border-slate-300 dark:border-slate-600 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-slate-800 dark:text-slate-100"
               >
                 <option value="">— {t('groupLabel', lang)} —</option>
                 {state.homeGroups.map(g => (
@@ -131,16 +107,14 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
                 ))}
               </select>
             </div>
-            {/* Date range picker */}
-            <div className="bg-white border border-slate-200 rounded-lg p-3">
+            {/* Date range picker — no min/max restriction, periods are global */}
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
               <DateRangePicker
                 startDate={newStart}
                 endDate={newEnd}
                 onStartChange={setNewStart}
                 onEndChange={setNewEnd}
                 dir={state.dir}
-                minDate={activeSchedule.startDate}
-                maxDate={activeSchedule.endDate}
               />
             </div>
             <div className="flex justify-end ">
@@ -150,7 +124,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
             </div>
           </div>
         ) : (
-          <p className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+          <p className="text-sm text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded px-3 py-2">
             {lang === 'he'
               ? 'צור קבוצות תחילה בהגדרות → קבוצות'
               : 'Create groups first in Settings → Groups'}
@@ -160,7 +134,7 @@ export function HomePeriodsModal({ open, onClose, state, activeSchedule, onAddPe
       <ConfirmDialog
         open={!!pendingDeletePeriodId}
         message={t('deletePeriodConfirm', lang)}
-        onConfirm={() => { if (pendingDeletePeriodId) { onDeletePeriod(activeSchedule.id, pendingDeletePeriodId); } setPendingDeletePeriodId(null); }}
+        onConfirm={() => { if (pendingDeletePeriodId) { onDeletePeriod(pendingDeletePeriodId); } setPendingDeletePeriodId(null); }}
         onCancel={() => setPendingDeletePeriodId(null)}
         lang={lang}
       />
