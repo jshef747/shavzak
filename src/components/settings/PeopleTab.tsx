@@ -257,7 +257,7 @@ export function PeopleTab({
                       aria-checked={!!person.forceMinimum}
                       onClick={() => onUpdateForceMinimum(person.id, !person.forceMinimum)}
                       title={t('forceMinimumLabel', lang)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1 ${
                         person.forceMinimum ? 'bg-amber-400' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
                       }`}
                     >
@@ -277,7 +277,7 @@ export function PeopleTab({
                       aria-checked={!!person.neverAutoAssign}
                       onClick={() => onUpdateNeverAutoAssign(person.id, !person.neverAutoAssign)}
                       title={t('neverAutoAssignLabel', lang)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1 ${
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1 ${
                         person.neverAutoAssign ? 'bg-rose-500' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
                       }`}
                     >

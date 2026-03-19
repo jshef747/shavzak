@@ -125,6 +125,7 @@ export function SettingsModal({
           onUpdateConstraintMaxConsecutive={handlers.onUpdateConstraintMaxConsecutive}
           onUpdateConstraintMinRest={handlers.onUpdateConstraintMinRest}
           onUpdateForceMinimum={handlers.onUpdateForceMinimum}
+          onUpdateNeverAutoAssign={handlers.onUpdateNeverAutoAssign}
           onTogglePersonHomeGroup={handlers.onTogglePersonHomeGroup}
         />
       )}

@@ -21,7 +21,7 @@ export function normalizeState(raw: unknown): AppState {
 
   // Migrate per-schedule homeGroupPeriods up to global AppState level
   const migratedPeriods = (merged.schedules ?? []).flatMap(
-    (s: { homeGroupPeriods?: import('../types').HomeGroupPeriod[] }) => s.homeGroupPeriods ?? []
+    (s) => ((s as unknown as { homeGroupPeriods?: import('../types').HomeGroupPeriod[] }).homeGroupPeriods ?? [])
   );
   merged.homeGroupPeriods = [
     ...(merged.homeGroupPeriods ?? []),

@@ -320,7 +320,7 @@ export function PersonEditor({
             role="switch"
             aria-checked={!!person.forceMinimum}
             onClick={() => onUpdateForceMinimum(person.id, !person.forceMinimum)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-1 ${
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-1 ${
               person.forceMinimum ? 'bg-amber-400' : 'bg-gray-200 dark:bg-slate-600'
             }`}
           >
@@ -349,7 +349,7 @@ export function PersonEditor({
             role="switch"
             aria-checked={!!person.neverAutoAssign}
             onClick={() => onUpdateNeverAutoAssign(person.id, !person.neverAutoAssign)}
-            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1 ${
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-1 ${
               person.neverAutoAssign ? 'bg-rose-500' : 'bg-gray-200 dark:bg-slate-600'
             }`}
           >

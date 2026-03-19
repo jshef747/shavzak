@@ -131,10 +131,9 @@ export function App() {
   }, []);
   const isDark = state.theme === 'dark' || (state.theme === 'system' && systemDark);
 
-  // Keep <html> in sync so dark: variants work in portals / fixed elements
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDark);
-  }, [isDark]);
+  // Keep <html> in sync synchronously (not via useEffect) so CSS variables
+  // like --person-cell-alpha on .dark are always correct before paint.
+  document.documentElement.classList.toggle('dark', isDark);
 
   const toggleTheme = useCallback(() => {
     setState(prev => {
@@ -203,7 +202,7 @@ export function App() {
   // Show a minimal spinner while Supabase resolves the session
   if (authLoading) {
     return (
-      <div className={`h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950${isDark ? ' dark' : ''}`}>
+      <div className="h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-950">
         <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -213,7 +212,7 @@ export function App() {
     <div
       dir={state.dir}
       lang={state.dir === 'rtl' ? 'he' : 'en'}
-      className={`h-screen flex flex-col bg-gray-50 dark:bg-slate-950${isDark ? ' dark' : ''}`}
+      className="h-screen flex flex-col bg-gray-50 dark:bg-slate-950"
     >
       <TopBar
         state={state}
@@ -437,7 +436,7 @@ export function App() {
         state={state}
         dates={dates}
         baseAssignments={activeSchedule?.assignments ?? []}
-        homeGroupPeriods={activeSchedule?.homeGroupPeriods ?? []}
+        homeGroupPeriods={homeGroupPeriods}
         onConfirmReassign={handleConfirmReassign}
         onApply={handleApplyAutoAssign}
       />
