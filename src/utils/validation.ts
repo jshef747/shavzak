@@ -138,8 +138,9 @@ export function computeCellStatus(
   let shortBreakOnCall = false; // tracks if we hit an on-call reduced-break situation
 
   for (const a of personAssignments) {
-    // Skip same slot (same shift+half)
-    if (a.date === cell.date && a.shiftId === cell.shiftId && (a.half ?? undefined) === (cell.half ?? undefined)) continue;
+    // Skip any assignment to the same shift on the same date — both halves form
+    // one continuous block, so no break is required between them.
+    if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
     const existingShift = shifts.find(s => s.id === a.shiftId);
     if (!existingShift) continue;
     const existingStart = shiftStartMins(a.date, existingShift, refDate, a.half);
