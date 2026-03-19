@@ -19,10 +19,21 @@ export function normalizeState(raw: unknown): AppState {
     };
   });
 
-  merged.schedules = (merged.schedules ?? []).map(s => ({
-    ...s,
-    homeGroupPeriods: s.homeGroupPeriods ?? [],
-  }));
+  // Migrate per-schedule homeGroupPeriods up to global AppState level
+  const migratedPeriods = (merged.schedules ?? []).flatMap(
+    (s: { homeGroupPeriods?: import('../types').HomeGroupPeriod[] }) => s.homeGroupPeriods ?? []
+  );
+  merged.homeGroupPeriods = [
+    ...(merged.homeGroupPeriods ?? []),
+    // Merge any legacy per-schedule periods not already present
+    ...migratedPeriods.filter(mp => !(merged.homeGroupPeriods ?? []).some(p => p.id === mp.id)),
+  ];
+
+  merged.schedules = (merged.schedules ?? []).map(s => {
+    const { homeGroupPeriods: _dropped, ...rest } = s as typeof s & { homeGroupPeriods?: unknown };
+    void _dropped;
+    return rest;
+  });
 
   merged.homeGroups = merged.homeGroups ?? [];
   merged.dir = 'rtl';

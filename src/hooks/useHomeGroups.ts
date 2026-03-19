@@ -22,11 +22,8 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
       people: prev.people.map(p =>
         ({ ...p, homeGroupIds: (p.homeGroupIds ?? []).filter(gid => gid !== id) })
       ),
-      // Remove all periods for this group from all schedules
-      schedules: prev.schedules.map(s => ({
-        ...s,
-        homeGroupPeriods: (s.homeGroupPeriods ?? []).filter(p => p.groupId !== id),
-      })),
+      // Remove all periods for this group globally
+      homeGroupPeriods: (prev.homeGroupPeriods ?? []).filter(p => p.groupId !== id),
     }));
   }
 
@@ -42,7 +39,7 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     }));
   }
 
-  function addHomeGroupPeriod(scheduleId: string, groupId: string, startDate: string, endDate: string) {
+  function addHomeGroupPeriod(groupId: string, startDate: string, endDate: string) {
     const period: HomeGroupPeriod = {
       id: crypto.randomUUID(),
       groupId,
@@ -51,22 +48,14 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     };
     setState(prev => ({
       ...prev,
-      schedules: prev.schedules.map(s =>
-        s.id === scheduleId
-          ? { ...s, homeGroupPeriods: [...(s.homeGroupPeriods ?? []), period] }
-          : s
-      ),
+      homeGroupPeriods: [...(prev.homeGroupPeriods ?? []), period],
     }));
   }
 
-  function deleteHomeGroupPeriod(scheduleId: string, periodId: string) {
+  function deleteHomeGroupPeriod(periodId: string) {
     setState(prev => ({
       ...prev,
-      schedules: prev.schedules.map(s =>
-        s.id === scheduleId
-          ? { ...s, homeGroupPeriods: (s.homeGroupPeriods ?? []).filter(p => p.id !== periodId) }
-          : s
-      ),
+      homeGroupPeriods: (prev.homeGroupPeriods ?? []).filter(p => p.id !== periodId),
     }));
   }
 

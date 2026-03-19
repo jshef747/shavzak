@@ -30,6 +30,7 @@ interface Props {
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
   onUpdateForceMinimum: (personId: string, value: boolean) => void;
+  onUpdateNeverAutoAssign: (personId: string, value: boolean) => void;
   onDelete: (id: string) => void;
   onClose: () => void;
 }
@@ -49,6 +50,7 @@ export function PersonEditor({
   onUpdateConstraintMaxConsecutive,
   onUpdateConstraintMinRest,
   onUpdateForceMinimum,
+  onUpdateNeverAutoAssign,
   onDelete,
   onClose,
 }: Props) {
@@ -324,6 +326,35 @@ export function PersonEditor({
           >
             <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
               person.forceMinimum ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'
+            }`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Never Auto-Assign */}
+      <div className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-rose-50 dark:bg-rose-900/40 flex items-center justify-center flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('neverAutoAssignLabel', lang)}</h3>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t('neverAutoAssignDesc', lang)}</p>
+            </div>
+          </div>
+          <button
+            role="switch"
+            aria-checked={!!person.neverAutoAssign}
+            onClick={() => onUpdateNeverAutoAssign(person.id, !person.neverAutoAssign)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1 ${
+              person.neverAutoAssign ? 'bg-rose-500' : 'bg-gray-200 dark:bg-slate-600'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              person.neverAutoAssign ? 'translate-x-6 rtl:-translate-x-6' : 'translate-x-1 rtl:-translate-x-1'
             }`} />
           </button>
         </div>

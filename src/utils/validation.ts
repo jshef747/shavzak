@@ -8,6 +8,9 @@ import { type Lang, tf, DAY_LABELS_HE } from './i18n';
  *   - departure day: shifts starting at or after 12:00 are blocked
  *   - return day: shifts starting before 12:00 are blocked
  *   - middle days: always blocked
+ *
+ * Night shifts (startHour < 6) are labeled on one date but physically occur the next
+ * calendar day, so we check the physical date against the home period.
  */
 export function isHomeGroupBlocked(
   date: string,
@@ -18,20 +21,29 @@ export function isHomeGroupBlocked(
 ): boolean {
   if (!homeGroupIds || homeGroupIds.length === 0) return false;
 
+  // Night shifts (startHour < 6) physically run on the next calendar day
+  const physicalDate = shift.startHour < 6
+    ? format(addDays(parseISO(date), 1), 'yyyy-MM-dd')
+    : date;
+  // The effective start hour for half-day boundary checks is still the labeled hour,
+  // but shifted by 24 so it's always treated as "after noon" (i.e. always blocks on
+  // departure day and never blocks on return day — the person is away that whole physical day).
+  const effectiveStartHour = shift.startHour < 6 ? shift.startHour + 24 : shift.startHour;
+
   for (const homeGroupId of homeGroupIds) {
     const group = homeGroups.find(g => g.id === homeGroupId);
     if (!group) continue;
 
     for (const period of homeGroupPeriods) {
       if (period.groupId !== homeGroupId) continue;
-      if (date < period.startDate || date > period.endDate) continue;
+      if (physicalDate < period.startDate || physicalDate > period.endDate) continue;
 
-      if (date === period.startDate) {
+      if (physicalDate === period.startDate) {
         // Departure day: shifts starting at or after 12 are blocked
-        if (shift.startHour >= 12) return true;
-      } else if (date === period.endDate) {
+        if (effectiveStartHour >= 12) return true;
+      } else if (physicalDate === period.endDate) {
         // Return day: shifts starting before 12 are blocked
-        if (shift.startHour < 12) return true;
+        if (effectiveStartHour < 12) return true;
       } else {
         // Full home day
         return true;

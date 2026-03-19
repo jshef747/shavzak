@@ -12,7 +12,6 @@ export function useSchedule(state: AppState, setState: Dispatch<SetStateAction<A
       startDate,
       endDate,
       assignments: [],
-      homeGroupPeriods: [],
       createdAt: now,
       updatedAt: now,
     };

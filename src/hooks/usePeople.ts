@@ -163,6 +163,13 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
     }));
   }
 
+  function updateNeverAutoAssign(personId: string, value: boolean) {
+    setState(prev => ({
+      ...prev,
+      people: prev.people.map(p => p.id === personId ? { ...p, neverAutoAssign: value } : p),
+    }));
+  }
+
   return {
     addPerson,
     deletePerson,
@@ -178,5 +185,6 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
     updateConstraintMaxConsecutive,
     updateConstraintMinRest,
     updateForceMinimum,
+    updateNeverAutoAssign,
   };
 }

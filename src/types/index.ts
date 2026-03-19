@@ -43,6 +43,7 @@ export interface Person {
   unavailability: UnavailabilityEntry[];
   constraints: ShiftConstraint | null;
   forceMinimum?: boolean;       // if true, prioritize this person for max assignments
+  neverAutoAssign?: boolean;    // if true, always skip this person in auto-assign
 }
 
 export interface Assignment {
@@ -58,7 +59,6 @@ export interface Schedule {
   startDate: string;
   endDate: string;
   assignments: Assignment[];
-  homeGroupPeriods: HomeGroupPeriod[];
   createdAt: string;
   updatedAt: string;
 }
@@ -81,6 +81,7 @@ export interface AppState {
   positions: Position[];
   people: Person[];
   homeGroups: HomeGroup[];
+  homeGroupPeriods: HomeGroupPeriod[];
   schedules: Schedule[];
   activeScheduleId: string | null;
   dir: 'ltr' | 'rtl';

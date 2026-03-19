@@ -26,6 +26,7 @@ interface Props {
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
   onTogglePersonHomeGroup: (personId: string, groupId: string) => void;
   onUpdateForceMinimum: (personId: string, value: boolean) => void;
+  onUpdateNeverAutoAssign: (personId: string, value: boolean) => void;
 }
 
 export function PeopleTab({
@@ -35,7 +36,7 @@ export function PeopleTab({
   onToggleConstraintDay, onToggleConstraintBlockedDay,
   onUpdateConstraintMaxWeek, onUpdateConstraintMaxTotal,
   onUpdateConstraintMaxConsecutive, onUpdateConstraintMinRest,
-  onTogglePersonHomeGroup, onUpdateForceMinimum,
+  onTogglePersonHomeGroup, onUpdateForceMinimum, onUpdateNeverAutoAssign,
 }: Props) {
   const [newName, setNewName] = useState('');
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
@@ -266,6 +267,26 @@ export function PeopleTab({
                     </button>
                   </div>
 
+                  {/* Never Auto-Assign Toggle */}
+                  <div className="flex items-center gap-1.5 ms-1 shrink-0 bg-gray-50 dark:bg-slate-800 border border-gray-100 dark:border-slate-700 px-2 py-1 rounded-full">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider hidden sm:inline ${person.neverAutoAssign ? 'text-rose-600 dark:text-rose-400' : 'text-gray-400 dark:text-slate-500'}`} title={t('neverAutoAssignDesc', lang)}>
+                      {lang === 'he' ? 'לא אוטו' : 'NO AUTO'}
+                    </span>
+                    <button
+                      role="switch"
+                      aria-checked={!!person.neverAutoAssign}
+                      onClick={() => onUpdateNeverAutoAssign(person.id, !person.neverAutoAssign)}
+                      title={t('neverAutoAssignLabel', lang)}
+                      className={`relative inline-flex h-5 w-9 items-center rounded-full shrink-0 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1 ${
+                        person.neverAutoAssign ? 'bg-rose-500' : 'bg-gray-200 dark:bg-slate-600 hover:bg-gray-300 dark:hover:bg-slate-500'
+                      }`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                        person.neverAutoAssign ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-1 rtl:-translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+
                   <Button variant="secondary" size="sm" onClick={() => setEditingPerson(person)} className="flex-shrink-0 ms-1">
                     {t('edit', lang)}
                   </Button>
@@ -324,6 +345,7 @@ export function PeopleTab({
             onUpdateConstraintMaxConsecutive={onUpdateConstraintMaxConsecutive}
             onUpdateConstraintMinRest={onUpdateConstraintMinRest}
             onUpdateForceMinimum={onUpdateForceMinimum}
+            onUpdateNeverAutoAssign={onUpdateNeverAutoAssign}
             onDelete={onDelete}
             onClose={() => setEditingPerson(null)}
           />

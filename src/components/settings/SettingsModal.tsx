@@ -37,6 +37,7 @@ interface Props {
   onUpdateConstraintMaxConsecutive: (personId: string, max: number | null) => void;
   onUpdateConstraintMinRest: (personId: string, min: number | null) => void;
   onUpdateForceMinimum: (personId: string, value: boolean) => void;
+  onUpdateNeverAutoAssign: (personId: string, value: boolean) => void;
   onAddHomeGroup: (name: string) => void;
   onUpdateHomeGroup: (id: string, name: string) => void;
   onDeleteHomeGroup: (id: string) => void;

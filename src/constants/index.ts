@@ -14,6 +14,7 @@ export const INITIAL_STATE: AppState = {
   positions: [],
   people: [],
   homeGroups: [],
+  homeGroupPeriods: [],
   schedules: [],
   activeScheduleId: null,
   dir: 'rtl',

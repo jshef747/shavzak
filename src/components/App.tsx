@@ -46,6 +46,7 @@ export function App() {
     updateConstraintMaxWeek, updateConstraintMaxTotal,
     updateConstraintMaxConsecutive, updateConstraintMinRest,
     updateForceMinimum,
+    updateNeverAutoAssign,
   } = usePeople(state, setState);
   const { assign, unassign, moveAssignment, swapAssignments, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
   const { addHomeGroup, updateHomeGroup, deleteHomeGroup, togglePersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
@@ -88,6 +89,7 @@ export function App() {
 
   // Load board from Supabase when user logs in
   const loadedUserRef = useRef<string | null>(null);
+  const cloudLoadingRef = useRef(false);
   useEffect(() => {
     if (!user) {
       loadedUserRef.current = null;
@@ -95,8 +97,11 @@ export function App() {
     }
     if (loadedUserRef.current === user.id) return;
     loadedUserRef.current = user.id;
+    cloudLoadingRef.current = true;
     loadBoard(user.id).then(saved => {
       if (saved) setState(normalizeState(saved));
+    }).finally(() => {
+      cloudLoadingRef.current = false;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -105,6 +110,7 @@ export function App() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     if (!user) return;
+    if (cloudLoadingRef.current) return;
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       saveBoard(state, user.id);
@@ -137,7 +143,7 @@ export function App() {
     });
   }, [setState]);
 
-  const homeGroupPeriods = activeSchedule?.homeGroupPeriods ?? [];
+  const homeGroupPeriods = state.homeGroupPeriods ?? [];
   const lang = langFromDir(state.dir);
   const isMobile = useIsMobile();
 
@@ -168,7 +174,7 @@ export function App() {
       setAutoAssignReassign(mode);
       setAutoAssignOpen(true);
     } else {
-      const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups);
+      const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods);
       setAutoAssignResult(result);
       setAutoAssignReassign(null);
       setAutoAssignOpen(true);
@@ -177,7 +183,7 @@ export function App() {
 
   function handleConfirmReassign() {
     if (!activeSchedule) return;
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods);
     setAutoAssignResult(result);
   }
 
@@ -368,6 +374,7 @@ export function App() {
         onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
         onUpdateConstraintMinRest={updateConstraintMinRest}
         onUpdateForceMinimum={updateForceMinimum}
+        onUpdateNeverAutoAssign={updateNeverAutoAssign}
         onAddHomeGroup={addHomeGroup}
         onUpdateHomeGroup={updateHomeGroup}
         onDeleteHomeGroup={deleteHomeGroup}
@@ -407,6 +414,7 @@ export function App() {
               onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
               onUpdateConstraintMinRest={updateConstraintMinRest}
               onUpdateForceMinimum={updateForceMinimum}
+              onUpdateNeverAutoAssign={updateNeverAutoAssign}
               onDelete={(id) => { deletePerson(id); setSidebarEditPersonId(null); }}
               onClose={() => setSidebarEditPersonId(null)}
             />
@@ -434,12 +442,11 @@ export function App() {
         onApply={handleApplyAutoAssign}
       />
 
-      {activeSchedule && (
+      {homePeriodsOpen && (
         <HomePeriodsModal
           open={homePeriodsOpen}
           onClose={() => setHomePeriodsOpen(false)}
           state={state}
-          activeSchedule={activeSchedule}
           onAddPeriod={addHomeGroupPeriod}
           onDeletePeriod={deleteHomeGroupPeriod}
         />
