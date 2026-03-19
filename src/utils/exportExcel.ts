@@ -26,6 +26,12 @@ const STYLE_HEADER = {
   alignment: { horizontal: 'center', vertical: 'center' },
 };
 
+const STYLE_HEADER_ONCALL = {
+  fill: { patternType: 'solid', fgColor: { rgb: 'C2410C' } }, // orange-700
+  font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 },
+  alignment: { horizontal: 'center', vertical: 'center' },
+};
+
 function styleDateRow(isRtl: boolean) {
   return {
     fill: { patternType: 'solid', fgColor: { rgb: 'E2E8F0' } },
@@ -70,11 +76,12 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
 
   const totalCols = 1 + positions.length; // shift label col + one col per position
 
-  // In RTL: shift label is the LAST (rightmost) column, positions go right→left
+  // In RTL: shift label is column 0 (physically leftmost = visually rightmost in RTL Excel),
+  //         positions go left→right physically (= right→left visually)
   // In LTR: shift label is column 0 (leftmost), positions go left→right
   function colIndex(positionIndex: number | 'shift'): number {
     if (isRtl) {
-      return positionIndex === 'shift' ? positions.length : positions.length - 1 - (positionIndex as number);
+      return positionIndex === 'shift' ? 0 : (positionIndex as number) + 1;
     }
     return positionIndex === 'shift' ? 0 : (positionIndex as number) + 1;
   }
@@ -87,7 +94,8 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
 
   ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex('shift') })] = cell(t('shiftCol', lang), STYLE_HEADER);
   for (let ci = 0; ci < positions.length; ci++) {
-    ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(positions[ci].name, STYLE_HEADER);
+    const headerStyle = positions[ci].isOnCall ? STYLE_HEADER_ONCALL : STYLE_HEADER;
+    ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(positions[ci].name, headerStyle);
   }
   rowIndex++;
 
@@ -126,11 +134,8 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
   // ── Sheet metadata ─────────────────────────────────────────────────────────
   ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: rowIndex - 1, c: totalCols - 1 } });
   ws['!merges'] = merges;
-  // In RTL: shift col is last, in LTR: shift col is first
-  const colWidths = isRtl
-    ? [...positions.map(() => ({ wch: 18 })), { wch: 22 }]
-    : [{ wch: 22 }, ...positions.map(() => ({ wch: 18 }))];
-  ws['!cols'] = colWidths;
+  // Shift col is always first (col 0), positions follow
+  ws['!cols'] = [{ wch: 22 }, ...positions.map(() => ({ wch: 18 }))];
   ws['!rows'] = [{ hpt: 22 }];
   // ── Workbook ───────────────────────────────────────────────────────────────
   const wb = XLSX.utils.book_new();
