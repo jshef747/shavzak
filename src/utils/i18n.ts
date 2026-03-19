@@ -211,6 +211,8 @@ const strings: Record<string, { en: string; he: string }> = {
   assignPickerTitle: { en: 'Assign', he: 'שבץ' },
   clearAssignment:   { en: 'Clear', he: 'נקה' },
   tapToAssign:       { en: '+ assign', he: '+ שבץ' },
+  halfShift: { en: 'Half Shift', he: 'חצי משמרת' },
+  halfShiftDesc: { en: 'Counts as ½ toward shift limits', he: 'נספרת כ-½ כלפי מגבלות' },
 };
 
 export function t(key: string, lang: Lang): string {

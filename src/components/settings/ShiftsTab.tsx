@@ -118,6 +118,22 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
         </div>
       </div>
 
+      <div className="flex flex-col gap-0.5 items-center flex-shrink-0" title={t('halfShiftDesc', lang)}>
+        <span className="text-[10px] font-medium text-gray-400 dark:text-slate-500 uppercase tracking-wider">{t('halfShift', lang)}</span>
+        <button
+          role="switch"
+          aria-checked={!!shift.isHalfShift}
+          onClick={() => onUpdate(shift.id, { isHalfShift: !shift.isHalfShift })}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 focus-visible:ring-offset-1 ${
+            shift.isHalfShift ? 'bg-orange-400' : 'bg-gray-200 dark:bg-slate-600'
+          }`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${
+            shift.isHalfShift ? 'translate-x-4 rtl:-translate-x-4' : 'translate-x-0.5 rtl:-translate-x-0.5'
+          }`} />
+        </button>
+      </div>
+
       <Button
         variant="ghost"
         size="sm"

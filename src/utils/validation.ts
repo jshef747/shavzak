@@ -67,6 +67,10 @@ function shiftEndMins(date: string, shift: Shift, refDate: string): number {
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+function shiftWeight(shift: Shift): number {
+  return shift.isHalfShift ? 0.5 : 1;
+}
+
 function countConsecutiveStreak(cellDate: Date, assignedDateSet: Set<string>): number {
   let streak = 1;
   let back = 1;
@@ -179,7 +183,11 @@ export function computeCellStatus(
         const diff = Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate));
         return diff < 7;
       });
-      if (weekAssignments.length >= c.maxShiftsPerWeek) {
+      const weekLoad = weekAssignments.reduce((sum, a) => {
+        const s = shifts.find(sh => sh.id === a.shiftId);
+        return sum + (s ? shiftWeight(s) : 1);
+      }, 0) + shiftWeight(targetShift);
+      if (weekLoad > c.maxShiftsPerWeek) {
         return 'constraint-violation';
       }
     }
@@ -189,7 +197,11 @@ export function computeCellStatus(
       const otherAssignments = personAssignments.filter(
         a => !(a.date === cell.date && a.shiftId === cell.shiftId)
       );
-      if (otherAssignments.length >= c.maxShiftsTotal) {
+      const totalLoad = otherAssignments.reduce((sum, a) => {
+        const s = shifts.find(sh => sh.id === a.shiftId);
+        return sum + (s ? shiftWeight(s) : 1);
+      }, 0) + shiftWeight(targetShift);
+      if (totalLoad > c.maxShiftsTotal) {
         return 'constraint-violation';
       }
     }
@@ -281,7 +293,12 @@ export function computeConstraintReason(
       if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
       return Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7;
     });
-    if (weekAssignments.length >= c.maxShiftsPerWeek) {
+    const targetShift = shifts.find(s => s.id === cell.shiftId);
+    const weekLoad = weekAssignments.reduce((sum, a) => {
+      const s = shifts.find(sh => sh.id === a.shiftId);
+      return sum + (s ? shiftWeight(s) : 1);
+    }, 0) + (targetShift ? shiftWeight(targetShift) : 1);
+    if (weekLoad > c.maxShiftsPerWeek) {
       return tf.maxWeek(lang, c.maxShiftsPerWeek);
     }
   }
@@ -290,7 +307,12 @@ export function computeConstraintReason(
     const otherAssignments = personAssignments.filter(
       a => !(a.date === cell.date && a.shiftId === cell.shiftId)
     );
-    if (otherAssignments.length >= c.maxShiftsTotal) {
+    const targetShift = shifts.find(s => s.id === cell.shiftId);
+    const totalLoad = otherAssignments.reduce((sum, a) => {
+      const s = shifts.find(sh => sh.id === a.shiftId);
+      return sum + (s ? shiftWeight(s) : 1);
+    }, 0) + (targetShift ? shiftWeight(targetShift) : 1);
+    if (totalLoad > c.maxShiftsTotal) {
       return tf.maxTotal(lang, c.maxShiftsTotal);
     }
   }

@@ -3,6 +3,7 @@ export interface Shift {
   name: string;
   startHour: number;
   durationHours: number;
+  isHalfShift?: boolean;
 }
 
 export interface Position { id: string; name: string; isOnCall?: boolean; }
