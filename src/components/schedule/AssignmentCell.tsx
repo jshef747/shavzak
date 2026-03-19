@@ -2,7 +2,7 @@ import { memo } from 'react';
 import type { CSSProperties } from 'react';
 import { useDroppable, useDndContext } from '@dnd-kit/core';
 import type { AppState, Assignment, CellAddress, CellStatus, DragData, HomeGroupPeriod } from '../../types';
-import { serializeCellAddress } from '../../utils/cellKey';
+import { serializeCellAddress, assignmentMatchesCell } from '../../utils/cellKey';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
 import { langFromDir, t } from '../../utils/i18n';
 import { PersonChip } from '../roster/PersonChip';
@@ -52,9 +52,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   const { isOver, setNodeRef } = useDroppable({ id: cellKey });
   const { active } = useDndContext();
 
-  const assignment = assignments.find(
-    a => a.date === cell.date && a.shiftId === cell.shiftId && a.positionId === cell.positionId
-  );
+  const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
 
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
@@ -81,9 +79,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           const previewAssignments = isFromCell
             ? assignments.filter(a => !(
                 a.personId === dragData.personId &&
-                a.date === dragData.sourceCell!.date &&
-                a.shiftId === dragData.sourceCell!.shiftId &&
-                a.positionId === dragData.sourceCell!.positionId
+                assignmentMatchesCell(a, dragData.sourceCell!)
               ))
             : assignments;
           const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
@@ -175,9 +171,10 @@ function areEqual(prev: Props, next: Props) {
   if (prev.refDate !== next.refDate) return false;
   if (prev.homeGroupPeriods !== next.homeGroupPeriods) return false;
   if (
-    prev.cell.date !== next.cell.date || 
-    prev.cell.positionId !== next.cell.positionId || 
-    prev.cell.shiftId !== next.cell.shiftId
+    prev.cell.date !== next.cell.date ||
+    prev.cell.positionId !== next.cell.positionId ||
+    prev.cell.shiftId !== next.cell.shiftId ||
+    (prev.cell.half ?? undefined) !== (next.cell.half ?? undefined)
   ) return false;
 
   // Have assignments changed? We only care if:
@@ -185,8 +182,8 @@ function areEqual(prev: Props, next: Props) {
   // 2. OR the assignments for the person CURRENTLY in this cell changed (which might alter their validity)
   if (prev.assignments === next.assignments) return true;
 
-  const getPersonForCell = (assignments: Assignment[]) => 
-    assignments.find(a => a.date === prev.cell.date && a.shiftId === prev.cell.shiftId && a.positionId === prev.cell.positionId)?.personId;
+  const getPersonForCell = (assignments: Assignment[]) =>
+    assignments.find(a => assignmentMatchesCell(a, prev.cell))?.personId;
 
   const prevPersonId = getPersonForCell(prev.assignments);
   const nextPersonId = getPersonForCell(next.assignments);

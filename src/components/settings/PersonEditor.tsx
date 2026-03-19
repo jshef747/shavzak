@@ -130,9 +130,20 @@ export function PersonEditor({
               <thead>
                 <tr className="bg-gray-50 dark:bg-slate-700 border-b border-gray-200 dark:border-slate-600">
                   <th className="px-3 py-2.5 text-start text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{t('dateCol', lang)}</th>
-                  {state.shifts.map(s => (
-                    <th key={s.id} className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{s.name}</th>
-                  ))}
+                  {state.shifts.flatMap(s =>
+                    s.isHalfShift
+                      ? [
+                          <th key={s.id + '1'} className="px-2 py-2.5 text-center text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            <div>{s.name}</div>
+                            <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded px-1 leading-none mt-0.5">½1</span>
+                          </th>,
+                          <th key={s.id + '2'} className="px-2 py-2.5 text-center text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">
+                            <div>{s.name}</div>
+                            <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400 rounded px-1 leading-none mt-0.5">½2</span>
+                          </th>,
+                        ]
+                      : [<th key={s.id} className="px-3 py-2.5 text-center text-[10px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wider">{s.name}</th>]
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
@@ -144,22 +155,45 @@ export function PersonEditor({
                         <span className="text-[10px] text-gray-400 dark:text-slate-500">{format(parseISO(date), 'dd/MM')}</span>
                       </div>
                     </td>
-                    {state.shifts.map(shift => {
-                      const unavail = person.unavailability.some(u => u.date === date && u.shiftId === shift.id);
-                      return (
-                        <td
-                          key={shift.id}
-                          className={`px-3 py-2 text-center transition-colors ${unavail ? 'bg-red-50 dark:bg-red-900/30' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={unavail}
-                            onChange={() => onToggleUnavailability(person.id, { date, shiftId: shift.id })}
-                            className="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-400 cursor-pointer"
-                          />
-                        </td>
-                      );
-                    })}
+                    {state.shifts.flatMap(shift =>
+                      shift.isHalfShift
+                        ? ([1, 2] as const).map(half => {
+                            const unavail = person.unavailability.some(u =>
+                              u.date === date && u.shiftId === shift.id && (u.half ?? undefined) === half
+                            );
+                            return (
+                              <td
+                                key={shift.id + half}
+                                className={`px-2 py-2 text-center transition-colors ${unavail ? 'bg-red-50 dark:bg-red-900/30' : ''}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={unavail}
+                                  onChange={() => onToggleUnavailability(person.id, { date, shiftId: shift.id, half })}
+                                  className="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-400 cursor-pointer"
+                                />
+                              </td>
+                            );
+                          })
+                        : (() => {
+                            const unavail = person.unavailability.some(u =>
+                              u.date === date && u.shiftId === shift.id && u.half === undefined
+                            );
+                            return [(
+                              <td
+                                key={shift.id}
+                                className={`px-3 py-2 text-center transition-colors ${unavail ? 'bg-red-50 dark:bg-red-900/30' : ''}`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={unavail}
+                                  onChange={() => onToggleUnavailability(person.id, { date, shiftId: shift.id })}
+                                  className="w-4 h-4 rounded border-gray-300 text-red-500 focus:ring-red-400 cursor-pointer"
+                                />
+                              </td>
+                            )];
+                          })()
+                    )}
                   </tr>
                 ))}
               </tbody>

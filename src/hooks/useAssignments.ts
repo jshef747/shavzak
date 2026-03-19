@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { AppState, Assignment, CellAddress } from '../types';
+import { assignmentMatchesCell } from '../utils/cellKey';
 
 export function useAssignments(state: AppState, setState: Dispatch<SetStateAction<AppState>>) {
   const schedule = state.schedules.find(s => s.id === state.activeScheduleId);
@@ -11,15 +12,13 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
       ...prev,
       schedules: prev.schedules.map(s => {
         if (s.id !== state.activeScheduleId) return s;
-        // Remove existing assignment at this cell first
-        const filtered = s.assignments.filter(
-          a => !(a.date === cell.date && a.shiftId === cell.shiftId && a.positionId === cell.positionId)
-        );
+        const filtered = s.assignments.filter(a => !assignmentMatchesCell(a, cell));
         const newAssignment: Assignment = {
           personId,
           date: cell.date,
           shiftId: cell.shiftId,
           positionId: cell.positionId,
+          ...(cell.half !== undefined ? { half: cell.half } : {}),
         };
         return { ...s, assignments: [...filtered, newAssignment], updatedAt: now };
       }),
@@ -35,9 +34,7 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
         if (s.id !== state.activeScheduleId) return s;
         return {
           ...s,
-          assignments: s.assignments.filter(
-            a => !(a.date === cell.date && a.shiftId === cell.shiftId && a.positionId === cell.positionId)
-          ),
+          assignments: s.assignments.filter(a => !assignmentMatchesCell(a, cell)),
           updatedAt: now,
         };
       }),
@@ -53,18 +50,17 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
         if (s.id !== state.activeScheduleId) return s;
         // Remove from source
         let assignments = s.assignments.filter(
-          a => !(a.date === sourceCell.date && a.shiftId === sourceCell.shiftId && a.positionId === sourceCell.positionId && a.personId === personId)
+          a => !(assignmentMatchesCell(a, sourceCell) && a.personId === personId)
         );
         // Remove any existing at target
-        assignments = assignments.filter(
-          a => !(a.date === targetCell.date && a.shiftId === targetCell.shiftId && a.positionId === targetCell.positionId)
-        );
+        assignments = assignments.filter(a => !assignmentMatchesCell(a, targetCell));
         // Add at target
         const newAssignment: Assignment = {
           personId,
           date: targetCell.date,
           shiftId: targetCell.shiftId,
           positionId: targetCell.positionId,
+          ...(targetCell.half !== undefined ? { half: targetCell.half } : {}),
         };
         return { ...s, assignments: [...assignments, newAssignment], updatedAt: now };
       }),
@@ -102,19 +98,18 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
       ...prev,
       schedules: prev.schedules.map(s => {
         if (s.id !== state.activeScheduleId) return s;
-        const assignA = s.assignments.find(a => a.date === cellA.date && a.shiftId === cellA.shiftId && a.positionId === cellA.positionId);
-        const assignB = s.assignments.find(a => a.date === cellB.date && a.shiftId === cellB.shiftId && a.positionId === cellB.positionId);
+        const assignA = s.assignments.find(a => assignmentMatchesCell(a, cellA));
+        const assignB = s.assignments.find(a => assignmentMatchesCell(a, cellB));
         if (!assignA || !assignB) return s;
         const without = s.assignments.filter(
-          a => !(a.date === cellA.date && a.shiftId === cellA.shiftId && a.positionId === cellA.positionId) &&
-               !(a.date === cellB.date && a.shiftId === cellB.shiftId && a.positionId === cellB.positionId)
+          a => !assignmentMatchesCell(a, cellA) && !assignmentMatchesCell(a, cellB)
         );
         return {
           ...s,
           assignments: [
             ...without,
-            { personId: assignB.personId, date: cellA.date, shiftId: cellA.shiftId, positionId: cellA.positionId },
-            { personId: assignA.personId, date: cellB.date, shiftId: cellB.shiftId, positionId: cellB.positionId },
+            { personId: assignB.personId, date: cellA.date, shiftId: cellA.shiftId, positionId: cellA.positionId, ...(cellA.half !== undefined ? { half: cellA.half } : {}) },
+            { personId: assignA.personId, date: cellB.date, shiftId: cellB.shiftId, positionId: cellB.positionId, ...(cellB.half !== undefined ? { half: cellB.half } : {}) },
           ],
           updatedAt: now,
         };

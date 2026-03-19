@@ -4,6 +4,7 @@ import { he as heLocale } from 'date-fns/locale';
 import { ChevronDown, ChevronRight, ChevronLeft, UserPlus, X, Check } from 'lucide-react';
 import type { AppState, Assignment, CellAddress, CellStatus, HomeGroupPeriod } from '../../types';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
+import { assignmentMatchesCell } from '../../utils/cellKey';
 import { langFromDir, t } from '../../utils/i18n';
 import { BottomSheet } from '../ui/BottomSheet';
 
@@ -133,11 +134,9 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
   function prevDay() { setDayIndex(i => Math.max(0, i - 1)); setExpandedShifts(new Set()); setExpandedOnCall(new Set()); }
   function nextDay() { setDayIndex(i => Math.min(dates.length - 1, i + 1)); setExpandedShifts(new Set()); setExpandedOnCall(new Set()); }
 
-  function renderPositionRow(pos: typeof state.positions[0], shift: typeof state.shifts[0], isOnCall: boolean) {
-    const cell: CellAddress = { date: currentDate, shiftId: shift.id, positionId: pos.id };
-    const assignment = assignments.find(
-      a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id
-    );
+  function renderPositionRow(pos: typeof state.positions[0], shift: typeof state.shifts[0], isOnCall: boolean, half?: 1 | 2) {
+    const cell: CellAddress = { date: currentDate, shiftId: shift.id, positionId: pos.id, ...(half !== undefined ? { half } : {}) };
+    const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
     const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
     const status: CellStatus = person
       ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
@@ -231,6 +230,10 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                 assignments.some(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id)
               ).length;
 
+              // For half shifts, count fills per half
+              const halvesToShow: Array<1 | 2 | undefined> = shift.isHalfShift ? [1, 2] : [undefined];
+              const midHour = shift.startHour + shift.durationHours / 2;
+
               return (
                 <div key={shift.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                   {/* Shift header — tappable */}
@@ -265,31 +268,44 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                   </button>
 
                   {/* Expandable positions */}
-                  {isExpanded && (
-                    <>
-                      {regularPositions.length > 0 && (
-                        <div>
-                          {regularPositions.map(pos => renderPositionRow(pos, shift, false))}
-                        </div>
-                      )}
-                      {onCallPositions.length > 0 && (
-                        <div className="border-t border-orange-100">
-                          <button
-                            className="w-full px-4 py-2.5 bg-orange-50/60 flex items-center justify-between text-start active:bg-orange-100 transition-colors"
-                            onClick={() => toggleOnCall(shift.id)}
-                          >
-                            <span className="text-xs font-semibold text-orange-500 uppercase tracking-wide">{t('onCall', lang)}</span>
-                            <ChevronDown className={`w-3.5 h-3.5 text-orange-400 shrink-0 transition-transform duration-200 ${expandedOnCall.has(shift.id) ? 'rotate-180' : ''}`} strokeWidth={2} />
-                          </button>
-                          {expandedOnCall.has(shift.id) && (
-                            <div className="bg-orange-50/40">
-                              {onCallPositions.map(pos => renderPositionRow(pos, shift, true))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
+                  {isExpanded && halvesToShow.map(half => {
+                    const halfLabel = half === 1
+                      ? `${t('half1', lang)} · ${formatTime(shift.startHour)}–${formatTime(midHour)}`
+                      : half === 2
+                        ? `${t('half2', lang)} · ${formatTime(midHour)}–${formatTime(endHour)}`
+                        : null;
+                    return (
+                      <div key={half ?? 'full'}>
+                        {halfLabel && (
+                          <div className="px-4 py-2 bg-orange-50 border-t border-orange-100 flex items-center gap-2">
+                            <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-400 text-white rounded px-1 py-0.5 leading-none">{half === 1 ? '½1' : '½2'}</span>
+                            <span className="text-xs font-semibold text-orange-700" dir="ltr">{halfLabel}</span>
+                          </div>
+                        )}
+                        {regularPositions.length > 0 && (
+                          <div className={halfLabel ? '' : ''}>
+                            {regularPositions.map(pos => renderPositionRow(pos, shift, false, half))}
+                          </div>
+                        )}
+                        {onCallPositions.length > 0 && (
+                          <div className="border-t border-orange-100">
+                            <button
+                              className="w-full px-4 py-2.5 bg-orange-50/60 flex items-center justify-between text-start active:bg-orange-100 transition-colors"
+                              onClick={() => toggleOnCall(shift.id + (half ?? ''))}
+                            >
+                              <span className="text-xs font-semibold text-orange-500 uppercase tracking-wide">{t('onCall', lang)}</span>
+                              <ChevronDown className={`w-3.5 h-3.5 text-orange-400 shrink-0 transition-transform duration-200 ${expandedOnCall.has(shift.id + (half ?? '')) ? 'rotate-180' : ''}`} strokeWidth={2} />
+                            </button>
+                            {expandedOnCall.has(shift.id + (half ?? '')) && (
+                              <div className="bg-orange-50/40">
+                                {onCallPositions.map(pos => renderPositionRow(pos, shift, true, half))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })

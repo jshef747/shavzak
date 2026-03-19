@@ -213,6 +213,8 @@ const strings: Record<string, { en: string; he: string }> = {
   tapToAssign:       { en: '+ assign', he: '+ שבץ' },
   halfShift: { en: 'Half Shift', he: 'חצי משמרת' },
   halfShiftDesc: { en: 'Counts as ½ toward shift limits', he: 'נספרת כ-½ כלפי מגבלות' },
+  half1: { en: '1st Half', he: 'מחצית א׳' },
+  half2: { en: '2nd Half', he: 'מחצית ב׳' },
 };
 
 export function t(key: string, lang: Lang): string {
