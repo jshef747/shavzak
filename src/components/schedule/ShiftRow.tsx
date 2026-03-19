@@ -29,20 +29,50 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
   if (shift.isHalfShift) {
     const midHour = shift.startHour + shift.durationHours / 2;
 
-    // Positions where the same person covers both halves — merge into one rowspan=2 cell.
-    const mergedPositionIds = new Set(
+    // A position needs splitting when: different people in each half, OR only one half is assigned.
+    const splitPositionIds = new Set(
       positions
         .filter(pos => {
           const h1 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
           const h2 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
-          return h1 && h2 && h1.personId === h2.personId;
+          if (!h1 && !h2) return false; // empty — keep merged
+          if (h1 && h2 && h1.personId === h2.personId) return false; // same person both halves — keep merged
+          return true; // one half only, or different people
         })
         .map(pos => pos.id)
     );
 
+    if (splitPositionIds.size === 0) {
+      // All positions are merged — render as a normal single row with full time range.
+      return (
+        <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
+          <td className={`sticky start-0 z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
+            <div>{shift.name}</div>
+            <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
+          </td>
+          {positions.map(pos => {
+            const h1 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
+            const h2 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
+            const displayHalf = (h2 && !h1) ? 2 : 1;
+            return (
+              <AssignmentCell
+                key={pos.id}
+                cell={{ date, shiftId: shift.id, positionId: pos.id, half: displayHalf }}
+                state={state}
+                assignments={assignments}
+                refDate={refDate}
+                homeGroupPeriods={homeGroupPeriods}
+                isHalfShift
+              />
+            );
+          })}
+        </tr>
+      );
+    }
+
+    // Some positions are split — render two rows.
     return (
       <Fragment>
-        {/* First half row */}
         <tr className={`border-b border-gray-100 dark:border-slate-700/60 ${rowBg}`}>
           <td className={`sticky start-0 z-10 px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
             <div>{shift.name}</div>
@@ -56,18 +86,17 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
               assignments={assignments}
               refDate={refDate}
               homeGroupPeriods={homeGroupPeriods}
-              rowSpan={mergedPositionIds.has(pos.id) ? 2 : undefined}
+              rowSpan={!splitPositionIds.has(pos.id) ? 2 : undefined}
             />
           ))}
         </tr>
-        {/* Second half row */}
         <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
           <td className={`sticky start-0 z-10 px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
             <div className="text-gray-400 dark:text-slate-500 text-[10px]">{shift.name}</div>
             <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(midHour)}–{formatShiftTime(endHour)}</div>
           </td>
           {positions.map(pos =>
-            mergedPositionIds.has(pos.id) ? null : (
+            splitPositionIds.has(pos.id) ? (
               <AssignmentCell
                 key={pos.id}
                 cell={{ date, shiftId: shift.id, positionId: pos.id, half: 2 }}
@@ -76,7 +105,7 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
                 refDate={refDate}
                 homeGroupPeriods={homeGroupPeriods}
               />
-            )
+            ) : null
           )}
         </tr>
       </Fragment>

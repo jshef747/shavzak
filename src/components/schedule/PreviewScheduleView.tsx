@@ -10,6 +10,7 @@ interface Props {
   state: AppState;
   dates: string[];
   mergedAssignments: Assignment[];
+  baseAssignments: Assignment[];
   skippedCells: SkippedCell[];
   homeGroupPeriods: HomeGroupPeriod[];
 }
@@ -21,7 +22,7 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export function PreviewScheduleView({ state, dates, mergedAssignments, skippedCells, homeGroupPeriods }: Props) {
+export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssignments, skippedCells, homeGroupPeriods }: Props) {
   if (dates.length === 0) return null;
   const refDate = dates[0];
   const lang = langFromDir(state.dir);
@@ -32,7 +33,7 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, skippedCe
 
   function renderTable(positions: Position[], headerClass: string) {
     return (
-      <table className="border-collapse text-sm min-w-max">
+      <table className="border-collapse text-sm min-w-max border border-slate-200 dark:border-slate-700">
         <thead>
           <tr className={headerClass}>
             <th className="px-3 py-2 text-start  text-xs uppercase tracking-wide min-w-[120px]">
@@ -51,18 +52,20 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, skippedCe
               <tr key={`hdr-${date}`}>
                 <td
                   colSpan={positions.length + 1}
-                  className="px-3 py-2 bg-slate-100 text-sm font-bold text-slate-800 border-t-2 border-slate-400 uppercase tracking-wide"
+                  className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 border-t-2 border-slate-400 dark:border-slate-500 uppercase tracking-wide"
                 >
                   {format(parseISO(date), 'EEE, MMM d', { locale })}
                 </td>
               </tr>
               {state.shifts.map(shift => {
-                const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40' : 'bg-white';
+                const rowBg = dayIndex % 2 === 0
+                  ? 'bg-slate-50/40 dark:bg-slate-800/60'
+                  : 'bg-white dark:bg-slate-800';
                 return (
-                  <tr key={`${date}-${shift.id}`} className={`border-b ${rowBg}`}>
-                    <td className={`px-3 py-2 text-xs text-gray-600 border-e whitespace-nowrap font-medium ${rowBg}`}>
+                  <tr key={`${date}-${shift.id}`} className={`border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
+                    <td className={`px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-slate-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
                       {shift.name}
-                      <div dir="ltr" className="text-gray-400 font-normal">
+                      <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">
                         {formatShiftTime(shift.startHour)}–{formatShiftTime(shift.startHour + shift.durationHours)}
                       </div>
                     </td>
@@ -72,6 +75,7 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, skippedCe
                         cell={{ date, shiftId: shift.id, positionId: pos.id }}
                         state={state}
                         mergedAssignments={mergedAssignments}
+                        baseAssignments={baseAssignments}
                         skippedCells={skippedCells}
                         refDate={refDate}
                         homeGroupPeriods={homeGroupPeriods}

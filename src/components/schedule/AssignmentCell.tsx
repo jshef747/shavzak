@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef } from 'react';
 import type { CSSProperties } from 'react';
 import { useDroppable, useDndContext } from '@dnd-kit/core';
 import type { AppState, Assignment, CellAddress, CellStatus, DragData, HomeGroupPeriod } from '../../types';
@@ -14,11 +14,9 @@ interface Props {
   refDate: string;
   homeGroupPeriods: HomeGroupPeriod[];
   rowSpan?: number;
+  isHalfShift?: boolean;
 }
 
-// Outline colors for each status (used via inline style to avoid border-collapse clipping)
-// Valid cells use no outline — the person color tint is enough distinction.
-// Warning statuses get a 1px outline to flag the issue without overwhelming the cell.
 const STATUS_OUTLINE: Record<CellStatus, string | null> = {
   empty:                  null,
   valid:                  null,
@@ -33,7 +31,7 @@ const STATUS_OUTLINE: Record<CellStatus, string | null> = {
 
 const STATUS_BG: Record<CellStatus, string> = {
   empty:                  'bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-900/20',
-  valid:                  '', // bg applied via inline style (person color)
+  valid:                  '',
   unavailable:            'bg-red-100 dark:bg-red-800/60',
   'home-group':           'bg-blue-100 dark:bg-blue-800/60',
   'double-booked':        'bg-orange-100 dark:bg-orange-800/60',
@@ -47,66 +45,63 @@ const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
 ]);
 
-const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods, rowSpan }: Props) {
+const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods, rowSpan, isHalfShift }: Props) {
   const lang = langFromDir(state.dir);
   const cellKey = serializeCellAddress(cell);
-  const { isOver, setNodeRef } = useDroppable({ id: cellKey });
+  const droppableData = useRef({ isHalfShift: !!isHalfShift });
+  droppableData.current.isHalfShift = !!isHalfShift;
+  const { isOver, setNodeRef } = useDroppable({ id: cellKey, data: droppableData.current });
   const { active } = useDndContext();
 
   const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
-
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
     ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
     : 'empty';
 
-  // Detect drag-over scenario
   let dragOverBg = 'bg-blue-50';
-  let dragOverOutline = '#93c5fd'; // blue-300 — DnD keeps 2px to be clearly visible
+  let dragOverOutline = '#93c5fd';
   let isSwapHover = false;
   if (isOver && active) {
     const dragData = active.data.current as DragData | undefined;
     if (dragData) {
       const isFromCell = dragData.type === 'from-cell' && dragData.sourceCell;
-      isSwapHover = !!(isFromCell && person);
-
+      isSwapHover = !!(isFromCell && person && !isHalfShift);
       if (isSwapHover) {
         dragOverBg = 'bg-blue-100';
-        dragOverOutline = '#3b82f6'; // blue-500
-      } else {
+        dragOverOutline = '#3b82f6';
+      } else if (!isHalfShift) {
         const dragPerson = state.people.find(p => p.id === dragData.personId);
         if (dragPerson) {
           const previewAssignments = isFromCell
-            ? assignments.filter(a => !(
-                a.personId === dragData.personId &&
-                assignmentMatchesCell(a, dragData.sourceCell!)
-              ))
+            ? assignments.filter(a => !(a.personId === dragData.personId && assignmentMatchesCell(a, dragData.sourceCell!)))
             : assignments;
           const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
           if (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break') {
             dragOverBg = 'bg-emerald-100';
-            dragOverOutline = '#10b981'; // emerald-500
+            dragOverOutline = '#10b981';
           } else {
             dragOverBg = 'bg-red-100';
-            dragOverOutline = '#ef4444'; // red-500
+            dragOverOutline = '#ef4444';
           }
         }
+      } else {
+        // half-shift cell hovered — just show a neutral blue highlight
+        dragOverBg = 'bg-blue-100';
+        dragOverOutline = '#3b82f6';
       }
     }
   }
 
   const bgClass = isOver ? dragOverBg : STATUS_BG[status];
   const outlineColor = isOver ? dragOverOutline : STATUS_OUTLINE[status];
-  // For valid cells, tint background with person's color; drag-over and warning statuses use their own bg
   const personCellAlpha = typeof window !== 'undefined'
     ? getComputedStyle(document.documentElement).getPropertyValue('--person-cell-alpha').trim() || '50'
     : '50';
   const cellStyle: CSSProperties = {
     ...((!isOver && status === 'valid' && person) ? { backgroundColor: person.colorHex + personCellAlpha } : {}),
-    ...(outlineColor
-      ? { outline: `${isOver ? '2px' : '1px'} solid ${outlineColor}`, outlineOffset: isOver ? '-2px' : '-1px' }
-      : {}),
+    ...(outlineColor ? { outline: `${isOver ? '2px' : '1px'} solid ${outlineColor}`, outlineOffset: isOver ? '-2px' : '-1px' } : {}),
   };
 
   const statusTooltip: Record<CellStatus, string> = {
@@ -144,7 +139,6 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           variant="cell"
         />
       )}
-
       {isSwapHover && (
         <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -152,13 +146,12 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           </svg>
         </span>
       )}
-
       {warningText && (
-        <span className="absolute top-0.5 end-0.5   z-10 group/info">
+        <span className="absolute top-0.5 end-0.5 z-10 group/info">
           <span className="flex items-center justify-center w-4 h-4 rounded-full bg-white dark:bg-slate-700 border border-gray-300 dark:border-slate-500 text-[10px] font-bold text-gray-500 dark:text-slate-400 cursor-help hover:text-gray-800 dark:hover:text-slate-200 hover:border-gray-500 dark:hover:border-slate-300 transition-colors leading-none select-none">
             i
           </span>
-          <span className="pointer-events-none absolute bottom-full end-0   mb-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 opacity-0 group-hover/info:opacity-100 transition-opacity duration-150 z-50 whitespace-normal leading-snug shadow-xl">
+          <span className="pointer-events-none absolute bottom-full end-0 mb-1.5 w-52 bg-gray-900 text-white text-xs rounded-lg px-2.5 py-2 opacity-0 group-hover/info:opacity-100 transition-opacity duration-150 z-50 whitespace-normal leading-snug shadow-xl">
             {warningText}
           </span>
         </span>
@@ -167,8 +160,8 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   );
 };
 
-// Custom areEqual to prevent massive grid re-renders on every assignment change
 function areEqual(prev: Props, next: Props) {
+  if (prev.isHalfShift !== next.isHalfShift) return false;
   if (prev.state !== next.state) return false;
   if (prev.refDate !== next.refDate) return false;
   if (prev.homeGroupPeriods !== next.homeGroupPeriods) return false;
@@ -179,9 +172,6 @@ function areEqual(prev: Props, next: Props) {
     (prev.cell.half ?? undefined) !== (next.cell.half ?? undefined)
   ) return false;
 
-  // Have assignments changed? We only care if:
-  // 1. The assignment for THIS cell changed
-  // 2. OR the assignments for the person CURRENTLY in this cell changed (which might alter their validity)
   if (prev.assignments === next.assignments) return true;
 
   const getPersonForCell = (assignments: Assignment[]) =>
@@ -189,27 +179,19 @@ function areEqual(prev: Props, next: Props) {
 
   const prevPersonId = getPersonForCell(prev.assignments);
   const nextPersonId = getPersonForCell(next.assignments);
-
-  // Someone was added, removed, or changed in this exact cell
   if (prevPersonId !== nextPersonId) return false;
 
-  // If there's a person in this cell, check if ANY of their other assignments changed
-  // (which could trigger constraint violations like max-per-week or consecutive days)
   if (prevPersonId) {
     const prevPersonAssignments = prev.assignments.filter(a => a.personId === prevPersonId);
     const nextPersonAssignments = next.assignments.filter(a => a.personId === prevPersonId);
-    // Rough check: did the total number of assignments for this person change?
     if (prevPersonAssignments.length !== nextPersonAssignments.length) return false;
-    
-    // Deep check: did the specific dates/shifts change?
     for (let i = 0; i < prevPersonAssignments.length; i++) {
-        const pa = prevPersonAssignments[i];
-        const na = nextPersonAssignments[i];
-        if (pa.date !== na.date || pa.shiftId !== na.shiftId || pa.positionId !== na.positionId) return false;
+      const pa = prevPersonAssignments[i];
+      const na = nextPersonAssignments[i];
+      if (pa.date !== na.date || pa.shiftId !== na.shiftId || pa.positionId !== na.positionId) return false;
     }
   }
 
-  // If this cell is empty, it doesn't care about other people's assignments changing.
   return true;
 }
 

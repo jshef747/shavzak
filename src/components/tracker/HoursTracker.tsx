@@ -25,9 +25,9 @@ export function HoursTracker({ state, assignments }: Props) {
     return { person, shiftHours, onCallHours };
   }).filter(({ shiftHours, onCallHours }) => shiftHours + onCallHours > 0), [state.people, state.shifts, state.positions, assignments]);
 
-  if (hoursPerPerson.length === 0) return null;
-
   const [showLegend, setShowLegend] = useState(false);
+
+  if (hoursPerPerson.length === 0) return null;
 
   return (
     <div className="p-3">

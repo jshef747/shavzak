@@ -4,15 +4,15 @@ import { computeCellStatus, computeConstraintReason } from '../../utils/validati
 import { langFromDir, t } from '../../utils/i18n';
 
 const STATUS_CLASSES: Record<CellStatus, string> = {
-  empty:                  'bg-white border-slate-200',
-  valid:                  'bg-emerald-100 border-emerald-400',
-  unavailable:            'bg-red-100 border-red-500',
-  'home-group':           'bg-blue-100 border-blue-400',
-  'double-booked':        'bg-orange-100 border-orange-500',
-  unqualified:            'bg-yellow-100 border-yellow-500',
-  'insufficient-break':   'bg-sky-100 border-sky-500',
-  'constraint-violation': 'bg-purple-100 border-purple-500',
-  'oncall-short-break':   'bg-orange-50 border-orange-400',
+  empty:                  'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700',
+  valid:                  'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700',
+  unavailable:            'bg-red-50 dark:bg-red-900/30 border-red-400 dark:border-red-700',
+  'home-group':           'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700',
+  'double-booked':        'bg-orange-50 dark:bg-orange-900/30 border-orange-400 dark:border-orange-700',
+  unqualified:            'bg-yellow-50 dark:bg-yellow-900/30 border-yellow-400 dark:border-yellow-700',
+  'insufficient-break':   'bg-sky-50 dark:bg-sky-900/30 border-sky-400 dark:border-sky-700',
+  'constraint-violation': 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 dark:border-purple-700',
+  'oncall-short-break':   'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
@@ -24,12 +24,13 @@ interface Props {
   cell: CellAddress;
   state: AppState;
   mergedAssignments: Assignment[];
+  baseAssignments: Assignment[];
   skippedCells: SkippedCell[];
   refDate: string;
   homeGroupPeriods: HomeGroupPeriod[];
 }
 
-export function PreviewCell({ cell, state, mergedAssignments, skippedCells, refDate, homeGroupPeriods }: Props) {
+export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, skippedCells, refDate, homeGroupPeriods }: Props) {
   const lang = langFromDir(state.dir);
 
   const assignment = mergedAssignments.find(
@@ -40,13 +41,24 @@ export function PreviewCell({ cell, state, mergedAssignments, skippedCells, refD
     s => s.cell.date === cell.date && s.cell.shiftId === cell.shiftId && s.cell.positionId === cell.positionId
   );
 
+  const isExisting = !!assignment && baseAssignments.some(
+    a => a.date === cell.date && a.shiftId === cell.shiftId && a.positionId === cell.positionId && a.personId === assignment.personId
+  );
+
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
     ? computeCellStatus(cell, person.id, mergedAssignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
     : 'empty';
 
-  const colorClass = isSkipped ? 'bg-slate-100 border-slate-300' : STATUS_CLASSES[status];
+  // Existing assignments shown in blue, new in green, warnings in their own color
+  const colorClass = isSkipped
+    ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600'
+    : (status !== 'empty' && WARNING_STATUSES.has(status))
+      ? STATUS_CLASSES[status]
+      : isExisting
+        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+        : STATUS_CLASSES[status];
 
   const statusTooltip: Record<CellStatus, string> = {
     empty:                  '',
@@ -70,11 +82,10 @@ export function PreviewCell({ cell, state, mergedAssignments, skippedCells, refD
     <td className={`relative border px-2 py-1.5 min-w-[120px] h-10 ${colorClass}`}>
       {person && (
         <span
-          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium truncate max-w-full"
+          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold truncate max-w-full"
           style={{
-            backgroundColor: person.colorHex + '33',
-            color: person.colorHex,
-            border: `1px solid ${person.colorHex}`,
+            backgroundColor: person.colorHex,
+            color: '#1e293b',
           }}
         >
           {person.name}

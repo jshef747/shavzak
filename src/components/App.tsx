@@ -166,18 +166,12 @@ export function App() {
 
   function handleOpenAutoAssign() {
     if (!activeSchedule) return;
-    if (activeSchedule.assignments.length > 0) {
-      const totalCells = dates.length * state.shifts.length * state.positions.length;
-      const mode = activeSchedule.assignments.length >= totalCells ? 'full' : 'partial';
-      setAutoAssignResult(null);
-      setAutoAssignReassign(mode);
-      setAutoAssignOpen(true);
-    } else {
-      const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods);
-      setAutoAssignResult(result);
-      setAutoAssignReassign(null);
-      setAutoAssignOpen(true);
-    }
+    // Always run with reassign=false — existing assignments are skipped automatically.
+    // The reassign dialog (clear & redo) is only triggered from the preview modal itself.
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods);
+    setAutoAssignResult(result);
+    setAutoAssignReassign(null);
+    setAutoAssignOpen(true);
   }
 
   function handleConfirmReassign() {
@@ -226,6 +220,7 @@ export function App() {
         onToggleSidebar={() => setSidebarOpen(v => !v)}
         hideSidebar={isMobile}
         onAutoAssign={handleOpenAutoAssign}
+        onClearAssignments={() => clearAndBatchAssign([])}
         onOpenHomePeriods={() => setHomePeriodsOpen(true)}
         onToggleTheme={toggleTheme}
         userEmail={user?.email}

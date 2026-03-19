@@ -32,11 +32,24 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
       ...prev,
       schedules: prev.schedules.map(s => {
         if (s.id !== state.activeScheduleId) return s;
-        return {
-          ...s,
-          assignments: s.assignments.filter(a => !assignmentMatchesCell(a, cell)),
-          updatedAt: now,
-        };
+        // If this is a half-shift cell, also remove the other half for the same person
+        const personId = s.assignments.find(a => assignmentMatchesCell(a, cell))?.personId;
+        const filtered = s.assignments.filter(a => {
+          if (assignmentMatchesCell(a, cell)) return false;
+          // Remove the other half too if same person/date/shift/position
+          if (
+            cell.half !== undefined &&
+            personId &&
+            a.personId === personId &&
+            a.date === cell.date &&
+            a.shiftId === cell.shiftId &&
+            a.positionId === cell.positionId &&
+            a.half !== undefined &&
+            a.half !== cell.half
+          ) return false;
+          return true;
+        });
+        return { ...s, assignments: filtered, updatedAt: now };
       }),
     }));
   }

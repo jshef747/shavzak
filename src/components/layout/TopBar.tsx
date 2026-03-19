@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RefObject } from 'react';
-import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut } from 'lucide-react';
+import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut, Eraser } from 'lucide-react';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
@@ -9,6 +9,7 @@ import { IconButton } from '../ui/IconButton';
 import { NewScheduleModal } from './NewScheduleModal';
 import { QuickStartModal } from './QuickStartModal';
 import { ConfirmDialog } from '../ui/ConfirmDialog';
+import { Modal } from '../ui/Modal';
 
 interface Props {
   state: AppState;
@@ -21,6 +22,7 @@ interface Props {
   onOpenSettings: () => void;
   onToggleSidebar: () => void;
   onAutoAssign: () => void;
+  onClearAssignments: () => void;
   onOpenHomePeriods: () => void;
   onToggleTheme: () => void;
   userEmail?: string;
@@ -39,6 +41,7 @@ export function TopBar({
   onOpenSettings,
   onToggleSidebar,
   onAutoAssign,
+  onClearAssignments,
   onOpenHomePeriods,
   onToggleTheme,
   userEmail,
@@ -49,6 +52,7 @@ export function TopBar({
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const lang = langFromDir(state.dir);
 
   // Auto-show Quick Start on first ever visit (no schedules yet)
@@ -210,11 +214,41 @@ export function TopBar({
         </div>
       </div>
 
+      {/* Schedule actions dialog — delete or clear assignments */}
+      {deleteConfirmOpen && (
+        <Modal open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} title={lang === 'he' ? 'פעולות לוח' : 'Schedule actions'} size="sm">
+          <div className="flex flex-col gap-3 pt-1">
+            <button
+              onClick={() => { setClearConfirmOpen(true); setDeleteConfirmOpen(false); }}
+              className="flex items-start gap-3 w-full text-start p-3 rounded-xl border border-gray-200 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <Eraser className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" strokeWidth={2} />
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-100">{lang === 'he' ? 'נקה שיבוצים' : 'Clear assignments'}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{lang === 'he' ? 'מחק את כל השיבוצים, שמור את הלוח' : 'Remove all assignments, keep the schedule'}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => { if (activeSchedule) { onDeleteSchedule(activeSchedule.id); } setDeleteConfirmOpen(false); }}
+              className="flex items-start gap-3 w-full text-start p-3 rounded-xl border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+            >
+              <Trash2 className="w-5 h-5 text-red-500 shrink-0 mt-0.5" strokeWidth={2} />
+              <div>
+                <p className="text-sm font-semibold text-red-700 dark:text-red-400">{t('deleteSchedule', lang)}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{lang === 'he' ? 'מחק את הלוח לצמיתות' : 'Permanently delete this schedule'}</p>
+              </div>
+            </button>
+            <div className="flex justify-end pt-1 border-t border-gray-100 dark:border-slate-800">
+              <Button variant="secondary" size="sm" onClick={() => setDeleteConfirmOpen(false)}>{t('cancel', lang)}</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
       <ConfirmDialog
-        open={deleteConfirmOpen}
-        message={t('deleteScheduleConfirm', lang)}
-        onConfirm={() => { if (activeSchedule) onDeleteSchedule(activeSchedule.id); setDeleteConfirmOpen(false); }}
-        onCancel={() => setDeleteConfirmOpen(false)}
+        open={clearConfirmOpen}
+        message={lang === 'he' ? 'למחוק את כל השיבוצים בלוח זה?' : 'Clear all assignments in this schedule?'}
+        onConfirm={() => { onClearAssignments(); setClearConfirmOpen(false); }}
+        onCancel={() => setClearConfirmOpen(false)}
         lang={lang}
       />
       <NewScheduleModal
