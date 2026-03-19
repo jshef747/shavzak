@@ -130,6 +130,9 @@ export function autoAssign(
 
   // Process each empty cell.
   for (const cell of emptyCells) {
+    // Re-check occupancy: cell may have been filled while processing its paired half.
+    if (working.some(a => assignmentMatchesCell(a, cell))) continue;
+
     // Step 1: Qualified people for this position (skip anyone marked neverAutoAssign).
     const qualified = people.filter(p => !p.neverAutoAssign && p.qualifiedPositions.includes(cell.positionId));
 
@@ -210,6 +213,21 @@ export function autoAssign(
 
     proposed.push(newAssignment);
     working.push(newAssignment);
+
+    // If we just assigned half=1, try to assign half=2 to the same person
+    // so both halves go to the same person unless constraints prevent it.
+    if (cell.half === 1) {
+      const half2Cell: CellAddress = { date: cell.date, shiftId: cell.shiftId, positionId: cell.positionId, half: 2 };
+      const alreadyFilled = working.some(a => assignmentMatchesCell(a, half2Cell));
+      if (!alreadyFilled) {
+        const status2 = computeCellStatus(half2Cell, chosen.id, working, chosen, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions);
+        if (status2 === 'valid' || status2 === 'oncall-short-break') {
+          const a2: Assignment = { personId: chosen.id, date: cell.date, shiftId: cell.shiftId, positionId: cell.positionId, half: 2 };
+          proposed.push(a2);
+          working.push(a2);
+        }
+      }
+    }
   }
 
   return { proposed, skipped };
