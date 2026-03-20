@@ -39,5 +39,6 @@ export function normalizeState(raw: unknown): AppState {
   merged.dir = 'rtl';
   merged.theme = (['light', 'dark', 'system'] as const).includes(merged.theme as 'light' | 'dark' | 'system') ? merged.theme : 'system';
   merged.minBreakHours = merged.minBreakHours ?? 12;
+  merged.ignoreOnCallConstraints = merged.ignoreOnCallConstraints ?? false;
   return merged;
 }

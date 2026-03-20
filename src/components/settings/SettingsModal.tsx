@@ -18,6 +18,7 @@ interface Props {
   onDeleteShift: (id: string) => void;
   onReorderShifts: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
+  onUpdateIgnoreOnCallConstraints: (value: boolean) => void;
   onAddPosition: (name: string) => void;
   onUpdatePosition: (id: string, name: string) => void;
   onDeletePosition: (id: string) => void;
@@ -84,6 +85,7 @@ export function SettingsModal({
           onDelete={handlers.onDeleteShift}
           onReorder={handlers.onReorderShifts}
           onUpdateMinBreakHours={handlers.onUpdateMinBreakHours}
+          onUpdateIgnoreOnCallConstraints={handlers.onUpdateIgnoreOnCallConstraints}
           shiftSets={shiftSets}
           onAddShiftSet={onAddShiftSet}
           onDeleteShiftSet={onDeleteShiftSet}

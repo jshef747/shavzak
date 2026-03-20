@@ -15,10 +15,11 @@ interface Props {
   baseAssignments: Assignment[];
   homeGroupPeriods: HomeGroupPeriod[];
   onConfirmReassign: () => void;
+  onRequestReassign: (mode: 'partial' | 'full') => void;
   onApply: () => void;
 }
 
-export function AutoAssignModal({ open, onClose, result, reassign, state, dates, baseAssignments, homeGroupPeriods, onConfirmReassign, onApply }: Props) {
+export function AutoAssignModal({ open, onClose, result, reassign, state, dates, baseAssignments, homeGroupPeriods, onConfirmReassign, onRequestReassign, onApply }: Props) {
   const lang = langFromDir(state.dir);
 
   if (!open) return null;
@@ -69,21 +70,38 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
     >
       <div className="space-y-4">
         {nothingNew ? (
-          <div className="text-center py-8 text-slate-500">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-base font-medium">
-              {alreadyAssigned > 0
-                ? (lang === 'he' ? 'אין תאים פנויים לשיבוץ' : 'No empty cells to assign')
-                : (lang === 'he' ? 'כל התאים כבר מאויישים' : 'All cells are already filled')}
-            </p>
-            {alreadyAssigned > 0 && (
-              <p className="text-xs text-slate-400 mt-1">
-                {lang === 'he'
-                  ? `${alreadyAssigned} שיבוצים קיימים לא שונו`
-                  : `${alreadyAssigned} existing assignments were kept`}
+          <div className="text-center py-6 text-slate-500 space-y-4">
+            <div>
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 mx-auto mb-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-base font-medium">
+                {alreadyAssigned > 0
+                  ? (lang === 'he' ? 'אין תאים פנויים לשיבוץ' : 'No empty cells to assign')
+                  : (lang === 'he' ? 'כל התאים כבר מאויישים' : 'All cells are already filled')}
               </p>
+              {alreadyAssigned > 0 && (
+                <p className="text-xs text-slate-400 mt-1">
+                  {lang === 'he'
+                    ? `${alreadyAssigned} שיבוצים קיימים`
+                    : `${alreadyAssigned} existing assignments`}
+                </p>
+              )}
+            </div>
+            {alreadyAssigned > 0 && (
+              <div className="border border-slate-200 dark:border-slate-700 rounded-lg p-4 space-y-2 text-start">
+                <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  {lang === 'he' ? 'שיבוץ מחדש' : 'Reassign'}
+                </p>
+                <div className="flex flex-col gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => onRequestReassign('partial')}>
+                    {lang === 'he' ? 'מלא תאים ריקים בלבד (החלף חלקית)' : 'Fill gaps only (partial reassign)'}
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => onRequestReassign('full')}>
+                    {lang === 'he' ? 'נקה הכל ושבץ מחדש' : 'Clear all & reassign from scratch'}
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         ) : (
@@ -129,15 +147,24 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
         )}
 
         {/* Footer actions */}
-        <div className="flex justify-end gap-2 pt-2 border-t">
-          <Button variant="secondary" size="sm" onClick={onClose}>
-            {t('cancel', lang)}
-          </Button>
-          {proposed.length > 0 && (
-            <Button variant="primary" size="sm" onClick={handleApply}>
-              {t('autoAssignApply', lang)} ({proposed.length})
+        <div className="flex justify-between gap-2 pt-2 border-t">
+          <div className="flex gap-2">
+            {!nothingNew && !reassign && alreadyAssigned > 0 && (
+              <Button variant="danger" size="sm" onClick={() => onRequestReassign('full')}>
+                {lang === 'he' ? 'שבץ מחדש' : 'Reassign all'}
+              </Button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={onClose}>
+              {t('cancel', lang)}
             </Button>
-          )}
+            {proposed.length > 0 && (
+              <Button variant="primary" size="sm" onClick={handleApply}>
+                {t('autoAssignApply', lang)} ({proposed.length})
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </Modal>

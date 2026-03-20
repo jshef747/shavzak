@@ -101,9 +101,16 @@ export function computeCellStatus(
   homeGroups: HomeGroup[] = [],
   homeGroupPeriods: HomeGroupPeriod[] = [],
   positions: Position[] = [],
+  ignoreOnCallConstraints = false,
 ): CellStatus {
   const targetShift = shifts.find(s => s.id === cell.shiftId);
   if (!targetShift) return 'empty';
+
+  const targetPosition = positions.find(p => p.id === cell.positionId);
+  const isOnCallCell = targetPosition?.isOnCall ?? false;
+  // When ignoreOnCallConstraints is on, unavailability and shift constraints are bypassed
+  // for on-call cells, but home group and double-booking are always enforced.
+  const bypassSoft = ignoreOnCallConstraints && isOnCallCell;
 
   const personAssignments = assignments.filter(a => a.personId === personId);
 
@@ -114,28 +121,30 @@ export function computeCellStatus(
   );
   if (doubleBooked) return 'double-booked';
 
-  // 2. Unavailable — entry with matching half (or no half = whole shift blocked)
-  const unavailable = person.unavailability.some(u => {
-    if (u.date !== cell.date || u.shiftId !== cell.shiftId) return false;
-    if (cell.half === undefined) return u.half === undefined;
-    return u.half === cell.half || u.half === undefined;
-  });
-  if (unavailable) return 'unavailable';
+  // 2. Unavailable — always respected; bypass only when ignoreOnCallConstraints is on
+  if (!bypassSoft) {
+    const unavailable = person.unavailability.some(u => {
+      if (u.date !== cell.date || u.shiftId !== cell.shiftId) return false;
+      if (cell.half === undefined) return u.half === undefined;
+      return u.half === cell.half || u.half === undefined;
+    });
+    if (unavailable) return 'unavailable';
+  }
 
-  // 2b. Home group
+  // 2b. Home group — always respected regardless of toggle
   if (isHomeGroupBlocked(cell.date, targetShift, person.homeGroupIds ?? [], homeGroups, homeGroupPeriods)) {
     return 'home-group';
   }
 
-  // 3. Unqualified
-  if (!person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';
+  // 3. Unqualified — bypassed for on-call when toggle is on
+  if (!bypassSoft && !person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';
 
   // 4. Insufficient break
   const targetStart = shiftStartMins(cell.date, targetShift, refDate, cell.half);
   const targetEnd = shiftEndMins(cell.date, targetShift, refDate, cell.half);
-  const targetPosition = positions.find(p => p.id === cell.positionId);
 
   let shortBreakOnCall = false; // tracks if we hit an on-call reduced-break situation
+  let breakOverride = false;    // tracks break violation bypassed by ignoreOnCallConstraints
 
   for (const a of personAssignments) {
     // Skip any assignment to the same shift on the same date — both halves form
@@ -149,26 +158,29 @@ export function computeCellStatus(
     // gap between the two shifts (negative means overlap)
     const gap = Math.max(targetStart - existingEnd, existingStart - targetEnd);
     if (gap < minBreakHours * 60) {
-      // Check if both positions are on-call — allows reduced break threshold
       const existingPosition = positions.find(p => p.id === a.positionId);
       if (targetPosition?.isOnCall && existingPosition?.isOnCall) {
         // On-call: consecutive shifts (gap ≥ 0) are allowed with a warning.
         // Only an actual time overlap (gap < 0) is a hard block.
         if (gap >= 0) {
-          shortBreakOnCall = true; // flag it but continue checking other assignments
+          shortBreakOnCall = true;
         } else {
-          return 'insufficient-break'; // actual time overlap — hard block
+          return 'insufficient-break'; // actual overlap — hard block even with toggle
         }
+      } else if (bypassSoft && gap >= 0) {
+        // Break violation on on-call cell with toggle on: allowed as last resort with override warning
+        breakOverride = true;
       } else {
-        return 'insufficient-break'; // regular position: strict break required
+        return 'insufficient-break';
       }
     }
   }
 
   if (shortBreakOnCall) return 'oncall-short-break';
+  if (breakOverride) return 'oncall-override';
 
-  // 5. Repeating constraint violation
-  if (person.constraints) {
+  // 5. Repeating constraint violation — bypassed for on-call when toggle is on
+  if (!bypassSoft && person.constraints) {
     const c = person.constraints;
 
     // 5a. Allowed shifts
@@ -254,6 +266,55 @@ export function computeCellStatus(
         }
       }
     }
+  } else if (bypassSoft && person.constraints) {
+    // Constraints exist but are being bypassed — flag with override warning
+    const c = person.constraints;
+    const wouldViolate =
+      (c.allowedShiftIds?.length && !c.allowedShiftIds.includes(cell.shiftId)) ||
+      (c.blockedShiftIds?.length && c.blockedShiftIds.includes(cell.shiftId)) ||
+      (c.allowedDaysOfWeek?.length && !c.allowedDaysOfWeek.includes(getDay(parseISO(cell.date)) as DayOfWeek)) ||
+      (c.blockedDaysOfWeek?.length && c.blockedDaysOfWeek.includes(getDay(parseISO(cell.date)) as DayOfWeek)) ||
+      (() => {
+        if (c.maxShiftsPerWeek == null) return false;
+        const cellDate = parseISO(cell.date);
+        const weekLoad = personAssignments
+          .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId) && Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7)
+          .reduce((sum, a) => { const s = shifts.find(sh => sh.id === a.shiftId); return sum + (s ? shiftWeight(s) : 1); }, 0) + shiftWeight(targetShift);
+        return weekLoad > c.maxShiftsPerWeek;
+      })() ||
+      (() => {
+        if (c.maxShiftsTotal == null) return false;
+        const totalLoad = personAssignments.filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
+          .reduce((sum, a) => { const s = shifts.find(sh => sh.id === a.shiftId); return sum + (s ? shiftWeight(s) : 1); }, 0) + shiftWeight(targetShift);
+        return totalLoad > c.maxShiftsTotal;
+      })() ||
+      (() => {
+        if (c.maxConsecutiveDays == null) return false;
+        const cellDate = parseISO(cell.date);
+        const assignedDateSet = new Set(personAssignments.filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId)).map(a => a.date));
+        assignedDateSet.add(cell.date);
+        return countConsecutiveStreak(cellDate, assignedDateSet) > c.maxConsecutiveDays;
+      })() ||
+      (() => {
+        if (c.minRestDays == null) return false;
+        const cellDate = parseISO(cell.date);
+        return personAssignments.some(a => {
+          if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
+          const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
+          return gap > 0 && gap <= c.minRestDays!;
+        });
+      })();
+    if (wouldViolate) return 'oncall-override';
+  }
+
+  // Also mark as override if unavailability was bypassed
+  if (bypassSoft) {
+    const unavailable = person.unavailability.some(u => {
+      if (u.date !== cell.date || u.shiftId !== cell.shiftId) return false;
+      if (cell.half === undefined) return u.half === undefined;
+      return u.half === cell.half || u.half === undefined;
+    });
+    if (unavailable) return 'oncall-override';
   }
 
   return 'valid';

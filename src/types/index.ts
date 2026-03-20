@@ -76,7 +76,7 @@ export interface DragData {
 export type CellStatus =
   | 'empty' | 'valid' | 'unavailable' | 'home-group'
   | 'double-booked' | 'unqualified' | 'insufficient-break'
-  | 'constraint-violation' | 'oncall-short-break';
+  | 'constraint-violation' | 'oncall-short-break' | 'oncall-override';
 
 export interface AppState {
   shifts: Shift[];
@@ -89,4 +89,5 @@ export interface AppState {
   dir: 'ltr' | 'rtl';
   theme: 'light' | 'dark' | 'system';
   minBreakHours: number;
+  ignoreOnCallConstraints: boolean;
 }

@@ -49,7 +49,7 @@ export function App() {
     updateNeverAutoAssign,
   } = usePeople(state, setState);
   const { assign, unassign, moveAssignment, swapAssignments, batchAssign, clearAndBatchAssign, assignments } = useAssignments(state, setState);
-  const { addHomeGroup, updateHomeGroup, deleteHomeGroup, togglePersonHomeGroup, addHomeGroupPeriod, deleteHomeGroupPeriod } = useHomeGroups(state, setState);
+  const { addHomeGroup, updateHomeGroup, deleteHomeGroup, togglePersonHomeGroup, addHomeGroupPeriod, updateHomeGroupPeriod, deleteHomeGroupPeriod, reorderHomeGroupPeriods } = useHomeGroups(state, setState);
   const dates = useDateRange(activeSchedule?.startDate ?? null, activeSchedule?.endDate ?? null);
   const printRef = useRef<HTMLDivElement>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -159,6 +159,10 @@ export function App() {
     setState(prev => ({ ...prev, minBreakHours: hours }));
   }
 
+  function updateIgnoreOnCallConstraints(value: boolean) {
+    setState(prev => ({ ...prev, ignoreOnCallConstraints: value }));
+  }
+
   function openSettings(tab?: string) {
     setSettingsInitialTab(tab);
     setSettingsOpen(true);
@@ -168,7 +172,7 @@ export function App() {
     if (!activeSchedule) return;
     // Always run with reassign=false — existing assignments are skipped automatically.
     // The reassign dialog (clear & redo) is only triggered from the preview modal itself.
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods, state.ignoreOnCallConstraints);
     setAutoAssignResult(result);
     setAutoAssignReassign(null);
     setAutoAssignOpen(true);
@@ -176,7 +180,7 @@ export function App() {
 
   function handleConfirmReassign() {
     if (!activeSchedule) return;
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods, state.ignoreOnCallConstraints);
     setAutoAssignResult(result);
   }
 
@@ -349,6 +353,7 @@ export function App() {
         onDeleteShift={deleteShift}
         onReorderShifts={reorderShifts}
         onUpdateMinBreakHours={updateMinBreakHours}
+        onUpdateIgnoreOnCallConstraints={updateIgnoreOnCallConstraints}
         onAddPosition={addPosition}
         onUpdatePosition={updatePosition}
         onDeletePosition={deletePosition}
@@ -433,6 +438,7 @@ export function App() {
         baseAssignments={activeSchedule?.assignments ?? []}
         homeGroupPeriods={homeGroupPeriods}
         onConfirmReassign={handleConfirmReassign}
+        onRequestReassign={(mode) => { setAutoAssignReassign(mode); setAutoAssignResult(null); }}
         onApply={handleApplyAutoAssign}
       />
 
@@ -442,7 +448,9 @@ export function App() {
           onClose={() => setHomePeriodsOpen(false)}
           state={state}
           onAddPeriod={addHomeGroupPeriod}
+          onUpdatePeriod={updateHomeGroupPeriod}
           onDeletePeriod={deleteHomeGroupPeriod}
+          onReorderPeriods={reorderHomeGroupPeriods}
         />
       )}
 

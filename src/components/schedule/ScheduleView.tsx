@@ -64,7 +64,7 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
           {regularPositions.length > 0 && renderTable(regularPositions, 'bg-gray-50/80 dark:bg-slate-800/80 text-gray-600 dark:text-slate-300')}
           {onCallPositions.length > 0  && renderTable(onCallPositions,  'bg-orange-50/80 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400')}
         </div>
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden ring-1 ring-black/[0.02]">
+        <div className="w-fit bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 ring-1 ring-black/[0.02]">
           <HomeGroupsSection
             state={state}
             dates={dates}

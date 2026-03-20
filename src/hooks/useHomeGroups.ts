@@ -52,11 +52,29 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     }));
   }
 
+  function updateHomeGroupPeriod(periodId: string, startDate: string, endDate: string) {
+    setState(prev => ({
+      ...prev,
+      homeGroupPeriods: (prev.homeGroupPeriods ?? []).map(p =>
+        p.id === periodId ? { ...p, startDate, endDate } : p
+      ),
+    }));
+  }
+
   function deleteHomeGroupPeriod(periodId: string) {
     setState(prev => ({
       ...prev,
       homeGroupPeriods: (prev.homeGroupPeriods ?? []).filter(p => p.id !== periodId),
     }));
+  }
+
+  function reorderHomeGroupPeriods(orderedIds: string[]) {
+    setState(prev => {
+      const periods = prev.homeGroupPeriods ?? [];
+      const sorted = orderedIds.map(id => periods.find(p => p.id === id)).filter(Boolean) as HomeGroupPeriod[];
+      const rest = periods.filter(p => !orderedIds.includes(p.id));
+      return { ...prev, homeGroupPeriods: [...sorted, ...rest] };
+    });
   }
 
   return {
@@ -65,6 +83,8 @@ export function useHomeGroups(_state: AppState, setState: Dispatch<SetStateActio
     deleteHomeGroup,
     togglePersonHomeGroup,
     addHomeGroupPeriod,
+    updateHomeGroupPeriod,
     deleteHomeGroupPeriod,
+    reorderHomeGroupPeriods,
   };
 }

@@ -20,4 +20,5 @@ export const INITIAL_STATE: AppState = {
   dir: 'rtl',
   theme: 'system',
   minBreakHours: 12,
+  ignoreOnCallConstraints: false,
 };

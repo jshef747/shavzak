@@ -27,6 +27,7 @@ const STATUS_OUTLINE: Record<CellStatus, string | null> = {
   'insufficient-break':   '#38bdf8',
   'constraint-violation': '#a855f7',
   'oncall-short-break':   '#fb923c',
+  'oncall-override':      '#65a30d',
 };
 
 const STATUS_BG: Record<CellStatus, string> = {
@@ -39,10 +40,11 @@ const STATUS_BG: Record<CellStatus, string> = {
   'insufficient-break':   'bg-sky-100 dark:bg-sky-800/60',
   'constraint-violation': 'bg-purple-100 dark:bg-purple-800/60',
   'oncall-short-break':   'bg-orange-50 dark:bg-orange-800/50',
+  'oncall-override':      'bg-lime-100 dark:bg-lime-800/50',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
-  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break',
+  'unavailable', 'home-group', 'double-booked', 'unqualified', 'insufficient-break', 'constraint-violation', 'oncall-short-break', 'oncall-override',
 ]);
 
 const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, refDate, homeGroupPeriods, rowSpan, isHalfShift }: Props) {
@@ -57,7 +59,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
-    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
+    ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions, state.ignoreOnCallConstraints)
     : 'empty';
 
   let dragOverBg = 'bg-blue-50';
@@ -77,8 +79,8 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           const previewAssignments = isFromCell
             ? assignments.filter(a => !(a.personId === dragData.personId && assignmentMatchesCell(a, dragData.sourceCell!)))
             : assignments;
-          const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions);
-          if (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break') {
+          const previewStatus = computeCellStatus(cell, dragPerson.id, previewAssignments, dragPerson, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions, state.ignoreOnCallConstraints);
+          if (previewStatus === 'valid' || previewStatus === 'empty' || previewStatus === 'oncall-short-break' || previewStatus === 'oncall-override') {
             dragOverBg = 'bg-emerald-100';
             dragOverOutline = '#10b981';
           } else {
@@ -114,6 +116,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
     'insufficient-break': t('tooltipBreak', lang),
     'constraint-violation': t('tooltipConstraint', lang),
     'oncall-short-break': t('tooltipOncallShortBreak', lang),
+    'oncall-override': t('tooltipOncallOverride', lang),
   };
 
   const warningText = person && WARNING_STATUSES.has(status)

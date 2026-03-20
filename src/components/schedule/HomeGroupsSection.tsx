@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Users } from 'lucide-react';
+import { eachDayOfInterval, parseISO, format, max, min } from 'date-fns';
 import type { AppState, HomeGroup, HomeGroupPeriod, Shift } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { isHomeGroupBlocked } from '../../utils/validation';
@@ -48,19 +49,32 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
 
   if (activeGroups.length === 0) return null;
 
+  // Extend the date range to cover any home group periods that go beyond the schedule end date
+  const extendedDates = useMemo(() => {
+    if (dates.length === 0) return dates;
+    const scheduleStart = parseISO(dates[0]);
+    const scheduleEnd = parseISO(dates[dates.length - 1]);
+    const periodDates = homeGroupPeriods.flatMap(p => [parseISO(p.startDate), parseISO(p.endDate)]);
+    if (periodDates.length === 0) return dates;
+    const rangeStart = min([scheduleStart, ...periodDates]);
+    const rangeEnd = max([scheduleEnd, ...periodDates]);
+    if (rangeStart >= scheduleStart && rangeEnd <= scheduleEnd) return dates;
+    return eachDayOfInterval({ start: rangeStart, end: rangeEnd }).map(d => format(d, 'yyyy-MM-dd'));
+  }, [dates, homeGroupPeriods]);
+
   return (
     <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
       <div className="overflow-x-auto">
-        <table className="border-collapse text-sm min-w-max w-full">
+        <table className="border-collapse text-xs">
           <thead>
             <tr className="bg-blue-700 dark:bg-blue-900 text-white">
-              <th className="sticky start-0 z-20 bg-blue-700 dark:bg-blue-900 px-4 py-2.5 text-start text-xs font-semibold uppercase tracking-wide min-w-[160px]">
+              <th className="sticky start-0 z-20 bg-blue-700 dark:bg-blue-900 px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide w-28 shrink-0">
                 {t('homeGroupsSection', lang)}
               </th>
-              {dates.map(date => {
+              {extendedDates.map(date => {
                 const d = new Date(date + 'T12:00:00');
                 return (
-                  <th key={date} className="px-3 py-2.5 text-center text-xs font-semibold min-w-[100px]">
+                  <th key={date} className="px-2 py-2 text-center text-xs font-semibold whitespace-nowrap">
                     {d.getDate()}/{d.getMonth() + 1}
                   </th>
                 );
@@ -79,13 +93,13 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
               return (
                 <>
                   <tr key={group.id} className={`border-b border-slate-100 dark:border-slate-700/60 ${rowBg}`}>
-                    <td className={`sticky start-0 z-10 px-4 py-2.5 border-e border-slate-100 dark:border-slate-700/60 min-w-[160px] ${rowBg}`}>
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{group.name}</span>
+                    <td className={`sticky start-0 z-10 px-3 py-1.5 border-e border-slate-100 dark:border-slate-700/60 ${rowBg}`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{group.name}</span>
                         <button
                           onClick={() => setExpandedGroupId(isExpanded ? null : group.id)}
                           title={lang === 'he' ? 'הצג חברים' : 'Show members'}
-                          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors duration-150 shrink-0 ${
+                          className={`inline-flex items-center gap-1 px-1 py-0.5 rounded text-[10px] font-medium transition-colors duration-150 shrink-0 ${
                             isExpanded
                               ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
                               : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
@@ -96,7 +110,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                         </button>
                       </div>
                     </td>
-                    {dates.map(date => {
+                    {extendedDates.map(date => {
                       const status = getGroupDayStatus(date, group.id, state.homeGroups, homeGroupPeriods, state.shifts);
 
                       let cellClass = '';
@@ -123,11 +137,11 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                       return (
                         <td
                           key={date}
-                          className={`border-e border-slate-100 dark:border-slate-700/60 px-2 py-2.5 min-w-[100px] h-9 text-center ${cellClass}`}
+                          className={`border-e border-slate-100 dark:border-slate-700/60 px-2 py-1.5 h-7 text-center whitespace-nowrap ${cellClass}`}
                           title={title || undefined}
                         >
                           {label && (
-                            <span className="text-[10px] text-blue-600 dark:text-blue-300 font-semibold">
+                            <span className="text-[10px] text-blue-600 dark:text-blue-300 font-semibold leading-none">
                               {label}
                             </span>
                           )}
@@ -137,7 +151,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                   </tr>
                   {isExpanded && (
                     <tr key={`${group.id}-members`} className="bg-blue-50 dark:bg-blue-950/30 border-b border-slate-100 dark:border-slate-700/60">
-                      <td colSpan={dates.length + 1} className="px-4 py-2.5">
+                      <td colSpan={extendedDates.length + 1} className="px-4 py-2.5">
                         {members.length === 0 ? (
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
                             {lang === 'he' ? 'אין חברים בקבוצה' : 'No members in this group'}

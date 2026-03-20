@@ -19,11 +19,26 @@ export interface AutoAssignResult {
   skipped: SkippedCell[];
 }
 
-/** Returns the number of on-call assignments a person has in the given list. */
-function onCallCount(personId: string, assignments: Assignment[], positions: Position[]): number {
-  return assignments.filter(
-    a => a.personId === personId && (positions.find(p => p.id === a.positionId)?.isOnCall ?? false)
-  ).length;
+/** Returns total hours of on-call assignments for a person. */
+function onCallHours(personId: string, assignments: Assignment[], positions: Position[], shifts: Shift[]): number {
+  return assignments
+    .filter(a => a.personId === personId && (positions.find(p => p.id === a.positionId)?.isOnCall ?? false))
+    .reduce((sum, a) => {
+      const shift = shifts.find(s => s.id === a.shiftId);
+      if (!shift) return sum;
+      return sum + (a.half !== undefined ? shift.durationHours / 2 : shift.durationHours);
+    }, 0);
+}
+
+/** Returns total hours of regular (non-on-call) assignments for a person. */
+function regularHours(personId: string, assignments: Assignment[], positions: Position[], shifts: Shift[]): number {
+  return assignments
+    .filter(a => a.personId === personId && !(positions.find(p => p.id === a.positionId)?.isOnCall ?? false))
+    .reduce((sum, a) => {
+      const shift = shifts.find(s => s.id === a.shiftId);
+      if (!shift) return sum;
+      return sum + (a.half !== undefined ? shift.durationHours / 2 : shift.durationHours);
+    }, 0);
 }
 
 /** Returns total shift hours a person has in the given assignments array.
@@ -67,6 +82,7 @@ export function autoAssign(
   homeGroups: HomeGroup[] = [],
   reassign = false,
   homeGroupPeriods: HomeGroupPeriod[] = [],
+  ignoreOnCallConstraints = false,
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
@@ -93,7 +109,9 @@ export function autoAssign(
 
   // Build sorted list of all empty cells: date × shift × position.
   // Full-shift cells come first; half-shift cells (half=1 and half=2) come last.
-  // Within each group, sort chronologically so earlier slots are filled first.
+  // Within each group, interleave by date round-robin (slot 0 of all dates, then
+  // slot 1 of all dates, …) so the load spreads evenly across the schedule rather
+  // than front-loading the first days.
   const sortedShifts = [...shifts].sort((a, b) => {
     // treat night shifts (startHour < 6) as occurring after midnight
     const ha = a.startHour < 6 ? a.startHour + 24 : a.startHour;
@@ -101,10 +119,13 @@ export function autoAssign(
     return ha - hb;
   });
 
-  const fullCells: CellAddress[] = [];
-  const halfCells: CellAddress[] = [];
+  // Build per-date slot lists first, then interleave across dates.
+  type SlotList = CellAddress[];
+  const fullByDate: SlotList[] = dates.map(() => []);
+  const halfByDate: SlotList[] = dates.map(() => []);
 
-  for (const date of dates) {
+  for (let di = 0; di < dates.length; di++) {
+    const date = dates[di];
     for (const shift of sortedShifts) {
       const halves: Array<1 | 2 | undefined> = shift.isHalfShift ? [1, 2] : [undefined];
       for (const half of halves) {
@@ -117,16 +138,28 @@ export function autoAssign(
           };
           const occupied = working.some(a => assignmentMatchesCell(a, cell));
           if (!occupied) {
-            if (half !== undefined) halfCells.push(cell);
-            else fullCells.push(cell);
+            if (half !== undefined) halfByDate[di].push(cell);
+            else fullByDate[di].push(cell);
           }
         }
       }
     }
   }
 
-  // Full shifts first, then half shifts
-  const emptyCells = [...fullCells, ...halfCells];
+  // Interleave: take slot[i] from each date before moving to slot[i+1]
+  function interleave(byDate: SlotList[]): CellAddress[] {
+    const result: CellAddress[] = [];
+    const maxLen = Math.max(0, ...byDate.map(d => d.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const slots of byDate) {
+        if (i < slots.length) result.push(slots[i]);
+      }
+    }
+    return result;
+  }
+
+  // Full shifts first (interleaved), then half shifts (interleaved)
+  const emptyCells = [...interleave(fullByDate), ...interleave(halfByDate)];
 
   // Process each empty cell.
   for (const cell of emptyCells) {
@@ -144,18 +177,17 @@ export function autoAssign(
     // Step 2: Check each qualified person's status.
     const statuses = qualified.map(person => ({
       person,
-      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions),
+      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints),
     }));
 
     const valid = statuses.filter(s => s.status === 'valid');
-    // On-call short-break candidates are allowed but only used as a last resort
     const oncallWarn = statuses.filter(s => s.status === 'oncall-short-break');
-    // Constraint-violated persons allowed as final fallback only for on-call positions
     const isOnCallPosition = positions.find(p => p.id === cell.positionId)?.isOnCall ?? false;
-    const constraintFallback = (valid.length === 0 && oncallWarn.length === 0 && isOnCallPosition)
-      ? statuses.filter(s => s.status === 'constraint-violation')
+    // oncall-override: constraints bypassed by ignoreOnCallConstraints toggle — last resort
+    const oncallOverride = (valid.length === 0 && oncallWarn.length === 0 && isOnCallPosition)
+      ? statuses.filter(s => s.status === 'oncall-override')
       : [];
-    const candidates = valid.length > 0 ? valid : oncallWarn.length > 0 ? oncallWarn : constraintFallback;
+    const candidates = valid.length > 0 ? valid : oncallWarn.length > 0 ? oncallWarn : oncallOverride;
 
     if (candidates.length === 0) {
       // Determine the dominant reason for skipping.
@@ -178,24 +210,31 @@ export function autoAssign(
 
     // Step 3: Sort candidates by priority:
     //   1. forceMinimum persons first (higher duty priority tier)
-    //   2. On-call interleave (count-based)
-    //   3. Total assigned hours (asc) — load balancing
+    //   2. Primary hours for this cell type (asc) — balance on-call vs regular separately
+    //   3. Total hours normalized by number of qualified positions (asc) — fair share load
     //   4. Times assigned to THIS specific position (asc) — rotation across positions
     //   5. Random — avoids alphabetical bias
-    const cellIsOnCall = isOnCallPosition;
     const withRand = candidates.map(c => ({ ...c, rand: Math.random() }));
     withRand.sort((a, b) => {
       const fA = a.person.forceMinimum ? 0 : 1;
       const fB = b.person.forceMinimum ? 0 : 1;
       if (fA !== fB) return fA - fB;
-      const ocA = onCallCount(a.person.id, working, positions);
-      const ocB = onCallCount(b.person.id, working, positions);
-      if (ocA !== ocB) {
-        return cellIsOnCall ? ocA - ocB : ocB - ocA;
-      }
-      const hoursA = totalHours(a.person.id, working, shifts);
-      const hoursB = totalHours(b.person.id, working, shifts);
-      if (hoursA !== hoursB) return hoursA - hoursB;
+      // Balance by the relevant hour type first: on-call hours for on-call cells,
+      // regular hours for regular cells. This prevents stacking one type on the same person.
+      const primaryA = isOnCallPosition
+        ? onCallHours(a.person.id, working, positions, shifts)
+        : regularHours(a.person.id, working, positions, shifts);
+      const primaryB = isOnCallPosition
+        ? onCallHours(b.person.id, working, positions, shifts)
+        : regularHours(b.person.id, working, positions, shifts);
+      if (Math.abs(primaryA - primaryB) > 0.01) return primaryA - primaryB;
+      // Normalize total hours by number of positions the person qualifies for,
+      // so people with fewer qualified positions aren't unfairly over-assigned.
+      const qualA = Math.max(1, a.person.qualifiedPositions.length);
+      const qualB = Math.max(1, b.person.qualifiedPositions.length);
+      const normA = totalHours(a.person.id, working, shifts) / qualA;
+      const normB = totalHours(b.person.id, working, shifts) / qualB;
+      if (Math.abs(normA - normB) > 0.01) return normA - normB;
       const posA = positionCount(a.person.id, cell.positionId, working);
       const posB = positionCount(b.person.id, cell.positionId, working);
       if (posA !== posB) return posA - posB;
@@ -220,8 +259,8 @@ export function autoAssign(
       const half2Cell: CellAddress = { date: cell.date, shiftId: cell.shiftId, positionId: cell.positionId, half: 2 };
       const alreadyFilled = working.some(a => assignmentMatchesCell(a, half2Cell));
       if (!alreadyFilled) {
-        const status2 = computeCellStatus(half2Cell, chosen.id, working, chosen, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions);
-        if (status2 === 'valid' || status2 === 'oncall-short-break') {
+        const status2 = computeCellStatus(half2Cell, chosen.id, working, chosen, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints);
+        if (status2 === 'valid' || status2 === 'oncall-short-break' || status2 === 'oncall-override') {
           const a2: Assignment = { personId: chosen.id, date: cell.date, shiftId: cell.shiftId, positionId: cell.positionId, half: 2 };
           proposed.push(a2);
           working.push(a2);

@@ -13,11 +13,12 @@ const STATUS_CLASSES: Record<CellStatus, string> = {
   'insufficient-break':   'bg-sky-50 dark:bg-sky-900/30 border-sky-400 dark:border-sky-700',
   'constraint-violation': 'bg-purple-50 dark:bg-purple-900/30 border-purple-400 dark:border-purple-700',
   'oncall-short-break':   'bg-orange-50 dark:bg-orange-900/20 border-orange-300 dark:border-orange-700',
+  'oncall-override':      'bg-lime-50 dark:bg-lime-900/20 border-lime-400 dark:border-lime-700',
 };
 
 const WARNING_STATUSES: Set<CellStatus> = new Set([
   'unavailable', 'home-group', 'double-booked', 'unqualified',
-  'insufficient-break', 'constraint-violation', 'oncall-short-break',
+  'insufficient-break', 'constraint-violation', 'oncall-short-break', 'oncall-override',
 ]);
 
 interface Props {
@@ -48,7 +49,7 @@ export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, s
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
 
   const status: CellStatus = person
-    ? computeCellStatus(cell, person.id, mergedAssignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
+    ? computeCellStatus(cell, person.id, mergedAssignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions, state.ignoreOnCallConstraints)
     : 'empty';
 
   // Existing assignments shown in blue, new in green, warnings in their own color
@@ -70,6 +71,7 @@ export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, s
     'insufficient-break':   t('tooltipBreak', lang),
     'constraint-violation': t('tooltipConstraint', lang),
     'oncall-short-break':   t('tooltipOncallShortBreak', lang),
+    'oncall-override':      t('tooltipOncallOverride', lang),
   };
 
   const warningText = person && WARNING_STATUSES.has(status)

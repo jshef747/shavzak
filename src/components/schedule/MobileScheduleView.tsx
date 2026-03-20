@@ -27,11 +27,13 @@ const STATUS_OUTLINE: Record<CellStatus, string | null> = {
   'insufficient-break':   '#0ea5e9', // Sky-500
   'constraint-violation': '#a855f7', // Purple-500
   'oncall-short-break':   null,
+  'oncall-override':      '#65a30d',
 };
 
 const STATUS_SORT_ORDER: Record<CellStatus, number> = {
   valid: 0,
   'oncall-short-break': 1,
+  'oncall-override': 1,
   'insufficient-break': 2,
   'home-group': 3,
   unavailable: 4,
@@ -104,7 +106,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
         const status = computeCellStatus(
           cell, person.id, previewAssignments, person,
           state.shifts, refDate, state.minBreakHours,
-          state.homeGroups, homeGroupPeriods, state.positions
+          state.homeGroups, homeGroupPeriods, state.positions, state.ignoreOnCallConstraints
         );
         return { person, status };
       })
@@ -139,7 +141,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
     const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
     const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
     const status: CellStatus = person
-      ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions)
+      ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions, state.ignoreOnCallConstraints)
       : 'empty';
 
     const outlineColor = STATUS_OUTLINE[status];
@@ -351,6 +353,7 @@ export function MobileScheduleView({ state, dates, assignments, homeGroupPeriods
                 unqualified:            t('tooltipUnqualified', lang),
                 'insufficient-break':   t('tooltipBreak', lang),
                 'oncall-short-break':   t('tooltipOncallShortBreak', lang),
+                'oncall-override':      t('tooltipOncallOverride', lang),
                 'constraint-violation': status === 'constraint-violation'
                   ? (computeConstraintReason(activeCell!.cell, person.id, assignments, person, state.shifts, lang) ?? t('tooltipConstraint', lang))
                   : '',

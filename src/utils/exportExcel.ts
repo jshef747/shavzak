@@ -111,23 +111,77 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
     // Shift rows
     for (const shift of shifts) {
       const endHour = shift.startHour + shift.durationHours;
-      const shiftLabel = `${shift.name}\n${formatTime(shift.startHour)}–${formatTime(endHour)}`;
-      ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex('shift') })] = cell(shiftLabel, styleShiftLabel(isRtl));
 
-      for (let ci = 0; ci < positions.length; ci++) {
-        const pos = positions[ci];
-        const assignment = assignments.find(
-          a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id
-        );
-        if (assignment) {
-          const person = people.find(p => p.id === assignment.personId);
-          const name = person?.name ?? '';
-          ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(name, personStyle(person?.colorHex ?? '#e2e8f0'));
-        } else {
-          ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
+      if (shift.isHalfShift) {
+        const halfDur = shift.durationHours / 2;
+        const half1Label = `${shift.name} (½א)\n${formatTime(shift.startHour)}–${formatTime(shift.startHour + halfDur)}`;
+        const half2Label = `${shift.name} (½ב)\n${formatTime(shift.startHour + halfDur)}–${formatTime(endHour)}`;
+        const fullLabel = `${shift.name}\n${formatTime(shift.startHour)}–${formatTime(endHour)}`;
+
+        // Pre-compute per-position: same person for both halves?
+        const posPersons = positions.map(pos => {
+          const a1 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
+          const a2 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
+          return { a1, a2, sameFullPerson: a1 && a2 && a1.personId === a2.personId };
+        });
+
+        const allSame = posPersons.every(p => p.sameFullPerson || (!p.a1 && !p.a2));
+
+        // Write both rows
+        for (const [halfNum, halfLabel] of [[1, half1Label], [2, half2Label]] as [1 | 2, string][]) {
+          const labelToWrite = allSame ? (halfNum === 1 ? fullLabel : '') : halfLabel;
+          ws[XLSX.utils.encode_cell({ r: rowIndex + halfNum - 1, c: colIndex('shift') })] = cell(labelToWrite, styleShiftLabel(isRtl));
+          for (let ci = 0; ci < positions.length; ci++) {
+            const { a1, a2, sameFullPerson } = posPersons[ci];
+            if (sameFullPerson) {
+              // Write name only in first row; second row left blank (will be merged)
+              if (halfNum === 1) {
+                const person = people.find(p => p.id === a1!.personId);
+                ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(person?.name ?? '', personStyle(person?.colorHex ?? '#e2e8f0'));
+              } else {
+                ws[XLSX.utils.encode_cell({ r: rowIndex + 1, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
+              }
+            } else {
+              const a = halfNum === 1 ? a1 : a2;
+              if (a) {
+                const person = people.find(p => p.id === a.personId);
+                ws[XLSX.utils.encode_cell({ r: rowIndex + halfNum - 1, c: colIndex(ci) })] = cell(person?.name ?? '', personStyle(person?.colorHex ?? '#e2e8f0'));
+              } else {
+                ws[XLSX.utils.encode_cell({ r: rowIndex + halfNum - 1, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
+              }
+            }
+          }
         }
+
+        // Merge cells for same-person positions (and shift label if all same)
+        if (allSame) {
+          merges.push({ s: { r: rowIndex, c: colIndex('shift') }, e: { r: rowIndex + 1, c: colIndex('shift') } });
+        }
+        for (let ci = 0; ci < positions.length; ci++) {
+          if (posPersons[ci].sameFullPerson) {
+            merges.push({ s: { r: rowIndex, c: colIndex(ci) }, e: { r: rowIndex + 1, c: colIndex(ci) } });
+          }
+        }
+
+        rowIndex += 2;
+      } else {
+        const shiftLabel = `${shift.name}\n${formatTime(shift.startHour)}–${formatTime(endHour)}`;
+        ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex('shift') })] = cell(shiftLabel, styleShiftLabel(isRtl));
+
+        for (let ci = 0; ci < positions.length; ci++) {
+          const pos = positions[ci];
+          const assignment = assignments.find(
+            a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id
+          );
+          if (assignment) {
+            const person = people.find(p => p.id === assignment.personId);
+            ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell(person?.name ?? '', personStyle(person?.colorHex ?? '#e2e8f0'));
+          } else {
+            ws[XLSX.utils.encode_cell({ r: rowIndex, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
+          }
+        }
+        rowIndex++;
       }
-      rowIndex++;
     }
   }
 

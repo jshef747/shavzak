@@ -28,6 +28,7 @@ interface Props {
   onDelete: (id: string) => void;
   onReorder: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
+  onUpdateIgnoreOnCallConstraints: (value: boolean) => void;
   shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
   onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
   onDeleteShiftSet: (id: string) => Promise<void>;
@@ -147,7 +148,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   );
 }
 
-export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, shiftSets, onAddShiftSet, onDeleteShiftSet, onLoadShiftSet, isLoggedIn }: Props) {
+export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, onUpdateIgnoreOnCallConstraints, shiftSets, onAddShiftSet, onDeleteShiftSet, onLoadShiftSet, isLoggedIn }: Props) {
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState<number>(8);
@@ -368,6 +369,27 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             />
             <span className="text-sm font-medium text-gray-500 dark:text-slate-400">h</span>
           </div>
+        </div>
+      </div>
+
+      {/* Ignore on-call constraints toggle */}
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm ring-1 ring-black/[0.02]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-lime-50 dark:bg-lime-900/40 flex items-center justify-center flex-shrink-0">
+            <CalendarClock className="w-5 h-5 text-lime-600" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('ignoreOnCallConstraintsLabel', lang)}</h3>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t('ignoreOnCallConstraintsDesc', lang)}</p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={state.ignoreOnCallConstraints}
+            onClick={() => onUpdateIgnoreOnCallConstraints(!state.ignoreOnCallConstraints)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:ring-offset-2 ${state.ignoreOnCallConstraints ? 'bg-lime-500' : 'bg-gray-200 dark:bg-slate-600'}`}
+          >
+            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-150 ${state.ignoreOnCallConstraints ? (state.dir === 'rtl' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0'}`} />
+          </button>
         </div>
       </div>
     </div>
