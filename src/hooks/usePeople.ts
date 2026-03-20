@@ -14,7 +14,7 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
       unavailability: [],
       constraints: null,
     };
-    setState(prev => ({ ...prev, people: [...prev.people, person] }));
+    setState(prev => ({ ...prev, people: [...prev.people, person].sort((a, b) => a.name.localeCompare(b.name)) }));
   }
 
   function deletePerson(id: string) {
@@ -31,7 +31,7 @@ export function usePeople(state: AppState, setState: Dispatch<SetStateAction<App
   function updatePersonName(id: string, name: string) {
     setState(prev => ({
       ...prev,
-      people: prev.people.map(p => p.id === id ? { ...p, name } : p),
+      people: prev.people.map(p => p.id === id ? { ...p, name } : p).sort((a, b) => a.name.localeCompare(b.name)),
     }));
   }
 

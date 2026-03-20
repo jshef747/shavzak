@@ -17,7 +17,7 @@ export function normalizeState(raw: unknown): AppState {
       // Migrate legacy single homeGroupId to homeGroupIds array
       homeGroupIds: p.homeGroupIds ?? ((p as unknown as { homeGroupId?: string | null }).homeGroupId ? [(p as unknown as { homeGroupId: string }).homeGroupId] : []),
     };
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name));
 
   // Migrate per-schedule homeGroupPeriods up to global AppState level
   const migratedPeriods = (merged.schedules ?? []).flatMap(
