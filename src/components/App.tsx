@@ -24,6 +24,7 @@ import { DndProvider } from './dnd/DndProvider';
 import { useIsMobile } from '../hooks/useIsMobile';
 import { Button } from './ui/Button';
 import { SettingsModal } from './settings/SettingsModal';
+import { MobileSettingsView } from './settings/MobileSettingsView';
 import { PersonEditor } from './settings/PersonEditor';
 import { Modal } from './ui/Modal';
 import { NewScheduleModal } from './layout/NewScheduleModal';
@@ -297,6 +298,9 @@ export function App() {
                 homeGroupPeriods={homeGroupPeriods}
                 onAssign={(cell, personId) => assign(cell, personId)}
                 onUnassign={(cell) => unassign(cell)}
+                onAutoAssign={handleOpenAutoAssign}
+                onOpenSettings={(tab?: string) => openSettings(tab)}
+                onOpenHomePeriods={() => setHomePeriodsOpen(true)}
               />
             ) : (
               <ScheduleView
@@ -312,36 +316,55 @@ export function App() {
         </div>
       </DndProvider>
 
-      {/* Mobile bottom action bar */}
-      {activeSchedule && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex gap-1.5 z-30">
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1 justify-center"
-            onClick={handleOpenAutoAssign}
-          >
-            {t('autoAssign', lang)}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1 justify-center !bg-emerald-600 !border-emerald-600 !text-white"
-            onClick={() => setHomePeriodsOpen(true)}
-          >
-            {t('homePeriods', lang)}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1 justify-center"
-            onClick={handleExportExcel}
-          >
-            {t('excel', lang)}
-          </Button>
-        </div>
-      )}
 
+      {isMobile ? (
+        <MobileSettingsView
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          state={state}
+          dates={dates}
+          initialTab={settingsInitialTab}
+          onAddShift={addShift}
+          onUpdateShift={updateShift}
+          onDeleteShift={deleteShift}
+          onReorderShifts={reorderShifts}
+          onUpdateMinBreakHours={updateMinBreakHours}
+          onUpdateIgnoreOnCallConstraints={updateIgnoreOnCallConstraints}
+          onAddPosition={addPosition}
+          onUpdatePosition={updatePosition}
+          onDeletePosition={deletePosition}
+          onToggleOnCall={toggleOnCall}
+          onReorderPositions={reorderPositions}
+          onAddPerson={addPerson}
+          onDeletePerson={deletePerson}
+          onUpdatePersonName={updatePersonName}
+          onToggleQualification={toggleQualification}
+          onToggleUnavailability={toggleUnavailability}
+          onToggleConstraintShift={toggleConstraintShift}
+          onToggleConstraintBlockedShift={toggleConstraintBlockedShift}
+          onToggleConstraintDay={toggleConstraintDay}
+          onToggleConstraintBlockedDay={toggleConstraintBlockedDay}
+          onUpdateConstraintMaxWeek={updateConstraintMaxWeek}
+          onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
+          onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
+          onUpdateConstraintMinRest={updateConstraintMinRest}
+          onUpdateForceMinimum={updateForceMinimum}
+          onUpdateNeverAutoAssign={updateNeverAutoAssign}
+          onAddHomeGroup={addHomeGroup}
+          onUpdateHomeGroup={updateHomeGroup}
+          onDeleteHomeGroup={deleteHomeGroup}
+          onTogglePersonHomeGroup={togglePersonHomeGroup}
+          shiftSets={shiftSets}
+          positionSets={positionSets}
+          onAddShiftSet={addShiftSet}
+          onDeleteShiftSet={deleteShiftSet}
+          onLoadShiftSet={handleLoadShiftSet}
+          onAddPositionSet={addPositionSet}
+          onDeletePositionSet={deletePositionSet}
+          onLoadPositionSet={handleLoadPositionSet}
+          isLoggedIn={!!user}
+        />
+      ) : (
       <SettingsModal
         open={settingsOpen}
         onClose={() => setSettingsOpen(false)}
@@ -388,6 +411,7 @@ export function App() {
         onLoadPositionSet={handleLoadPositionSet}
         isLoggedIn={!!user}
       />
+      )}
 
       {sidebarEditPersonId && (() => {
         const person = state.people.find(p => p.id === sidebarEditPersonId);
