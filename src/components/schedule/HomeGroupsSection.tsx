@@ -41,13 +41,9 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
   const lang = langFromDir(state.dir);
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
 
-  if (state.homeGroups.length === 0) return null;
-
   const activeGroups = state.homeGroups.filter(g =>
     homeGroupPeriods.some(p => p.groupId === g.id)
   );
-
-  if (activeGroups.length === 0) return null;
 
   // Extend the date range to cover any home group periods that go beyond the schedule end date
   const extendedDates = useMemo(() => {
@@ -61,6 +57,9 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
     if (rangeStart >= scheduleStart && rangeEnd <= scheduleEnd) return dates;
     return eachDayOfInterval({ start: rangeStart, end: rangeEnd }).map(d => format(d, 'yyyy-MM-dd'));
   }, [dates, homeGroupPeriods]);
+
+  if (state.homeGroups.length === 0) return null;
+  if (activeGroups.length === 0) return null;
 
   return (
     <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm">
