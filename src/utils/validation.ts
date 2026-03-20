@@ -16,34 +16,32 @@ export function isHomeGroupBlocked(
   date: string,
   shift: Shift,
   homeGroupIds: string[],
-  homeGroups: HomeGroup[],
+  _homeGroups: HomeGroup[],
   homeGroupPeriods: HomeGroupPeriod[],
 ): boolean {
   if (!homeGroupIds || homeGroupIds.length === 0) return false;
 
-  // Night shifts (startHour < 6) physically run on the next calendar day
-  const physicalDate = shift.startHour < 6
+  const isNight = shift.startHour < 6;
+  // Night shifts physically run on the next calendar day
+  const physicalDate = isNight
     ? format(addDays(parseISO(date), 1), 'yyyy-MM-dd')
     : date;
-  // The effective start hour for half-day boundary checks is still the labeled hour,
-  // but shifted by 24 so it's always treated as "after noon" (i.e. always blocks on
-  // departure day and never blocks on return day — the person is away that whole physical day).
-  const effectiveStartHour = shift.startHour < 6 ? shift.startHour + 24 : shift.startHour;
 
   for (const homeGroupId of homeGroupIds) {
-    const group = homeGroups.find(g => g.id === homeGroupId);
-    if (!group) continue;
-
     for (const period of homeGroupPeriods) {
       if (period.groupId !== homeGroupId) continue;
       if (physicalDate < period.startDate || physicalDate > period.endDate) continue;
 
       if (physicalDate === period.startDate) {
-        // Departure day: shifts starting at or after 12 are blocked
-        if (effectiveStartHour >= 12) return true;
+        // Departure day: blocked if shift starts at or after 12:00.
+        // Night shifts use +24 so they always exceed 12 (they depart in the evening,
+        // so the overnight shift that follows is blocked).
+        const departureHour = isNight ? shift.startHour + 24 : shift.startHour;
+        if (departureHour >= 12) return true;
       } else if (physicalDate === period.endDate) {
-        // Return day: shifts starting before 12 are blocked
-        if (effectiveStartHour < 12) return true;
+        // Return day: blocked if shift starts before 12:00.
+        // Use the real startHour — a night shift at 00:30 is early morning and should be blocked.
+        if (shift.startHour < 12) return true;
       } else {
         // Full home day
         return true;
