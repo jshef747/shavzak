@@ -15,12 +15,13 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
   { state, dates, assignments, homeGroupPeriods },
   ref
 ) {
-  if (dates.length === 0) return null;
-  const refDate = dates[0];
   const lang = langFromDir(state.dir);
 
   const regularPositions = useMemo(() => state.positions.filter(pos => !pos.isOnCall), [state.positions]);
   const onCallPositions  = useMemo(() => state.positions.filter(pos =>  pos.isOnCall), [state.positions]);
+
+  if (dates.length === 0) return null;
+  const refDate = dates[0];
 
   function renderTable(positions: Position[], headerClass: string) {
     return (
