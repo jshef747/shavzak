@@ -60,6 +60,149 @@ function positionCount(personId: string, positionId: string, assignments: Assign
   return assignments.filter(a => a.personId === personId && a.positionId === positionId).length;
 }
 
+/** Returns the fraction of a person's hours that are on-call (0–1). */
+function onCallRatio(personId: string, assignments: Assignment[], positions: Position[], shifts: Shift[]): number {
+  const total = totalHours(personId, assignments, shifts);
+  if (total === 0) return 0;
+  return onCallHours(personId, assignments, positions, shifts) / total;
+}
+
+/**
+ * Returns the sum of squared deviations from the mean on-call ratio,
+ * considering only people who are qualified for at least one on-call AND
+ * one regular position (so the target ratio is meaningful for them).
+ */
+function ratioVariance(personIds: string[], assignments: Assignment[], positions: Position[], shifts: Shift[]): number {
+  const ratios = personIds.map(id => onCallRatio(id, assignments, positions, shifts));
+  const mean = ratios.reduce((s, r) => s + r, 0) / (ratios.length || 1);
+  return ratios.reduce((s, r) => s + (r - mean) ** 2, 0);
+}
+
+const MAX_SWAP_PASSES = 3;
+const ACCEPTABLE_SWAP_STATUSES = new Set(['valid', 'oncall-short-break', 'oncall-override']);
+
+/**
+ * Post-assignment balancing pass: swaps people between on-call and regular
+ * positions within the same (date, shift) slot to reduce variance in each
+ * person's on-call ratio. Only operates on newly proposed assignments.
+ *
+ * Mutates `working` and `proposed` in place (same object references).
+ */
+function balanceSwaps(
+  working: Assignment[],
+  proposed: Assignment[],
+  people: Person[],
+  shifts: Shift[],
+  positions: Position[],
+  minBreakHours: number,
+  homeGroups: HomeGroup[],
+  homeGroupPeriods: HomeGroupPeriod[],
+  refDate: string,
+  ignoreOnCallConstraints: boolean,
+): void {
+  // Only consider people qualified for BOTH on-call and regular positions
+  const hasOnCallPos = (person: Person) => person.qualifiedPositions.some(pid => positions.find(p => p.id === pid)?.isOnCall);
+  const hasRegularPos = (person: Person) => person.qualifiedPositions.some(pid => !positions.find(p => p.id === pid)?.isOnCall);
+  const mixedPeople = new Set(people.filter(p => hasOnCallPos(p) && hasRegularPos(p)).map(p => p.id));
+
+  // Fingerprint helpers
+  const fp = (a: Assignment) => `${a.personId}::${a.date}::${a.shiftId}::${a.positionId}`;
+
+  // Build set of proposed fingerprints (non-half only)
+  const proposedSet = new Set(proposed.filter(a => a.half === undefined).map(fp));
+
+  // Group proposed non-half assignments by (date, shiftId)
+  const groups = new Map<string, Assignment[]>();
+  for (const a of proposed) {
+    if (a.half !== undefined) continue;
+    const key = `${a.date}::${a.shiftId}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(a);
+  }
+
+  const personById = new Map(people.map(p => [p.id, p]));
+
+  for (let pass = 0; pass < MAX_SWAP_PASSES; pass++) {
+    let changed = false;
+
+    for (const group of groups.values()) {
+      // Find mixed pairs: one on-call position, one regular position
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const asgA = group[i];
+          const asgB = group[j];
+
+          if (asgA.personId === asgB.personId) continue;
+
+          // Both must be in proposedSet (not pre-existing)
+          if (!proposedSet.has(fp(asgA)) || !proposedSet.has(fp(asgB))) continue;
+
+          const posA = positions.find(p => p.id === asgA.positionId);
+          const posB = positions.find(p => p.id === asgB.positionId);
+          if (!posA || !posB) continue;
+
+          // Must be a mixed pair (one on-call, one regular)
+          if (!!posA.isOnCall === !!posB.isOnCall) continue;
+
+          // Only balance people who qualify for both types
+          if (!mixedPeople.has(asgA.personId) && !mixedPeople.has(asgB.personId)) continue;
+
+          const involvedIds = [asgA.personId, asgB.personId].filter(id => mixedPeople.has(id));
+          const varianceBefore = ratioVariance(involvedIds, working, positions, shifts);
+
+          // Tentative in-place swap
+          const oldPosA = asgA.positionId;
+          const oldPosB = asgB.positionId;
+          asgA.positionId = oldPosB;
+          asgB.positionId = oldPosA;
+
+          const varianceAfter = ratioVariance(involvedIds, working, positions, shifts);
+
+          if (varianceAfter >= varianceBefore) {
+            // Not beneficial — revert immediately
+            asgA.positionId = oldPosA;
+            asgB.positionId = oldPosB;
+            continue;
+          }
+
+          // Validate both sides
+          const personA = personById.get(asgA.personId);
+          const personB = personById.get(asgB.personId);
+          if (!personA || !personB) {
+            asgA.positionId = oldPosA;
+            asgB.positionId = oldPosB;
+            continue;
+          }
+
+          const statusA = computeCellStatus(
+            { date: asgA.date, shiftId: asgA.shiftId, positionId: asgA.positionId },
+            asgA.personId, working, personA, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints,
+          );
+          const statusB = computeCellStatus(
+            { date: asgB.date, shiftId: asgB.shiftId, positionId: asgB.positionId },
+            asgB.personId, working, personB, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints,
+          );
+
+          if (ACCEPTABLE_SWAP_STATUSES.has(statusA) && ACCEPTABLE_SWAP_STATUSES.has(statusB)) {
+            // Accept swap — update proposedSet fingerprints
+            proposedSet.delete(`${asgA.personId}::${asgA.date}::${asgA.shiftId}::${oldPosA}`);
+            proposedSet.delete(`${asgB.personId}::${asgB.date}::${asgB.shiftId}::${oldPosB}`);
+            proposedSet.add(fp(asgA));
+            proposedSet.add(fp(asgB));
+            changed = true;
+          } else {
+            // Revert
+            asgA.positionId = oldPosA;
+            asgB.positionId = oldPosB;
+          }
+        }
+      }
+    }
+
+    if (!changed) break;
+  }
+}
+
 /**
  * Returns a soft departure-proximity penalty for assigning a person to a cell.
  *
@@ -325,6 +468,8 @@ export function autoAssign(
       }
     }
   }
+
+  balanceSwaps(working, proposed, people, shifts, positions, minBreakHours, homeGroups, homeGroupPeriods, refDate, ignoreOnCallConstraints);
 
   return { proposed, skipped };
 }
