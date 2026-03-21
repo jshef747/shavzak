@@ -33,11 +33,10 @@ export function isHomeGroupBlocked(
       if (physicalDate < period.startDate || physicalDate > period.endDate) continue;
 
       if (physicalDate === period.startDate) {
-        // Departure day: blocked if shift starts at or after 12:00.
-        // Night shifts use +24 so they always exceed 12 (they depart in the evening,
-        // so the overnight shift that follows is blocked).
-        const departureHour = isNight ? shift.startHour + 24 : shift.startHour;
-        if (departureHour >= 12) return true;
+        // Departure day: blocked if shift starts at or after 12:00 on the physical date.
+        // Night shifts (startHour < 6) physically start in the early morning of the next
+        // calendar day — that's before noon, so they are NOT blocked on departure day.
+        if (!isNight && shift.startHour >= 12) return true;
       } else if (physicalDate === period.endDate) {
         // Return day: blocked if shift starts before 12:00.
         // Use the real startHour — a night shift at 00:30 is early morning and should be blocked.
