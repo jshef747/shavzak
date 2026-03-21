@@ -83,8 +83,12 @@ const ACCEPTABLE_SWAP_STATUSES = new Set(['valid', 'oncall-short-break', 'oncall
 
 /**
  * Post-assignment balancing pass: swaps people between on-call and regular
- * positions within the same (date, shift) slot to reduce variance in each
- * person's on-call ratio. Only operates on newly proposed assignments.
+ * assignments to reduce variance in each person's on-call ratio.
+ * Only operates on newly proposed assignments.
+ *
+ * A swap exchanges the personIds of two proposed assignments where one is
+ * on an on-call position and the other is on a regular position. The two
+ * assignments can be on any date/shift — both are re-validated after the swap.
  *
  * Mutates `working` and `proposed` in place (same object references).
  */
@@ -100,101 +104,78 @@ function balanceSwaps(
   refDate: string,
   ignoreOnCallConstraints: boolean,
 ): void {
-  // Only consider people qualified for BOTH on-call and regular positions
-  const hasOnCallPos = (person: Person) => person.qualifiedPositions.some(pid => positions.find(p => p.id === pid)?.isOnCall);
-  const hasRegularPos = (person: Person) => person.qualifiedPositions.some(pid => !positions.find(p => p.id === pid)?.isOnCall);
-  const mixedPeople = new Set(people.filter(p => hasOnCallPos(p) && hasRegularPos(p)).map(p => p.id));
-
-  // Fingerprint helpers
-  const fp = (a: Assignment) => `${a.personId}::${a.date}::${a.shiftId}::${a.positionId}`;
-
-  // Build set of proposed fingerprints (non-half only)
-  const proposedSet = new Set(proposed.filter(a => a.half === undefined).map(fp));
-
-  // Group proposed non-half assignments by (date, shiftId)
-  const groups = new Map<string, Assignment[]>();
-  for (const a of proposed) {
-    if (a.half !== undefined) continue;
-    const key = `${a.date}::${a.shiftId}`;
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key)!.push(a);
-  }
-
   const personById = new Map(people.map(p => [p.id, p]));
+
+  // Fingerprint: identity of a proposed assignment slot (not person-specific)
+  const slotFp = (a: Assignment) => `${a.date}::${a.shiftId}::${a.positionId}`;
+
+  // Build set of proposed slot fingerprints (non-half only) for quick lookup
+  const proposedSlots = new Set(proposed.filter(a => a.half === undefined).map(slotFp));
+
+  // Working candidates: only non-half proposed assignments
+  const candidates = proposed.filter(a => a.half === undefined);
+
+  // Split into on-call and regular buckets
+  const isOnCallAssignment = (a: Assignment) => positions.find(p => p.id === a.positionId)?.isOnCall ?? false;
+  const onCallCandidates = candidates.filter(isOnCallAssignment);
+  const regularCandidates = candidates.filter(a => !isOnCallAssignment(a));
+
+  // All assigned person IDs for global variance calculation
+  const allAssignedIds = [...new Set(working.map(a => a.personId))];
 
   for (let pass = 0; pass < MAX_SWAP_PASSES; pass++) {
     let changed = false;
 
-    for (const group of groups.values()) {
-      // Find mixed pairs: one on-call position, one regular position
-      for (let i = 0; i < group.length; i++) {
-        for (let j = i + 1; j < group.length; j++) {
-          const asgA = group[i];
-          const asgB = group[j];
+    // For each on-call assignment paired with each regular assignment,
+    // try swapping the two people and keep the swap if it reduces global variance.
+    for (const ocAsg of onCallCandidates) {
+      if (!proposedSlots.has(slotFp(ocAsg))) continue; // was removed by prior swap
 
-          if (asgA.personId === asgB.personId) continue;
+      for (const regAsg of regularCandidates) {
+        if (!proposedSlots.has(slotFp(regAsg))) continue;
+        if (ocAsg.personId === regAsg.personId) continue;
 
-          // Both must be in proposedSet (not pre-existing)
-          if (!proposedSet.has(fp(asgA)) || !proposedSet.has(fp(asgB))) continue;
+        const varianceBefore = ratioVariance(allAssignedIds, working, positions, shifts);
 
-          const posA = positions.find(p => p.id === asgA.positionId);
-          const posB = positions.find(p => p.id === asgB.positionId);
-          if (!posA || !posB) continue;
+        // Tentative swap of personIds
+        const oldOcPerson = ocAsg.personId;
+        const oldRegPerson = regAsg.personId;
+        ocAsg.personId = oldRegPerson;
+        regAsg.personId = oldOcPerson;
 
-          // Must be a mixed pair (one on-call, one regular)
-          if (!!posA.isOnCall === !!posB.isOnCall) continue;
+        const varianceAfter = ratioVariance(allAssignedIds, working, positions, shifts);
 
-          // Only balance people who qualify for both types
-          if (!mixedPeople.has(asgA.personId) && !mixedPeople.has(asgB.personId)) continue;
+        if (varianceAfter >= varianceBefore) {
+          // Not beneficial — revert
+          ocAsg.personId = oldOcPerson;
+          regAsg.personId = oldRegPerson;
+          continue;
+        }
 
-          const involvedIds = [asgA.personId, asgB.personId].filter(id => mixedPeople.has(id));
-          const varianceBefore = ratioVariance(involvedIds, working, positions, shifts);
+        // Validate both assignments with their new people
+        const personOc = personById.get(ocAsg.personId);
+        const personReg = personById.get(regAsg.personId);
+        if (!personOc || !personReg) {
+          ocAsg.personId = oldOcPerson;
+          regAsg.personId = oldRegPerson;
+          continue;
+        }
 
-          // Tentative in-place swap
-          const oldPosA = asgA.positionId;
-          const oldPosB = asgB.positionId;
-          asgA.positionId = oldPosB;
-          asgB.positionId = oldPosA;
+        const statusOc = computeCellStatus(
+          { date: ocAsg.date, shiftId: ocAsg.shiftId, positionId: ocAsg.positionId },
+          ocAsg.personId, working, personOc, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints,
+        );
+        const statusReg = computeCellStatus(
+          { date: regAsg.date, shiftId: regAsg.shiftId, positionId: regAsg.positionId },
+          regAsg.personId, working, personReg, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints,
+        );
 
-          const varianceAfter = ratioVariance(involvedIds, working, positions, shifts);
-
-          if (varianceAfter >= varianceBefore) {
-            // Not beneficial — revert immediately
-            asgA.positionId = oldPosA;
-            asgB.positionId = oldPosB;
-            continue;
-          }
-
-          // Validate both sides
-          const personA = personById.get(asgA.personId);
-          const personB = personById.get(asgB.personId);
-          if (!personA || !personB) {
-            asgA.positionId = oldPosA;
-            asgB.positionId = oldPosB;
-            continue;
-          }
-
-          const statusA = computeCellStatus(
-            { date: asgA.date, shiftId: asgA.shiftId, positionId: asgA.positionId },
-            asgA.personId, working, personA, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints,
-          );
-          const statusB = computeCellStatus(
-            { date: asgB.date, shiftId: asgB.shiftId, positionId: asgB.positionId },
-            asgB.personId, working, personB, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints,
-          );
-
-          if (ACCEPTABLE_SWAP_STATUSES.has(statusA) && ACCEPTABLE_SWAP_STATUSES.has(statusB)) {
-            // Accept swap — update proposedSet fingerprints
-            proposedSet.delete(`${asgA.personId}::${asgA.date}::${asgA.shiftId}::${oldPosA}`);
-            proposedSet.delete(`${asgB.personId}::${asgB.date}::${asgB.shiftId}::${oldPosB}`);
-            proposedSet.add(fp(asgA));
-            proposedSet.add(fp(asgB));
-            changed = true;
-          } else {
-            // Revert
-            asgA.positionId = oldPosA;
-            asgB.positionId = oldPosB;
-          }
+        if (ACCEPTABLE_SWAP_STATUSES.has(statusOc) && ACCEPTABLE_SWAP_STATUSES.has(statusReg)) {
+          changed = true;
+        } else {
+          // Revert
+          ocAsg.personId = oldOcPerson;
+          regAsg.personId = oldRegPerson;
         }
       }
     }
