@@ -1,3 +1,4 @@
+import { addDays, format, parseISO } from 'date-fns';
 import { computeCellStatus } from './validation';
 import { assignmentMatchesCell } from './cellKey';
 import type { Assignment, CellAddress, HomeGroup, HomeGroupPeriod, Person, Position, Schedule, Shift } from '../types';
@@ -57,6 +58,57 @@ function totalHours(personId: string, assignments: Assignment[], shifts: Shift[]
 /** Returns how many times a person has been assigned to a specific position. */
 function positionCount(personId: string, positionId: string, assignments: Assignment[]): number {
   return assignments.filter(a => a.personId === personId && a.positionId === positionId).length;
+}
+
+/**
+ * Returns a soft departure-proximity penalty for assigning a person to a cell.
+ *
+ * Preference order (lower = more preferred):
+ *   0 — no departure soon, assign freely
+ *   1 — shift is בוקר (morning, startHour < 12, non-night) on departure day (last resort)
+ *   2 — shift is לילה (night, startHour < 6) the day before departure, i.e. physically departure morning
+ *   3 — shift is צהריים or later (startHour >= 12) on the day before departure
+ *
+ * Shifts on departure day at noon or later are hard-blocked by isHomeGroupBlocked and
+ * never reach the candidate list, so we don't need to handle those here.
+ */
+function departurePenalty(
+  cell: CellAddress,
+  person: Person,
+  shift: Shift,
+  homeGroupPeriods: HomeGroupPeriod[],
+): number {
+  if (!person.homeGroupIds?.length) return 0;
+
+  const isNight = shift.startHour < 6;
+  // Physical date this shift actually runs on
+  const physicalDate = isNight
+    ? format(addDays(parseISO(cell.date), 1), 'yyyy-MM-dd')
+    : cell.date;
+
+  for (const groupId of person.homeGroupIds) {
+    const period = homeGroupPeriods.find(p => p.groupId === groupId);
+    if (!period) continue;
+    const departure = period.startDate;
+
+    if (physicalDate === departure) {
+      // Shift physically runs on departure day
+      if (isNight) {
+        // לילה labeled day-before: physically departure morning — penalty 2
+        return 2;
+      }
+      // Non-night morning shift on departure day — penalty 1 (lowest priority)
+      return 1;
+    }
+
+    // Day before departure (labeled date, non-night shifts)
+    const dayBeforeDeparture = format(addDays(parseISO(departure), -1), 'yyyy-MM-dd');
+    if (!isNight && cell.date === dayBeforeDeparture && shift.startHour >= 12) {
+      // Afternoon/evening shift the day before — penalty 3 (prefer not to, ערב should be last)
+      return 3;
+    }
+  }
+  return 0;
 }
 
 /**
@@ -210,15 +262,20 @@ export function autoAssign(
 
     // Step 3: Sort candidates by priority:
     //   1. forceMinimum persons first (higher duty priority tier)
-    //   2. Primary hours for this cell type (asc) — balance on-call vs regular separately
-    //   3. Total hours normalized by number of qualified positions (asc) — fair share load
-    //   4. Times assigned to THIS specific position (asc) — rotation across positions
-    //   5. Random — avoids alphabetical bias
+    //   2. Departure proximity penalty (asc) — avoid assigning close to home-group departure
+    //   3. Primary hours for this cell type (asc) — balance on-call vs regular separately
+    //   4. Total hours normalized by number of qualified positions (asc) — fair share load
+    //   5. Times assigned to THIS specific position (asc) — rotation across positions
+    //   6. Random — avoids alphabetical bias
+    const cellShift = shifts.find(s => s.id === cell.shiftId)!;
     const withRand = candidates.map(c => ({ ...c, rand: Math.random() }));
     withRand.sort((a, b) => {
       const fA = a.person.forceMinimum ? 0 : 1;
       const fB = b.person.forceMinimum ? 0 : 1;
       if (fA !== fB) return fA - fB;
+      const penA = departurePenalty(cell, a.person, cellShift, homeGroupPeriods);
+      const penB = departurePenalty(cell, b.person, cellShift, homeGroupPeriods);
+      if (penA !== penB) return penA - penB;
       // Balance by the relevant hour type first: on-call hours for on-call cells,
       // regular hours for regular cells. This prevents stacking one type on the same person.
       const primaryA = isOnCallPosition
