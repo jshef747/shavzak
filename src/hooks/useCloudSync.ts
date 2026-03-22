@@ -13,13 +13,14 @@ export function useCloudSync() {
     return data.board_data as AppState;
   }
 
-  async function saveBoard(state: AppState, userId: string): Promise<void> {
-    await supabase
+  async function saveBoard(state: AppState, userId: string): Promise<string | null> {
+    const { error } = await supabase
       .from('boards')
       .upsert(
         { user_id: userId, board_data: state, updated_at: new Date().toISOString() },
         { onConflict: 'user_id' },
       );
+    return error?.message ?? null;
   }
 
   return { loadBoard, saveBoard };

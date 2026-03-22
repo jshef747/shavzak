@@ -5,6 +5,7 @@ export function langFromDir(dir: 'ltr' | 'rtl'): Lang {
 }
 
 const strings: Record<string, { en: string; he: string }> = {
+  syncError: { en: 'Sync failed', he: 'שמירה נכשלה' },
   selectSchedule: { en: '-- Select Schedule --', he: '-- בחר לוח --' },
   newBtn: { en: '+ New', he: '+ חדש' },
   delete: { en: 'Delete', he: 'מחק' },

@@ -21,22 +21,22 @@ export interface AutoAssignResult {
 }
 
 /** Returns total hours of on-call assignments for a person. */
-function onCallHours(personId: string, assignments: Assignment[], positions: Position[], shifts: Shift[]): number {
+function onCallHours(personId: string, assignments: Assignment[], positionMap: Map<string, Position>, shiftMap: Map<string, Shift>): number {
   return assignments
-    .filter(a => a.personId === personId && (positions.find(p => p.id === a.positionId)?.isOnCall ?? false))
+    .filter(a => a.personId === personId && (positionMap.get(a.positionId)?.isOnCall ?? false))
     .reduce((sum, a) => {
-      const shift = shifts.find(s => s.id === a.shiftId);
+      const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
       return sum + (a.half !== undefined ? shift.durationHours / 2 : shift.durationHours);
     }, 0);
 }
 
 /** Returns total hours of regular (non-on-call) assignments for a person. */
-function regularHours(personId: string, assignments: Assignment[], positions: Position[], shifts: Shift[]): number {
+function regularHours(personId: string, assignments: Assignment[], positionMap: Map<string, Position>, shiftMap: Map<string, Shift>): number {
   return assignments
-    .filter(a => a.personId === personId && !(positions.find(p => p.id === a.positionId)?.isOnCall ?? false))
+    .filter(a => a.personId === personId && !(positionMap.get(a.positionId)?.isOnCall ?? false))
     .reduce((sum, a) => {
-      const shift = shifts.find(s => s.id === a.shiftId);
+      const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
       return sum + (a.half !== undefined ? shift.durationHours / 2 : shift.durationHours);
     }, 0);
@@ -44,11 +44,11 @@ function regularHours(personId: string, assignments: Assignment[], positions: Po
 
 /** Returns total shift hours a person has in the given assignments array.
  *  Half-shift assignments count as half the shift's duration. */
-function totalHours(personId: string, assignments: Assignment[], shifts: Shift[]): number {
+function totalHours(personId: string, assignments: Assignment[], shiftMap: Map<string, Shift>): number {
   return assignments
     .filter(a => a.personId === personId)
     .reduce((sum, a) => {
-      const shift = shifts.find(s => s.id === a.shiftId);
+      const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
       const hours = a.half !== undefined ? shift.durationHours / 2 : shift.durationHours;
       return sum + hours;
@@ -147,6 +147,10 @@ export function autoAssign(
   // Reference date for shiftStartMins calculations (earliest schedule date).
   const refDate = schedule.startDate;
 
+  // Pre-build lookup maps to avoid O(n) array searches inside hot loops.
+  const shiftMap = new Map(shifts.map(s => [s.id, s]));
+  const positionMap = new Map(positions.map(p => [p.id, p]));
+
   // Collect all dates in the schedule range.
   const dates: string[] = [];
   {
@@ -234,7 +238,7 @@ export function autoAssign(
 
     const valid = statuses.filter(s => s.status === 'valid');
     const oncallWarn = statuses.filter(s => s.status === 'oncall-short-break');
-    const isOnCallPosition = positions.find(p => p.id === cell.positionId)?.isOnCall ?? false;
+    const isOnCallPosition = positionMap.get(cell.positionId)?.isOnCall ?? false;
     // oncall-override: constraints bypassed by ignoreOnCallConstraints toggle — last resort
     const oncallOverride = (valid.length === 0 && oncallWarn.length === 0 && isOnCallPosition)
       ? statuses.filter(s => s.status === 'oncall-override')
@@ -267,7 +271,7 @@ export function autoAssign(
     //   4. Total hours normalized by number of qualified positions (asc) — fair share load
     //   5. Times assigned to THIS specific position (asc) — rotation across positions
     //   6. Random — avoids alphabetical bias
-    const cellShift = shifts.find(s => s.id === cell.shiftId)!;
+    const cellShift = shiftMap.get(cell.shiftId)!;
     const withRand = candidates.map(c => ({ ...c, rand: Math.random() }));
     withRand.sort((a, b) => {
       const fA = a.person.forceMinimum ? 0 : 1;
@@ -279,18 +283,18 @@ export function autoAssign(
       // Balance by the relevant hour type first: on-call hours for on-call cells,
       // regular hours for regular cells. This prevents stacking one type on the same person.
       const primaryA = isOnCallPosition
-        ? onCallHours(a.person.id, working, positions, shifts)
-        : regularHours(a.person.id, working, positions, shifts);
+        ? onCallHours(a.person.id, working, positionMap, shiftMap)
+        : regularHours(a.person.id, working, positionMap, shiftMap);
       const primaryB = isOnCallPosition
-        ? onCallHours(b.person.id, working, positions, shifts)
-        : regularHours(b.person.id, working, positions, shifts);
+        ? onCallHours(b.person.id, working, positionMap, shiftMap)
+        : regularHours(b.person.id, working, positionMap, shiftMap);
       if (Math.abs(primaryA - primaryB) > 0.01) return primaryA - primaryB;
       // Normalize total hours by number of positions the person qualifies for,
       // so people with fewer qualified positions aren't unfairly over-assigned.
       const qualA = Math.max(1, a.person.qualifiedPositions.length);
       const qualB = Math.max(1, b.person.qualifiedPositions.length);
-      const normA = totalHours(a.person.id, working, shifts) / qualA;
-      const normB = totalHours(b.person.id, working, shifts) / qualB;
+      const normA = totalHours(a.person.id, working, shiftMap) / qualA;
+      const normB = totalHours(b.person.id, working, shiftMap) / qualB;
       if (Math.abs(normA - normB) > 0.01) return normA - normB;
       const posA = positionCount(a.person.id, cell.positionId, working);
       const posB = positionCount(b.person.id, cell.positionId, working);

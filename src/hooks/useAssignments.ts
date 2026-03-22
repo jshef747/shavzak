@@ -114,18 +114,43 @@ export function useAssignments(state: AppState, setState: Dispatch<SetStateActio
         const assignA = s.assignments.find(a => assignmentMatchesCell(a, cellA));
         const assignB = s.assignments.find(a => assignmentMatchesCell(a, cellB));
         if (!assignA || !assignB) return s;
-        const without = s.assignments.filter(
-          a => !assignmentMatchesCell(a, cellA) && !assignmentMatchesCell(a, cellB)
-        );
-        return {
-          ...s,
-          assignments: [
-            ...without,
-            { personId: assignB.personId, date: cellA.date, shiftId: cellA.shiftId, positionId: cellA.positionId, ...(cellA.half !== undefined ? { half: cellA.half } : {}) },
-            { personId: assignA.personId, date: cellB.date, shiftId: cellB.shiftId, positionId: cellB.positionId, ...(cellB.half !== undefined ? { half: cellB.half } : {}) },
-          ],
-          updatedAt: now,
+
+        // For half-shift cells: also check if the paired half has the same person (merged display).
+        // If so, swap the paired half too so the whole merged cell moves together.
+        const pairedHalfOf = (cell: CellAddress, personId: string) => {
+          if (cell.half === undefined) return null;
+          const otherHalf: 1 | 2 = cell.half === 1 ? 2 : 1;
+          const paired = s.assignments.find(
+            a => a.date === cell.date && a.shiftId === cell.shiftId &&
+                 a.positionId === cell.positionId && a.half === otherHalf &&
+                 a.personId === personId
+          );
+          return paired ?? null;
         };
+
+        const pairedA = pairedHalfOf(cellA, assignA.personId);
+        const pairedB = pairedHalfOf(cellB, assignB.personId);
+
+        // Remove all involved assignments
+        const toRemove = [cellA, cellB];
+        if (pairedA) toRemove.push({ ...cellA, half: pairedA.half });
+        if (pairedB) toRemove.push({ ...cellB, half: pairedB.half });
+
+        const without = s.assignments.filter(
+          a => !toRemove.some(c => assignmentMatchesCell(a, c))
+        );
+
+        const added: Assignment[] = [
+          // Person B goes to cellA's slot(s)
+          { personId: assignB.personId, date: cellA.date, shiftId: cellA.shiftId, positionId: cellA.positionId, ...(cellA.half !== undefined ? { half: cellA.half } : {}) },
+          // Person A goes to cellB's slot(s)
+          { personId: assignA.personId, date: cellB.date, shiftId: cellB.shiftId, positionId: cellB.positionId, ...(cellB.half !== undefined ? { half: cellB.half } : {}) },
+        ];
+        // Also move the paired halves across
+        if (pairedA) added.push({ personId: assignB.personId, date: cellA.date, shiftId: cellA.shiftId, positionId: cellA.positionId, half: pairedA.half });
+        if (pairedB) added.push({ personId: assignA.personId, date: cellB.date, shiftId: cellB.shiftId, positionId: cellB.positionId, half: pairedB.half });
+
+        return { ...s, assignments: [...without, ...added], updatedAt: now };
       }),
     }));
   }
