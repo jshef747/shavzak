@@ -62,6 +62,7 @@ export function App() {
   const [autoAssignReassign, setAutoAssignReassign] = useState<'partial' | 'full' | null>(null);
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   // Auth + cloud sync
   const { user, loading: authLoading, login, register, logout } = useAuth();
@@ -113,7 +114,7 @@ export function App() {
     if (cloudLoadingRef.current) return;
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
-      saveBoard(state, user.id);
+      saveBoard(state, user.id).then(err => setSyncError(err));
     }, 1000);
     return () => clearTimeout(saveTimerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -228,6 +229,7 @@ export function App() {
         onOpenHomePeriods={() => setHomePeriodsOpen(true)}
         onToggleTheme={toggleTheme}
         userEmail={user?.email}
+        syncError={syncError}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onLogout={logout}
       />

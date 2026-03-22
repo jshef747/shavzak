@@ -9,7 +9,7 @@ import {
   useSensors,
 } from '@dnd-kit/core';
 import type { Assignment, DragData, AppState, CellAddress } from '../../types';
-import { deserializeCellAddress } from '../../utils/cellKey';
+import { deserializeCellAddress, assignmentMatchesCell } from '../../utils/cellKey';
 import { DragOverlayContent } from './DragOverlayContent';
 import { langFromDir } from '../../utils/i18n';
 
@@ -71,32 +71,37 @@ export function DndProvider({ state, assignments, refDate: _refDate, children, o
     const isHalf = !!(over.data.current as { isHalfShift?: boolean } | undefined)?.isHalfShift;
     const targetCell = deserializeCellAddress(overId);
 
-    if (isHalf) {
-      // Show the dialog to ask full / h1 / h2
-      setPendingHalfDrop({
-        personId: dragData.personId,
-        sourceCell: dragData.type === 'from-cell' ? dragData.sourceCell : undefined,
-        targetCell,
-      });
-      return;
-    }
-
     if (dragData.type === 'from-cell' && dragData.sourceCell) {
       const src = dragData.sourceCell;
+      // Same cell — no-op
       if (
         src.date === targetCell.date &&
         src.shiftId === targetCell.shiftId &&
-        src.positionId === targetCell.positionId
+        src.positionId === targetCell.positionId &&
+        (src.half ?? undefined) === (targetCell.half ?? undefined)
       ) return;
 
-      const targetOccupied = assignments.some(
-        a => a.date === targetCell.date && a.shiftId === targetCell.shiftId && a.positionId === targetCell.positionId
-      );
-      if (targetOccupied) {
+      const targetOccupied = assignments.some(a => assignmentMatchesCell(a, targetCell));
+      const srcIsHalf = src.half !== undefined;
+      const tgtIsHalf = targetCell.half !== undefined;
+      if (targetOccupied && srcIsHalf === tgtIsHalf) {
+        // Swap only between like-for-like: full↔full or half↔half
         onSwap(src, targetCell);
+      } else if (targetOccupied) {
+        // Incompatible types (full↔half) — no-op
+      } else if (isHalf) {
+        // Dropping from a cell onto an empty half-shift cell — ask which half
+        setPendingHalfDrop({ personId: dragData.personId, sourceCell: src, targetCell });
       } else {
         onMove(src, targetCell, dragData.personId);
       }
+    } else if (isHalf) {
+      // Dropping from pool onto a half-shift cell — ask which half
+      setPendingHalfDrop({
+        personId: dragData.personId,
+        sourceCell: undefined,
+        targetCell,
+      });
     } else {
       onAssign(targetCell, dragData.personId);
     }

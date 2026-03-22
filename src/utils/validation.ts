@@ -87,6 +87,109 @@ function countConsecutiveStreak(cellDate: Date, assignedDateSet: Set<string>): n
   return streak;
 }
 
+type ConstraintViolation =
+  | { type: 'allowedShift'; shiftName: string }
+  | { type: 'blockedShift'; shiftName: string }
+  | { type: 'allowedDay' }
+  | { type: 'blockedDay'; dayIndex: DayOfWeek }
+  | { type: 'maxWeek'; limit: number }
+  | { type: 'maxTotal'; limit: number }
+  | { type: 'maxConsecutive'; limit: number }
+  | { type: 'minRest'; limit: number };
+
+/**
+ * Checks all repeating constraints for a given cell+person and returns the first
+ * violation found, or null if none. Used by both computeCellStatus and
+ * computeConstraintReason to avoid duplicating this logic.
+ */
+function checkConstraints(
+  cell: CellAddress,
+  personAssignments: Assignment[],
+  constraints: NonNullable<Person['constraints']>,
+  shifts: Shift[],
+  targetShift: Shift,
+): ConstraintViolation | null {
+  const c = constraints;
+
+  if (c.allowedShiftIds?.length && !c.allowedShiftIds.includes(cell.shiftId)) {
+    const shift = shifts.find(s => s.id === cell.shiftId);
+    return { type: 'allowedShift', shiftName: shift?.name ?? cell.shiftId };
+  }
+
+  if (c.blockedShiftIds?.length && c.blockedShiftIds.includes(cell.shiftId)) {
+    const shift = shifts.find(s => s.id === cell.shiftId);
+    return { type: 'blockedShift', shiftName: shift?.name ?? cell.shiftId };
+  }
+
+  if (c.allowedDaysOfWeek?.length) {
+    const dow = getDay(parseISO(cell.date)) as DayOfWeek;
+    if (!c.allowedDaysOfWeek.includes(dow)) {
+      return { type: 'allowedDay' };
+    }
+  }
+
+  if (c.blockedDaysOfWeek?.length) {
+    const dow = getDay(parseISO(cell.date)) as DayOfWeek;
+    if (c.blockedDaysOfWeek.includes(dow)) {
+      return { type: 'blockedDay', dayIndex: dow };
+    }
+  }
+
+  if (c.maxShiftsPerWeek != null) {
+    const cellDate = parseISO(cell.date);
+    const weekLoad = personAssignments
+      .filter(a => {
+        if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
+        return Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7;
+      })
+      .reduce((sum, a) => {
+        const s = shifts.find(sh => sh.id === a.shiftId);
+        return sum + (s ? shiftWeight(s) : 1);
+      }, 0) + shiftWeight(targetShift);
+    if (weekLoad > c.maxShiftsPerWeek) {
+      return { type: 'maxWeek', limit: c.maxShiftsPerWeek };
+    }
+  }
+
+  if (c.maxShiftsTotal != null) {
+    const totalLoad = personAssignments
+      .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
+      .reduce((sum, a) => {
+        const s = shifts.find(sh => sh.id === a.shiftId);
+        return sum + (s ? shiftWeight(s) : 1);
+      }, 0) + shiftWeight(targetShift);
+    if (totalLoad > c.maxShiftsTotal) {
+      return { type: 'maxTotal', limit: c.maxShiftsTotal };
+    }
+  }
+
+  if (c.maxConsecutiveDays != null) {
+    const cellDate = parseISO(cell.date);
+    const assignedDateSet = new Set(
+      personAssignments
+        .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
+        .map(a => a.date)
+    );
+    assignedDateSet.add(cell.date);
+    if (countConsecutiveStreak(cellDate, assignedDateSet) > c.maxConsecutiveDays) {
+      return { type: 'maxConsecutive', limit: c.maxConsecutiveDays };
+    }
+  }
+
+  if (c.minRestDays != null) {
+    const cellDate = parseISO(cell.date);
+    for (const a of personAssignments) {
+      if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
+      const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
+      if (gap > 0 && gap <= c.minRestDays) {
+        return { type: 'minRest', limit: c.minRestDays };
+      }
+    }
+  }
+
+  return null;
+}
+
 export function computeCellStatus(
   cell: CellAddress,
   personId: string,
@@ -177,131 +280,12 @@ export function computeCellStatus(
   if (breakOverride) return 'oncall-override';
 
   // 5. Repeating constraint violation — bypassed for on-call when toggle is on
-  if (!bypassSoft && person.constraints) {
-    const c = person.constraints;
-
-    // 5a. Allowed shifts
-    if (c.allowedShiftIds && c.allowedShiftIds.length > 0 && !c.allowedShiftIds.includes(cell.shiftId)) {
-      return 'constraint-violation';
+  if (person.constraints) {
+    const violation = checkConstraints(cell, personAssignments, person.constraints, shifts, targetShift);
+    if (violation) {
+      if (!bypassSoft) return 'constraint-violation';
+      return 'oncall-override';
     }
-
-    // 5b. Allowed days of week
-    if (c.allowedDaysOfWeek && c.allowedDaysOfWeek.length > 0) {
-      const dow = getDay(parseISO(cell.date)) as DayOfWeek;
-      if (!c.allowedDaysOfWeek.includes(dow)) {
-        return 'constraint-violation';
-      }
-    }
-
-    // 5c. Max per week (rolling 7-day window)
-    if (c.maxShiftsPerWeek != null) {
-      const cellDate = parseISO(cell.date);
-      const weekAssignments = personAssignments.filter(a => {
-        if (a.date === cell.date && a.shiftId === cell.shiftId) return false; // same slot
-        const diff = Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate));
-        return diff < 7;
-      });
-      const weekLoad = weekAssignments.reduce((sum, a) => {
-        const s = shifts.find(sh => sh.id === a.shiftId);
-        return sum + (s ? shiftWeight(s) : 1);
-      }, 0) + shiftWeight(targetShift);
-      if (weekLoad > c.maxShiftsPerWeek) {
-        return 'constraint-violation';
-      }
-    }
-
-    // 5d. Max total
-    if (c.maxShiftsTotal != null) {
-      const otherAssignments = personAssignments.filter(
-        a => !(a.date === cell.date && a.shiftId === cell.shiftId)
-      );
-      const totalLoad = otherAssignments.reduce((sum, a) => {
-        const s = shifts.find(sh => sh.id === a.shiftId);
-        return sum + (s ? shiftWeight(s) : 1);
-      }, 0) + shiftWeight(targetShift);
-      if (totalLoad > c.maxShiftsTotal) {
-        return 'constraint-violation';
-      }
-    }
-
-    // 5e. Blocked shifts
-    if (c.blockedShiftIds?.length && c.blockedShiftIds.includes(cell.shiftId)) {
-      return 'constraint-violation';
-    }
-
-    // 5f. Blocked days of week
-    if (c.blockedDaysOfWeek?.length) {
-      const dow = getDay(parseISO(cell.date)) as DayOfWeek;
-      if (c.blockedDaysOfWeek.includes(dow)) {
-        return 'constraint-violation';
-      }
-    }
-
-    // 5g. Max consecutive days
-    if (c.maxConsecutiveDays != null) {
-      const cellDate = parseISO(cell.date);
-      const assignedDateSet = new Set(
-        personAssignments
-          .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
-          .map(a => a.date)
-      );
-      assignedDateSet.add(cell.date);
-      const streak = countConsecutiveStreak(cellDate, assignedDateSet);
-      if (streak > c.maxConsecutiveDays) {
-        return 'constraint-violation';
-      }
-    }
-
-    // 5h. Min rest days between shifts
-    if (c.minRestDays != null) {
-      const cellDate = parseISO(cell.date);
-      for (const a of personAssignments) {
-        if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
-        const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
-        if (gap > 0 && gap <= c.minRestDays) {
-          return 'constraint-violation';
-        }
-      }
-    }
-  } else if (bypassSoft && person.constraints) {
-    // Constraints exist but are being bypassed — flag with override warning
-    const c = person.constraints;
-    const wouldViolate =
-      (c.allowedShiftIds?.length && !c.allowedShiftIds.includes(cell.shiftId)) ||
-      (c.blockedShiftIds?.length && c.blockedShiftIds.includes(cell.shiftId)) ||
-      (c.allowedDaysOfWeek?.length && !c.allowedDaysOfWeek.includes(getDay(parseISO(cell.date)) as DayOfWeek)) ||
-      (c.blockedDaysOfWeek?.length && c.blockedDaysOfWeek.includes(getDay(parseISO(cell.date)) as DayOfWeek)) ||
-      (() => {
-        if (c.maxShiftsPerWeek == null) return false;
-        const cellDate = parseISO(cell.date);
-        const weekLoad = personAssignments
-          .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId) && Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7)
-          .reduce((sum, a) => { const s = shifts.find(sh => sh.id === a.shiftId); return sum + (s ? shiftWeight(s) : 1); }, 0) + shiftWeight(targetShift);
-        return weekLoad > c.maxShiftsPerWeek;
-      })() ||
-      (() => {
-        if (c.maxShiftsTotal == null) return false;
-        const totalLoad = personAssignments.filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
-          .reduce((sum, a) => { const s = shifts.find(sh => sh.id === a.shiftId); return sum + (s ? shiftWeight(s) : 1); }, 0) + shiftWeight(targetShift);
-        return totalLoad > c.maxShiftsTotal;
-      })() ||
-      (() => {
-        if (c.maxConsecutiveDays == null) return false;
-        const cellDate = parseISO(cell.date);
-        const assignedDateSet = new Set(personAssignments.filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId)).map(a => a.date));
-        assignedDateSet.add(cell.date);
-        return countConsecutiveStreak(cellDate, assignedDateSet) > c.maxConsecutiveDays;
-      })() ||
-      (() => {
-        if (c.minRestDays == null) return false;
-        const cellDate = parseISO(cell.date);
-        return personAssignments.some(a => {
-          if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
-          const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
-          return gap > 0 && gap <= c.minRestDays!;
-        });
-      })();
-    if (wouldViolate) return 'oncall-override';
   }
 
   // Also mark as override if unavailability was bypassed
@@ -326,88 +310,24 @@ export function computeConstraintReason(
   lang: Lang = 'en',
 ): string | null {
   if (!person.constraints) return null;
-  const c = person.constraints;
+  const targetShift = shifts.find(s => s.id === cell.shiftId);
+  if (!targetShift) return null;
+
   const personAssignments = assignments.filter(a => a.personId === personId);
+  const violation = checkConstraints(cell, personAssignments, person.constraints, shifts, targetShift);
+  if (!violation) return null;
 
-  if (c.allowedShiftIds?.length && !c.allowedShiftIds.includes(cell.shiftId)) {
-    const shift = shifts.find(s => s.id === cell.shiftId);
-    return tf.shiftNotAllowed(lang, shift?.name ?? cell.shiftId);
-  }
-
-  if (c.blockedShiftIds?.length && c.blockedShiftIds.includes(cell.shiftId)) {
-    const shift = shifts.find(s => s.id === cell.shiftId);
-    return tf.blockedShift(lang, shift?.name ?? cell.shiftId);
-  }
-
-  if (c.allowedDaysOfWeek?.length) {
-    const dow = getDay(parseISO(cell.date)) as DayOfWeek;
-    if (!c.allowedDaysOfWeek.includes(dow)) {
-      return tf.dayNotAllowed(lang);
-    }
-  }
-
-  if (c.blockedDaysOfWeek?.length) {
-    const dow = getDay(parseISO(cell.date)) as DayOfWeek;
-    if (c.blockedDaysOfWeek.includes(dow)) {
-      const dayName = lang === 'he' ? DAY_LABELS_HE[dow] : DAY_NAMES[dow];
+  switch (violation.type) {
+    case 'allowedShift': return tf.shiftNotAllowed(lang, violation.shiftName);
+    case 'blockedShift': return tf.blockedShift(lang, violation.shiftName);
+    case 'allowedDay': return tf.dayNotAllowed(lang);
+    case 'blockedDay': {
+      const dayName = lang === 'he' ? DAY_LABELS_HE[violation.dayIndex] : DAY_NAMES[violation.dayIndex];
       return tf.blockedDay(lang, dayName);
     }
+    case 'maxWeek': return tf.maxWeek(lang, violation.limit);
+    case 'maxTotal': return tf.maxTotal(lang, violation.limit);
+    case 'maxConsecutive': return tf.maxConsecutive(lang, violation.limit);
+    case 'minRest': return tf.minRest(lang, violation.limit);
   }
-
-  if (c.maxShiftsPerWeek != null) {
-    const cellDate = parseISO(cell.date);
-    const weekAssignments = personAssignments.filter(a => {
-      if (a.date === cell.date && a.shiftId === cell.shiftId) return false;
-      return Math.abs(differenceInCalendarDays(parseISO(a.date), cellDate)) < 7;
-    });
-    const targetShift = shifts.find(s => s.id === cell.shiftId);
-    const weekLoad = weekAssignments.reduce((sum, a) => {
-      const s = shifts.find(sh => sh.id === a.shiftId);
-      return sum + (s ? shiftWeight(s) : 1);
-    }, 0) + (targetShift ? shiftWeight(targetShift) : 1);
-    if (weekLoad > c.maxShiftsPerWeek) {
-      return tf.maxWeek(lang, c.maxShiftsPerWeek);
-    }
-  }
-
-  if (c.maxShiftsTotal != null) {
-    const otherAssignments = personAssignments.filter(
-      a => !(a.date === cell.date && a.shiftId === cell.shiftId)
-    );
-    const targetShift = shifts.find(s => s.id === cell.shiftId);
-    const totalLoad = otherAssignments.reduce((sum, a) => {
-      const s = shifts.find(sh => sh.id === a.shiftId);
-      return sum + (s ? shiftWeight(s) : 1);
-    }, 0) + (targetShift ? shiftWeight(targetShift) : 1);
-    if (totalLoad > c.maxShiftsTotal) {
-      return tf.maxTotal(lang, c.maxShiftsTotal);
-    }
-  }
-
-  if (c.maxConsecutiveDays != null) {
-    const cellDate = parseISO(cell.date);
-    const assignedDateSet = new Set(
-      personAssignments
-        .filter(a => !(a.date === cell.date && a.shiftId === cell.shiftId))
-        .map(a => a.date)
-    );
-    assignedDateSet.add(cell.date);
-    const streak = countConsecutiveStreak(cellDate, assignedDateSet);
-    if (streak > c.maxConsecutiveDays) {
-      return tf.maxConsecutive(lang, c.maxConsecutiveDays);
-    }
-  }
-
-  if (c.minRestDays != null) {
-    const cellDate = parseISO(cell.date);
-    for (const a of personAssignments) {
-      if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
-      const gap = Math.abs(differenceInCalendarDays(cellDate, parseISO(a.date)));
-      if (gap > 0 && gap <= c.minRestDays) {
-        return tf.minRest(lang, c.minRestDays);
-      }
-    }
-  }
-
-  return null;
 }

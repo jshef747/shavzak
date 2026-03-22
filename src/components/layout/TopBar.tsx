@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { RefObject } from 'react';
-import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut, Eraser } from 'lucide-react';
+import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut, Eraser, CloudOff } from 'lucide-react';
 import type { AppState, Schedule } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
@@ -26,6 +26,7 @@ interface Props {
   onOpenHomePeriods: () => void;
   onToggleTheme: () => void;
   userEmail?: string;
+  syncError?: string | null;
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
   hideSidebar?: boolean;
@@ -45,6 +46,7 @@ export function TopBar({
   onOpenHomePeriods,
   onToggleTheme,
   userEmail,
+  syncError,
   onOpenAuthModal,
   onLogout,
   hideSidebar = false,
@@ -145,6 +147,15 @@ export function TopBar({
           <div className="flex items-center gap-2 border-s border-gray-200 dark:border-slate-700 ps-4">
             {userEmail ? (
               <>
+                {syncError && (
+                  <div
+                    title={syncError}
+                    className="no-print flex items-center gap-1.5 text-red-500 dark:text-red-400 text-xs font-medium bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-full px-2 py-1"
+                  >
+                    <CloudOff className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+                    <span className="hidden sm:inline">{t('syncError', lang)}</span>
+                  </div>
+                )}
                 <div className="hidden sm:flex items-center gap-3 bg-gray-50 dark:bg-slate-800/50 rounded-full pe-2 ps-3 py-1 border border-gray-100 dark:border-slate-700/50">
                   <span className="text-xs font-medium text-gray-600 dark:text-slate-300 truncate max-w-[140px]">{userEmail}</span>
                   <button

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Users } from 'lucide-react';
 import { eachDayOfInterval, parseISO, format, max, min } from 'date-fns';
 import type { AppState, HomeGroup, HomeGroupPeriod, Shift } from '../../types';
@@ -90,8 +90,8 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
               const isExpanded = expandedGroupId === group.id;
 
               return (
-                <>
-                  <tr key={group.id} className={`border-b border-slate-100 dark:border-slate-700/60 ${rowBg}`}>
+                <React.Fragment key={group.id}>
+                  <tr className={`border-b border-slate-100 dark:border-slate-700/60 ${rowBg}`}>
                     <td className={`sticky start-0 z-10 px-3 py-1.5 border-e border-slate-100 dark:border-slate-700/60 ${rowBg}`}>
                       <div className="flex items-center justify-between gap-1">
                         <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{group.name}</span>
@@ -149,7 +149,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                     })}
                   </tr>
                   {isExpanded && (
-                    <tr key={`${group.id}-members`} className="bg-blue-50 dark:bg-blue-950/30 border-b border-slate-100 dark:border-slate-700/60">
+                    <tr className="bg-blue-50 dark:bg-blue-950/30 border-b border-slate-100 dark:border-slate-700/60">
                       <td colSpan={extendedDates.length + 1} className="px-4 py-2.5">
                         {members.length === 0 ? (
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
@@ -167,7 +167,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                       </td>
                     </tr>
                   )}
-                </>
+                </React.Fragment>
               );
             })}
           </tbody>

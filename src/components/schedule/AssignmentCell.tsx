@@ -65,11 +65,20 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
   let dragOverBg = 'bg-blue-50';
   let dragOverOutline = '#93c5fd';
   let isSwapHover = false;
+  const activeDragData = active?.data.current as DragData | undefined;
+  const isBeingDraggedFrom = !!(
+    activeDragData?.type === 'from-cell' &&
+    activeDragData.sourceCell &&
+    activeDragData.sourceCell.date === cell.date &&
+    activeDragData.sourceCell.shiftId === cell.shiftId &&
+    activeDragData.sourceCell.positionId === cell.positionId &&
+    (activeDragData.sourceCell.half ?? undefined) === (cell.half ?? undefined)
+  );
   if (isOver && active) {
     const dragData = active.data.current as DragData | undefined;
     if (dragData) {
       const isFromCell = dragData.type === 'from-cell' && dragData.sourceCell;
-      isSwapHover = !!(isFromCell && person && !isHalfShift);
+      isSwapHover = !!(isFromCell && person);
       if (isSwapHover) {
         dragOverBg = 'bg-blue-100';
         dragOverOutline = '#3b82f6';
@@ -142,11 +151,13 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
           variant="cell"
         />
       )}
-      {isSwapHover && (
+      {(isSwapHover || isBeingDraggedFrom) && (
         <span className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-500 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
-          </svg>
+          <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-500 shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
+            </svg>
+          </span>
         </span>
       )}
       {warningText && (
