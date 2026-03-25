@@ -1,6 +1,7 @@
 import { getDay, parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
 import type { Assignment, CellAddress, CellStatus, HomeGroup, HomeGroupPeriod, Person, Position, Shift, DayOfWeek } from '../types';
 import { type Lang, tf, DAY_LABELS_HE } from './i18n';
+import { isOnCallSlotShiftId, getOnCallSlots } from './cellKey';
 
 /**
  * Returns true if the person (by homeGroupIds) is blocked for the given date+shift
@@ -194,6 +195,29 @@ function checkConstraints(
   return null;
 }
 
+/** Resolve a Shift-like object for both regular and on-call virtual shiftIds. */
+function resolveShift(shiftId: string, shifts: Shift[], positions: Position[], positionId?: string): Shift | undefined {
+  const regular = shifts.find(s => s.id === shiftId);
+  if (regular) return regular;
+  if (!isOnCallSlotShiftId(shiftId) || !positionId) return undefined;
+  const position = positions.find(p => p.id === positionId);
+  if (!position?.isOnCall || position.onCallDurationHours == null) return undefined;
+  const dayStartHour = shifts.length > 0
+    ? Math.min(...shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour)) % 24
+    : 0;
+  const allSlots = getOnCallSlots(position, dayStartHour);
+  const slot = allSlots.find(s => s.shiftId === shiftId);
+  if (!slot) return undefined;
+  return {
+    id: shiftId,
+    name: shiftId,
+    startHour: slot.startHour % 24,
+    durationHours: slot.durationHours,
+    isHalfShift: false,
+    color: '',
+  } as Shift;
+}
+
 export function computeCellStatus(
   cell: CellAddress,
   personId: string,
@@ -207,7 +231,7 @@ export function computeCellStatus(
   positions: Position[] = [],
   ignoreOnCallConstraints = false,
 ): CellStatus {
-  const targetShift = shifts.find(s => s.id === cell.shiftId);
+  const targetShift = resolveShift(cell.shiftId, shifts, positions, cell.positionId);
   if (!targetShift) return 'empty';
 
   const targetPosition = positions.find(p => p.id === cell.positionId);
@@ -254,7 +278,7 @@ export function computeCellStatus(
     // Skip any assignment to the same shift on the same date — both halves form
     // one continuous block, so no break is required between them.
     if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
-    const existingShift = shifts.find(s => s.id === a.shiftId);
+    const existingShift = resolveShift(a.shiftId, shifts, positions, a.positionId);
     if (!existingShift) continue;
     const existingPosition = positions.find(p => p.id === a.positionId);
     const existingStart = shiftStartMins(a.date, existingShift, refDate, existingPosition, a.half);

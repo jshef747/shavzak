@@ -1,6 +1,7 @@
 import { memo, Fragment } from 'react';
 import type { AppState, HomeGroupPeriod, Shift, Assignment, Position } from '../../types';
 import { AssignmentCell } from './AssignmentCell';
+import type { OnCallSlotMapping } from '../../utils/cellKey';
 
 interface Props {
   date: string;
@@ -9,10 +10,11 @@ interface Props {
   assignments: Assignment[];
   refDate: string;
   dayIndex: number;
-  positions: Position[];
+  positions: Position[];  // regular positions only
   homeGroupPeriods: HomeGroupPeriod[];
   shiftIndex?: number;
   totalShifts?: number;
+  onCallSlots?: OnCallSlotMapping[];
 }
 
 function formatShiftTime(h: number) {
@@ -22,33 +24,13 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods, shiftIndex = 0, totalShifts = 1 }: Props) {
+export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments, refDate, dayIndex, positions, homeGroupPeriods, onCallSlots = [] }: Props) {
   const endHour = shift.startHour + shift.durationHours;
   const rowBg = dayIndex % 2 === 0
     ? 'bg-gray-50 dark:bg-slate-800'
     : 'bg-white dark:bg-slate-900';
 
-  // For on-call positions with onCallDurationHours, only the first shift row renders
-  // the cell (with rowSpan covering all shift rows). Subsequent rows skip it.
-
   function renderPositionCell(pos: Position, cellProps: { shiftId: string; half?: 1 | 2; rowSpan?: number; isHalfShift?: boolean }) {
-    if (pos.isOnCall && pos.onCallDurationHours != null) {
-      if (shiftIndex > 0) return null; // already rendered with rowSpan in first row
-      // Find the assignment for this on-call position on this date (any shift row)
-      const onCallAssignment = assignments.find(a => a.date === date && a.positionId === pos.id);
-      const onCallShiftId = onCallAssignment?.shiftId ?? shift.id;
-      return (
-        <AssignmentCell
-          key={pos.id}
-          cell={{ date, shiftId: onCallShiftId, positionId: pos.id }}
-          state={state}
-          assignments={assignments}
-          refDate={refDate}
-          homeGroupPeriods={homeGroupPeriods}
-          rowSpan={totalShifts > 1 ? totalShifts : undefined}
-        />
-      );
-    }
     return (
       <AssignmentCell
         key={pos.id}
@@ -63,25 +45,36 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
     );
   }
 
+  function renderOnCallCells() {
+    return onCallSlots.map(({ pos, slot, rowSpan }) => (
+      <AssignmentCell
+        key={pos.id}
+        cell={{ date, shiftId: slot.shiftId, positionId: pos.id }}
+        state={state}
+        assignments={assignments}
+        refDate={refDate}
+        homeGroupPeriods={homeGroupPeriods}
+        rowSpan={rowSpan > 1 ? rowSpan : undefined}
+      />
+    ));
+  }
+
   if (shift.isHalfShift) {
     const midHour = shift.startHour + shift.durationHours / 2;
 
-    // A position needs splitting when: different people in each half, OR only one half is assigned.
     const splitPositionIds = new Set(
       positions
         .filter(pos => {
-          if (pos.isOnCall && pos.onCallDurationHours != null) return false; // on-call: never split
           const h1 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
           const h2 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
-          if (!h1 && !h2) return false; // empty — keep merged
-          if (h1 && h2 && h1.personId === h2.personId) return false; // same person both halves — keep merged
-          return true; // one half only, or different people
+          if (!h1 && !h2) return false;
+          if (h1 && h2 && h1.personId === h2.personId) return false;
+          return true;
         })
         .map(pos => pos.id)
     );
 
     if (splitPositionIds.size === 0) {
-      // All positions are merged — render as a normal single row with full time range.
       return (
         <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
           <td className={`sticky start-0 z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
@@ -94,11 +87,11 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
             const displayHalf = (h2 && !h1) ? 2 : 1;
             return renderPositionCell(pos, { shiftId: shift.id, half: displayHalf, isHalfShift: true });
           })}
+          {renderOnCallCells()}
         </tr>
       );
     }
 
-    // Some positions are split — render two rows.
     return (
       <Fragment>
         <tr className={`border-b border-gray-100 dark:border-slate-700/60 ${rowBg}`}>
@@ -109,6 +102,7 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
           {positions.map(pos =>
             renderPositionCell(pos, { shiftId: shift.id, half: 1, rowSpan: !splitPositionIds.has(pos.id) ? 2 : undefined })
           )}
+          {renderOnCallCells()}
         </tr>
         <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
           <td className={`sticky start-0 z-10 px-3 py-1.5 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
@@ -127,13 +121,14 @@ export const ShiftRow = memo(function ShiftRow({ date, shift, state, assignments
 
   return (
     <tr className={`border-b border-gray-200 dark:border-slate-700 ${rowBg}`}>
-      <td className={`sticky start-0  z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
+      <td className={`sticky start-0 z-10 px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-gray-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
         <div className="flex items-center gap-1">
           {shift.name}
         </div>
         <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">{formatShiftTime(shift.startHour)}–{formatShiftTime(endHour)}</div>
       </td>
       {positions.map(pos => renderPositionCell(pos, { shiftId: shift.id }))}
+      {renderOnCallCells()}
     </tr>
   );
 });

@@ -55,7 +55,7 @@ export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, s
 
   // Existing assignments shown in blue, new in green, warnings in their own color
   const colorClass = isSkipped
-    ? 'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600'
+    ? 'bg-slate-100 dark:bg-slate-700'
     : (status !== 'empty' && WARNING_STATUSES.has(status))
       ? STATUS_CLASSES[status]
       : isExisting
@@ -82,7 +82,7 @@ export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, s
     : '';
 
   return (
-    <td rowSpan={rowSpan} className={`relative border px-2 py-1.5 min-w-[120px] h-10 ${colorClass}`}>
+    <td rowSpan={rowSpan} className={`relative border px-2 py-1.5 min-w-[120px] ${rowSpan ? '' : 'h-10'} ${colorClass}`}>
       {person && (
         <span
           className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold truncate max-w-full"

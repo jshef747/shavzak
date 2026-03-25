@@ -135,6 +135,7 @@ const strings: Record<string, { en: string; he: string }> = {
   avoidHalfShiftsLabel: { en: 'Avoid Half-Shifts in Auto-Assign', he: 'הימנע ממשמרות חצי בשיבוץ אוטומטי' },
   avoidHalfShiftsDesc: { en: 'When on, auto-assign skips half-shift slots entirely. When off, half-shifts are filled as a last resort when no other candidates are available.', he: 'כאשר מופעל, השיבוץ האוטומטי מדלג על משמרות חצי לחלוטין. כאשר כבוי, משמרות חצי ימולאו כמוצא אחרון בלבד.' },
   whatsNewTitle: { en: "What's New", he: 'מה חדש' },
+  allDay: { en: 'All day', he: 'כל היום' },
   assignPeople: { en: 'Assign People', he: 'שבץ אנשים' },
   assignPeopleTitle: { en: 'Assign People to Role', he: 'שיבוץ אנשים לתפקיד' },
   noPeopleForRole: { en: 'No people added yet', he: 'אין אנשים עדיין' },

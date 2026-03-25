@@ -19,8 +19,14 @@ export function HoursTracker({ state, assignments }: Props) {
       const shift = state.shifts.find(s => s.id === a.shiftId);
       const pos = state.positions.find(p => p.id === a.positionId);
       const isOnCall = pos?.isOnCall ?? false;
-      const baseDuration = shift ? ((isOnCall && pos?.onCallDurationHours != null) ? pos.onCallDurationHours : shift.durationHours) : 0;
-      const duration = shift ? (a.half !== undefined ? baseDuration / 2 : baseDuration) : 0;
+      // On-call positions use the slot duration (onCallDurationHours or the slot itself)
+      // Virtual on-call shiftIds won't be found in state.shifts — fall back to position's onCallDurationHours
+      const baseDuration = isOnCall && pos?.onCallDurationHours != null
+        ? pos.onCallDurationHours
+        : shift ? shift.durationHours : 0;
+      const duration = (shift || (isOnCall && pos?.onCallDurationHours != null))
+        ? (a.half !== undefined ? baseDuration / 2 : baseDuration)
+        : 0;
       if (isOnCall) onCallHours += duration;
       else shiftHours += duration;
     }

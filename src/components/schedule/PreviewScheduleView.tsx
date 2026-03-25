@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
-import type { AppState, Assignment, HomeGroupPeriod, Position } from '../../types';
+import type { AppState, Assignment, HomeGroupPeriod } from '../../types';
 import type { SkippedCell } from '../../utils/autoAssign';
 import { langFromDir, t } from '../../utils/i18n';
 import { PreviewCell } from './PreviewCell';
+import { computeOnCallSlotMapping } from '../../utils/cellKey';
 
 interface Props {
   state: AppState;
@@ -16,7 +17,7 @@ interface Props {
 }
 
 function formatShiftTime(h: number) {
-  const totalMin = Math.round(h * 60) % (24 * 60);
+  const totalMin = Math.round(((h % 24) + 24) % 24 * 60);
   const hh = Math.floor(totalMin / 60);
   const mm = totalMin % 60;
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
@@ -31,65 +32,63 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssig
   const regularPositions = useMemo(() => state.positions.filter(p => !p.isOnCall), [state.positions]);
   const onCallPositions  = useMemo(() => state.positions.filter(p =>  p.isOnCall), [state.positions]);
 
-  function renderTable(positions: Position[], headerClass: string) {
-    return (
+  const dayStartHour = useMemo(() => {
+    if (state.shifts.length === 0) return 0;
+    return Math.min(...state.shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour)) % 24;
+  }, [state.shifts]);
+
+  const totalColumnCount = regularPositions.length + onCallPositions.length + 1;
+
+  return (
+    <div className="overflow-auto">
       <table className="border-collapse text-sm min-w-max border border-slate-200 dark:border-slate-700">
         <thead>
-          <tr className={headerClass}>
-            <th className="px-3 py-2 text-start  text-xs uppercase tracking-wide min-w-[120px]">
+          <tr>
+            <th className="px-3 py-2 text-start text-xs uppercase tracking-wide min-w-[120px] bg-slate-800 text-slate-100">
               {t('shiftCol', lang)}
             </th>
-            {positions.map(pos => (
-              <th key={pos.id} className="px-3 py-2 text-center text-xs uppercase tracking-wide min-w-[120px]">
+            {regularPositions.map(pos => (
+              <th key={pos.id} className="px-3 py-2 text-center text-xs uppercase tracking-wide min-w-[120px] bg-slate-800 text-slate-100">
+                {pos.name}
+              </th>
+            ))}
+            {onCallPositions.map(pos => (
+              <th key={pos.id} className="px-3 py-2 text-center text-xs uppercase tracking-wide min-w-[120px] bg-orange-500 text-white">
                 {pos.name}
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {dates.map((date, dayIndex) => (
-            <>
-              <tr key={`hdr-${date}`}>
-                <td
-                  colSpan={positions.length + 1}
-                  className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 border-t-2 border-slate-400 dark:border-slate-500 uppercase tracking-wide"
-                >
-                  {format(parseISO(date), 'EEE, MMM d', { locale })}
-                </td>
-              </tr>
-              {state.shifts.map((shift, shiftIndex) => {
-                const rowBg = dayIndex % 2 === 0
-                  ? 'bg-slate-50/40 dark:bg-slate-800/60'
-                  : 'bg-white dark:bg-slate-800';
-                const firstShiftId = state.shifts[0]?.id;
-                return (
-                  <tr key={`${date}-${shift.id}`} className={`border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
-                    <td className={`px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-slate-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
-                      {shift.name}
-                      <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">
-                        {formatShiftTime(shift.startHour)}–{formatShiftTime(shift.startHour + shift.durationHours)}
-                      </div>
-                    </td>
-                    {positions.map(pos => {
-                      if (pos.isOnCall && pos.onCallDurationHours != null) {
-                        if (shiftIndex > 0) return null;
-                        const onCallAssignment = mergedAssignments.find(a => a.date === date && a.positionId === pos.id);
-                        const onCallShiftId = onCallAssignment?.shiftId ?? firstShiftId ?? shift.id;
-                        return (
-                          <PreviewCell
-                            key={pos.id}
-                            cell={{ date, shiftId: onCallShiftId, positionId: pos.id }}
-                            state={state}
-                            mergedAssignments={mergedAssignments}
-                            baseAssignments={baseAssignments}
-                            skippedCells={skippedCells}
-                            refDate={refDate}
-                            homeGroupPeriods={homeGroupPeriods}
-                            rowSpan={state.shifts.length > 1 ? state.shifts.length : undefined}
-                          />
-                        );
-                      }
-                      return (
+          {dates.map((date, dayIndex) => {
+            const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40 dark:bg-slate-800/60' : 'bg-white dark:bg-slate-800';
+            const slotMapping = computeOnCallSlotMapping(
+              state.shifts,
+              onCallPositions,
+              dayStartHour,
+              date,
+              mergedAssignments,
+              regularPositions,
+            );
+
+            return (
+              <>
+                <tr key={`hdr-${date}`}>
+                  <td colSpan={totalColumnCount} className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-sm font-bold text-slate-800 dark:text-slate-100 border-t-2 border-slate-400 dark:border-slate-500 uppercase tracking-wide">
+                    {format(parseISO(date), 'EEE, MMM d', { locale })}
+                  </td>
+                </tr>
+                {state.shifts.map((shift, shiftIndex) => {
+                  const onCallMappings = slotMapping.get(shiftIndex) ?? [];
+                  return (
+                    <tr key={`${date}-${shift.id}`} className={`border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
+                      <td className={`px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-slate-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
+                        {shift.name}
+                        <div dir="ltr" className="text-gray-400 dark:text-slate-500 font-normal">
+                          {formatShiftTime(shift.startHour)}–{formatShiftTime(shift.startHour + shift.durationHours)}
+                        </div>
+                      </td>
+                      {regularPositions.map(pos => (
                         <PreviewCell
                           key={pos.id}
                           cell={{ date, shiftId: shift.id, positionId: pos.id }}
@@ -100,24 +99,28 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssig
                           refDate={refDate}
                           homeGroupPeriods={homeGroupPeriods}
                         />
-                      );
-                    })}
-                  </tr>
-                );
-              })}
-            </>
-          ))}
+                      ))}
+                      {onCallMappings.map(({ pos, slot, rowSpan }) => (
+                        <PreviewCell
+                          key={pos.id}
+                          cell={{ date, shiftId: slot.shiftId, positionId: pos.id }}
+                          state={state}
+                          mergedAssignments={mergedAssignments}
+                          baseAssignments={baseAssignments}
+                          skippedCells={skippedCells}
+                          refDate={refDate}
+                          homeGroupPeriods={homeGroupPeriods}
+                          rowSpan={rowSpan > 1 ? rowSpan : undefined}
+                        />
+                      ))}
+                    </tr>
+                  );
+                })}
+              </>
+            );
+          })}
         </tbody>
       </table>
-    );
-  }
-
-  return (
-    <div className="overflow-auto">
-      <div className="flex gap-4 min-w-max">
-        {regularPositions.length > 0 && renderTable(regularPositions, 'bg-slate-800 text-slate-100')}
-        {onCallPositions.length  > 0 && renderTable(onCallPositions,  'bg-orange-500 text-white')}
-      </div>
     </div>
   );
 }

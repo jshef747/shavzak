@@ -57,9 +57,6 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
 
   const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
   const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
-  const position = state.positions.find(p => p.id === cell.positionId);
-  const onCallDuration = (position?.isOnCall && position.onCallDurationHours != null) ? position.onCallDurationHours : null;
-
   const status: CellStatus = person
     ? computeCellStatus(cell, person.id, assignments, person, state.shifts, refDate, state.minBreakHours, state.homeGroups, homeGroupPeriods, state.positions, state.ignoreOnCallConstraints)
     : 'empty';
@@ -141,7 +138,7 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
       ref={setNodeRef}
       style={cellStyle}
       rowSpan={rowSpan}
-      className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] h-10 transition-colors duration-150 ${bgClass}`}
+      className={`relative border border-gray-200 dark:border-slate-700 px-2 py-1.5 min-w-[120px] ${rowSpan ? 'align-middle' : 'h-10'} transition-colors duration-150 ${bgClass}`}
     >
       {person && (
         <PersonChip
@@ -160,11 +157,6 @@ const AssignmentCellBase = function AssignmentCell({ cell, state, assignments, r
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4M4 17h12M4 17l4-4M4 17l4 4" />
             </svg>
           </span>
-        </span>
-      )}
-      {onCallDuration !== null && (
-        <span className="absolute bottom-0.5 start-1 text-[9px] font-semibold text-orange-500 dark:text-orange-400 pointer-events-none leading-none">
-          {onCallDuration}h
         </span>
       )}
       {warningText && (
