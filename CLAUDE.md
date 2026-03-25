@@ -51,5 +51,15 @@ DnD Kit (`@dnd-kit/core`, `@dnd-kit/sortable`). `DndProvider` wraps the layout. 
 - **RTL**: use Tailwind `rtl:` variants; check `state.dir` for conditional logic
 - **Print**: StatusLegend and auth UI are excluded from print via `print:hidden`
 
+## What's New Modal
+
+When shipping a new feature, you **must** update three files:
+
+1. **`src/components/layout/WhatsNewModal.tsx`** — add a new entry to both `FEATURES_EN` and `FEATURES_HE` describing the feature (icon, title, short desc).
+2. **`src/constants/index.ts`** — bump `WHATS_NEW_VERSION` to today's date (e.g. `'2026-03-25'`). This causes the modal to re-appear for all users on next load.
+3. **`src/components/layout/QuickStartModal.tsx`** — update the relevant step(s) in both `STEPS_EN` and `STEPS_HE` so the onboarding guide stays accurate.
+
+The modal auto-shows whenever `state.seenWhatsNewVersion !== WHATS_NEW_VERSION`. Closing it stamps the current version into `AppState`, so it won't appear again until the next version bump.
+
 ## Supabase Integration
 Credentials come from `.env` (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Auth is email-based. Cloud sync auto-saves on any state change with a 1-second debounce via `useCloudSync`.
