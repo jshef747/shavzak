@@ -17,8 +17,10 @@ export function HoursTracker({ state, assignments }: Props) {
     let onCallHours = 0;
     for (const a of personAssignments) {
       const shift = state.shifts.find(s => s.id === a.shiftId);
-      const duration = shift ? (a.half !== undefined ? shift.durationHours / 2 : shift.durationHours) : 0;
-      const isOnCall = state.positions.find(p => p.id === a.positionId)?.isOnCall ?? false;
+      const pos = state.positions.find(p => p.id === a.positionId);
+      const isOnCall = pos?.isOnCall ?? false;
+      const baseDuration = shift ? ((isOnCall && pos?.onCallDurationHours != null) ? pos.onCallDurationHours : shift.durationHours) : 0;
+      const duration = shift ? (a.half !== undefined ? baseDuration / 2 : baseDuration) : 0;
       if (isOnCall) onCallHours += duration;
       else shiftHours += duration;
     }

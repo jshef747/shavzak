@@ -29,6 +29,7 @@ interface Props {
   onReorder: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
   onUpdateIgnoreOnCallConstraints: (value: boolean) => void;
+  onUpdateAvoidHalfShifts: (value: boolean) => void;
   shiftSets: import('../../hooks/usePresets').ShiftSetPreset[];
   onAddShiftSet: (name: string, shifts: Shift[]) => Promise<void>;
   onDeleteShiftSet: (id: string) => Promise<void>;
@@ -148,7 +149,7 @@ function SortableShiftRow({ shift, canDelete, lang, onUpdate, onDelete }: {
   );
 }
 
-export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, onUpdateIgnoreOnCallConstraints, shiftSets, onAddShiftSet, onDeleteShiftSet, onLoadShiftSet, isLoggedIn }: Props) {
+export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdateMinBreakHours, onUpdateIgnoreOnCallConstraints, onUpdateAvoidHalfShifts, shiftSets, onAddShiftSet, onDeleteShiftSet, onLoadShiftSet, isLoggedIn }: Props) {
   const [name, setName] = useState('');
   const [startTime, setStartTime] = useState('08:00');
   const [duration, setDuration] = useState<number>(8);
@@ -389,6 +390,27 @@ export function ShiftsTab({ state, onAdd, onUpdate, onDelete, onReorder, onUpdat
             className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-lime-500 focus:ring-offset-2 ${state.ignoreOnCallConstraints ? 'bg-lime-500' : 'bg-gray-200 dark:bg-slate-600'}`}
           >
             <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-150 ${state.ignoreOnCallConstraints ? (state.dir === 'rtl' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0'}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Avoid half-shifts in auto-assign toggle */}
+      <div className="bg-white dark:bg-slate-900 border border-gray-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm ring-1 ring-black/[0.02]">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-900/40 flex items-center justify-center flex-shrink-0">
+            <Clock className="w-5 h-5 text-purple-600" strokeWidth={1.5} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t('avoidHalfShiftsLabel', lang)}</h3>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t('avoidHalfShiftsDesc', lang)}</p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={state.avoidHalfShifts}
+            onClick={() => onUpdateAvoidHalfShifts(!state.avoidHalfShifts)}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${state.avoidHalfShifts ? 'bg-purple-500' : 'bg-gray-200 dark:bg-slate-600'}`}
+          >
+            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-150 ${state.avoidHalfShifts ? (state.dir === 'rtl' ? '-translate-x-5' : 'translate-x-5') : 'translate-x-0'}`} />
           </button>
         </div>
       </div>

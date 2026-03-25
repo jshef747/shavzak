@@ -30,14 +30,16 @@ import { NewScheduleModal } from './layout/NewScheduleModal';
 import { AutoAssignModal } from './layout/AutoAssignModal';
 import { HomePeriodsModal } from './layout/HomePeriodsModal';
 import { AuthModal } from './auth/AuthModal';
+import { WhatsNewModal } from './layout/WhatsNewModal';
 import { exportToExcel } from '../utils/exportExcel';
 import { autoAssign, type AutoAssignResult } from '../utils/autoAssign';
+import { WHATS_NEW_VERSION } from '../constants';
 
 export function App() {
   const { state, setState } = useAppState();
   const { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule } = useSchedule(state, setState);
   const { addShift, updateShift, deleteShift, reorderShifts } = useShifts(state, setState);
-  const { addPosition, updatePosition, deletePosition, toggleOnCall, reorderPositions } = usePositions(state, setState);
+  const { addPosition, updatePosition, deletePosition, toggleOnCall, updateOnCallDuration, reorderPositions } = usePositions(state, setState);
   const {
     addPerson, deletePerson, updatePersonName,
     toggleQualification, toggleUnavailability,
@@ -164,6 +166,10 @@ export function App() {
     setState(prev => ({ ...prev, ignoreOnCallConstraints: value }));
   }
 
+  function updateAvoidHalfShifts(value: boolean) {
+    setState(prev => ({ ...prev, avoidHalfShifts: value }));
+  }
+
   function openSettings(tab?: string) {
     setSettingsInitialTab(tab);
     setSettingsOpen(true);
@@ -173,7 +179,7 @@ export function App() {
     if (!activeSchedule) return;
     // Always run with reassign=false — existing assignments are skipped automatically.
     // The reassign dialog (clear & redo) is only triggered from the preview modal itself.
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods, state.ignoreOnCallConstraints);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts);
     setAutoAssignResult(result);
     setAutoAssignReassign(null);
     setAutoAssignOpen(true);
@@ -181,7 +187,7 @@ export function App() {
 
   function handleConfirmReassign() {
     if (!activeSchedule) return;
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods, state.ignoreOnCallConstraints);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts);
     setAutoAssignResult(result);
   }
 
@@ -356,10 +362,12 @@ export function App() {
         onReorderShifts={reorderShifts}
         onUpdateMinBreakHours={updateMinBreakHours}
         onUpdateIgnoreOnCallConstraints={updateIgnoreOnCallConstraints}
+        onUpdateAvoidHalfShifts={updateAvoidHalfShifts}
         onAddPosition={addPosition}
         onUpdatePosition={updatePosition}
         onDeletePosition={deletePosition}
         onToggleOnCall={toggleOnCall}
+        onUpdateOnCallDuration={updateOnCallDuration}
         onReorderPositions={reorderPositions}
         onAddPerson={addPerson}
         onDeletePerson={deletePerson}
@@ -463,6 +471,13 @@ export function App() {
         onRegister={register}
         lang={lang}
       />
+
+      <WhatsNewModal
+        open={state.seenWhatsNewVersion !== WHATS_NEW_VERSION}
+        onClose={() => setState(prev => ({ ...prev, seenWhatsNewVersion: WHATS_NEW_VERSION }))}
+        dir={state.dir}
+      />
+
       <Toaster position="bottom-right" />
     </div>
   );

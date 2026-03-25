@@ -29,9 +29,10 @@ interface Props {
   skippedCells: SkippedCell[];
   refDate: string;
   homeGroupPeriods: HomeGroupPeriod[];
+  rowSpan?: number;
 }
 
-export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, skippedCells, refDate, homeGroupPeriods }: Props) {
+export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, skippedCells, refDate, homeGroupPeriods, rowSpan }: Props) {
   const lang = langFromDir(state.dir);
 
   const assignment = mergedAssignments.find(
@@ -81,7 +82,7 @@ export function PreviewCell({ cell, state, mergedAssignments, baseAssignments, s
     : '';
 
   return (
-    <td className={`relative border px-2 py-1.5 min-w-[120px] h-10 ${colorClass}`}>
+    <td rowSpan={rowSpan} className={`relative border px-2 py-1.5 min-w-[120px] h-10 ${colorClass}`}>
       {person && (
         <span
           className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold truncate max-w-full"

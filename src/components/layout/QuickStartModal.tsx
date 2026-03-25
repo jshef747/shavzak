@@ -18,7 +18,16 @@ const STEPS_EN = [
   {
     icon: <Settings className="w-8 h-8" strokeWidth={1.5} />,
     title: '2. Setup Defaults',
-    description: 'Open Settings (⚙) to define Shifts (e.g. Morning, Night) and Positions (roles). Mark a position as On-Call if it should be treated as a standby role — this affects how auto-assign fills last-resort slots. Use Presets to save common shift/position sets for quick reuse.',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+        <p>Open Settings (⚙) to define <span className="font-semibold text-gray-800 dark:text-slate-100">Shifts</span> and <span className="font-semibold text-gray-800 dark:text-slate-100">Positions</span> (roles).</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">On-Call positions</span> — mark a position as On-Call to treat it as a standby role. Set a custom hour count (e.g. 24h) so it's tracked separately from regular shift hours. On-call cells span the full day as one merged cell.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Avoid Half-Shifts</span> — toggle in Shifts settings to make auto-assign skip half-shift slots entirely (or use them only as last resort).</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Presets</span> — save common shift/position sets for quick reuse across schedules.</span></li>
+        </ul>
+      </div>
+    ),
   },
   {
     icon: <Users className="w-8 h-8" strokeWidth={1.5} />,
@@ -39,7 +48,15 @@ const STEPS_EN = [
   {
     icon: <Wand2 className="w-8 h-8" strokeWidth={1.5} />,
     title: '4. Smart Scheduling',
-    description: 'Use the "Auto Assign" button (✨) to instantly fill the schedule based on everyone\'s qualifications and constraints. You can also manually Drag & Drop people from the sidebar into any cell.',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+        <p>Use the <span className="font-semibold text-gray-800 dark:text-slate-100">Auto Assign</span> button (✨) to instantly fill the schedule based on everyone's qualifications and constraints. You can also manually <span className="font-semibold text-gray-800 dark:text-slate-100">Drag &amp; Drop</span> people from the sidebar into any cell.</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Shift variety</span> — auto-assign avoids giving someone the same shift on consecutive days (soft penalty).</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Half-shifts</span> — controlled by the Avoid Half-Shifts toggle in Settings → Shifts.</span></li>
+        </ul>
+      </div>
+    ),
   },
   {
     icon: <Zap className="w-8 h-8" strokeWidth={1.5} />,
@@ -51,8 +68,8 @@ const STEPS_EN = [
           <p>Mark a person with Force Minimum (in their Edit panel, or bulk-select in the People list) and auto-assign will prioritize them for every available slot — as long as their minimum rest time has passed. Good for people who need to accumulate maximum hours. The ⚡ bolt appears next to their name in the sidebar so you always know who's flagged.</p>
         </div>
         <div>
-          <p className="font-semibold text-gray-800 dark:text-slate-100 mb-1">On-Call fallback</p>
-          <p>If every qualified person for an on-call position is blocked by a constraint, auto-assign will assign the least-constrained one anyway and mark the cell purple. This prevents on-call slots from being left empty when there's no clean option.</p>
+          <p className="font-semibold text-gray-800 dark:text-slate-100 mb-1">On-Call positions</p>
+          <p>Set a custom duration (e.g. 24h) per on-call position in Settings → Positions. The cell spans the whole day as a single merged cell, and hours tracking uses that duration. If every qualified person is blocked by a constraint, auto-assign assigns the least-constrained one anyway and marks the cell purple — so on-call slots are never left empty.</p>
         </div>
       </div>
     ),
@@ -108,7 +125,16 @@ const STEPS_HE = [
   {
     icon: STEPS_EN[1].icon,
     title: '2. הגדרות בסיס',
-    description: 'פתח הגדרות (⚙) כדי להגדיר משמרות ותפקידים. סמן תפקיד כ"כוננות" (On-Call) אם הוא תפקיד המתנה — זה משפיע על אופן מילוי התאים האחרונים בשיבוץ אוטומטי. השתמש ב"תבניות" לשמירת קבוצות משמרות ותפקידים לשימוש חוזר.',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+        <p>פתח הגדרות (⚙) כדי להגדיר <span className="font-semibold text-gray-800 dark:text-slate-100">משמרות</span> ו<span className="font-semibold text-gray-800 dark:text-slate-100">תפקידים</span>.</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">תפקידי כוננות</span> — סמן תפקיד כ"כוננות" לטיפול כתפקיד המתנה. הגדר מספר שעות מותאם (למשל 24ש) למעקב שעות נפרד משאר המשמרות. תאי כוננות ממוזגים לתא יחיד המכסה את כל היום.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">הימנע ממשמרות חצי</span> — מתג בהגדרות משמרות לשליטה האם השיבוץ האוטומטי משתמש במשמרות חצי.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">תבניות</span> — שמור קבוצות משמרות ותפקידים לשימוש חוזר.</span></li>
+        </ul>
+      </div>
+    ),
   },
   {
     icon: STEPS_EN[2].icon,
@@ -129,7 +155,15 @@ const STEPS_HE = [
   {
     icon: STEPS_EN[3].icon,
     title: '4. שיבוץ חכם',
-    description: 'לחץ על "שיבוץ אוטומטי" (✨) למילוי מהיר של הלוח בהתחשב באילוצים של כולם. ניתן גם לגרור ולשחרר (Drag & Drop) אנשים ידנית לתוך התאים.',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+        <p>לחץ על <span className="font-semibold text-gray-800 dark:text-slate-100">שיבוץ אוטומטי</span> (✨) למילוי מהיר בהתחשב באילוצים. ניתן גם לגרור ולשחרר (Drag &amp; Drop) אנשים ידנית.</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">מגוון משמרות</span> — השיבוץ האוטומטי מרתיע רצפים של אותה משמרת בימים עוקבים.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">משמרות חצי</span> — נשלט על ידי מתג "הימנע ממשמרות חצי" בהגדרות ← משמרות.</span></li>
+        </ul>
+      </div>
+    ),
   },
   {
     icon: STEPS_EN[4].icon,
@@ -141,8 +175,8 @@ const STEPS_HE = [
           <p>סמן אדם כ"מינימום מאולץ" (בפאנל העריכה שלו, או בבחירה מרובה ברשימת האנשים) — השיבוץ האוטומטי יתעדף אותו לכל משבצת פנויה כל עוד עבר זמן המנוחה המינימלי. מתאים לאנשים שצריכים לצבור מקסימום שעות. סמל ⚡ יופיע ליד שמם בסרגל הצד.</p>
         </div>
         <div>
-          <p className="font-semibold text-gray-800 dark:text-slate-100 mb-1">גיבוי כוננות</p>
-          <p>אם כל המועמדים המוסמכים לתפקיד כוננות חסומים על ידי אילוץ, השיבוץ האוטומטי ישבץ את הפחות מוגבל מביניהם בכל זאת וסמן את התא בסגול. כך לא יישארו משבצות כוננות ריקות.</p>
+          <p className="font-semibold text-gray-800 dark:text-slate-100 mb-1">תפקידי כוננות</p>
+          <p>הגדר משך מותאם (למשל 24ש) לכל תפקיד כוננות בהגדרות ← תפקידים. התא ממוזג לתא יחיד לכל היום ומעקב השעות משתמש במשך זה. אם כל המועמדים המוסמכים חסומים, השיבוץ ישבץ את הפחות מוגבל וסמן בסגול — כך לא יישארו משבצות ריקות.</p>
         </div>
       </div>
     ),

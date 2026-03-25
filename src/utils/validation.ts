@@ -55,15 +55,19 @@ export function isHomeGroupBlocked(
 // they physically occur one calendar day AFTER the date they are labelled with.
 // For half-shift assignments (half=1 or half=2), the effective start is offset by
 // half the duration for the second half.
-function shiftStartMins(date: string, shift: Shift, refDate: string, half?: 1 | 2): number {
+function effectiveShiftDuration(shift: Shift, position: Position | undefined): number {
+  return (position?.isOnCall && position.onCallDurationHours != null) ? position.onCallDurationHours : shift.durationHours;
+}
+function shiftStartMins(date: string, shift: Shift, refDate: string, position: Position | undefined, half?: 1 | 2): number {
   const dayOffset = differenceInCalendarDays(parseISO(date), parseISO(refDate));
   const nightOffset = shift.startHour < 6 ? 1 : 0;
-  const halfOffset = (half === 2 && shift.isHalfShift) ? shift.durationHours / 2 * 60 : 0;
+  const halfOffset = (half === 2 && shift.isHalfShift) ? effectiveShiftDuration(shift, position) / 2 * 60 : 0;
   return (dayOffset + nightOffset) * 1440 + shift.startHour * 60 + halfOffset;
 }
-function shiftEndMins(date: string, shift: Shift, refDate: string, half?: 1 | 2): number {
-  const duration = (half !== undefined && shift.isHalfShift) ? shift.durationHours / 2 : shift.durationHours;
-  return shiftStartMins(date, shift, refDate, half) + duration * 60;
+function shiftEndMins(date: string, shift: Shift, refDate: string, position: Position | undefined, half?: 1 | 2): number {
+  const base = effectiveShiftDuration(shift, position);
+  const duration = (half !== undefined && shift.isHalfShift) ? base / 2 : base;
+  return shiftStartMins(date, shift, refDate, position, half) + duration * 60;
 }
 
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -240,8 +244,8 @@ export function computeCellStatus(
   if (!bypassSoft && !person.qualifiedPositions.includes(cell.positionId)) return 'unqualified';
 
   // 4. Insufficient break
-  const targetStart = shiftStartMins(cell.date, targetShift, refDate, cell.half);
-  const targetEnd = shiftEndMins(cell.date, targetShift, refDate, cell.half);
+  const targetStart = shiftStartMins(cell.date, targetShift, refDate, targetPosition, cell.half);
+  const targetEnd = shiftEndMins(cell.date, targetShift, refDate, targetPosition, cell.half);
 
   let shortBreakOnCall = false; // tracks if we hit an on-call reduced-break situation
   let breakOverride = false;    // tracks break violation bypassed by ignoreOnCallConstraints
@@ -252,13 +256,13 @@ export function computeCellStatus(
     if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
     const existingShift = shifts.find(s => s.id === a.shiftId);
     if (!existingShift) continue;
-    const existingStart = shiftStartMins(a.date, existingShift, refDate, a.half);
-    const existingEnd = shiftEndMins(a.date, existingShift, refDate, a.half);
+    const existingPosition = positions.find(p => p.id === a.positionId);
+    const existingStart = shiftStartMins(a.date, existingShift, refDate, existingPosition, a.half);
+    const existingEnd = shiftEndMins(a.date, existingShift, refDate, existingPosition, a.half);
 
     // gap between the two shifts (negative means overlap)
     const gap = Math.max(targetStart - existingEnd, existingStart - targetEnd);
     if (gap < minBreakHours * 60) {
-      const existingPosition = positions.find(p => p.id === a.positionId);
       if (targetPosition?.isOnCall && existingPosition?.isOnCall) {
         // On-call: consecutive shifts (gap ≥ 0) are allowed with a warning.
         // Only an actual time overlap (gap < 0) is a hard block.

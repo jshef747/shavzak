@@ -28,7 +28,7 @@ export const DaySection = memo(function DaySection({ date, state, assignments, r
           {label}
         </td>
       </tr>
-      {state.shifts.map(shift => (
+      {state.shifts.map((shift, shiftIndex) => (
         <ShiftRow
           key={shift.id}
           date={date}
@@ -39,6 +39,8 @@ export const DaySection = memo(function DaySection({ date, state, assignments, r
           dayIndex={dayIndex}
           positions={positions}
           homeGroupPeriods={homeGroupPeriods}
+          shiftIndex={shiftIndex}
+          totalShifts={state.shifts.length}
         />
       ))}
     </>

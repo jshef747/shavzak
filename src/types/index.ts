@@ -6,7 +6,7 @@ export interface Shift {
   isHalfShift?: boolean;
 }
 
-export interface Position { id: string; name: string; isOnCall?: boolean; }
+export interface Position { id: string; name: string; isOnCall?: boolean; onCallDurationHours?: number; }
 
 export interface UnavailabilityEntry { shiftId: string; date: string; half?: 1 | 2; }
 
@@ -90,4 +90,6 @@ export interface AppState {
   theme: 'light' | 'dark' | 'system';
   minBreakHours: number;
   ignoreOnCallConstraints: boolean;
+  avoidHalfShifts: boolean;
+  seenWhatsNewVersion?: string;
 }

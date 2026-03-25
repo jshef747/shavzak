@@ -28,6 +28,7 @@ interface Props {
   onUpdate: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onToggleOnCall: (id: string) => void;
+  onUpdateOnCallDuration: (id: string, hours: number | undefined) => void;
   onToggleQualification: (personId: string, positionId: string) => void;
   onReorder: (orderedIds: string[]) => void;
   positionSets: import('../../hooks/usePresets').PositionSetPreset[];
@@ -37,13 +38,14 @@ interface Props {
   isLoggedIn: boolean;
 }
 
-function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, onToggleOnCall, onAssign }: {
+function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, onToggleOnCall, onUpdateOnCallDuration, onAssign }: {
   pos: Position;
   qualifiedCount: number;
   lang: Lang;
   onUpdate: (id: string, name: string) => void;
   onDelete: (id: string) => void;
   onToggleOnCall: (id: string) => void;
+  onUpdateOnCallDuration: (id: string, hours: number | undefined) => void;
   onAssign: (pos: Position) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: pos.id });
@@ -100,6 +102,24 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
         </button>
       </div>
 
+      {/* On-call duration override — only shown when isOnCall */}
+      {pos.isOnCall && (
+        <div className="flex flex-col gap-0.5 shrink-0" title={lang === 'he' ? 'שעות כוננות' : 'On-call hours'}>
+          <span className="text-[10px] font-medium text-orange-400 uppercase tracking-wider">{t('onCallDuration', lang)}</span>
+          <input
+            type="number"
+            className="border border-orange-200 dark:border-orange-700 dark:bg-slate-700 dark:text-slate-100 rounded-lg px-2 py-1 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-orange-400 transition-shadow"
+            value={pos.onCallDurationHours ?? ''}
+            min={0.5} max={48} step={0.5}
+            placeholder="–"
+            onChange={e => {
+              const val = e.target.value === '' ? undefined : parseFloat(e.target.value) || 0.5;
+              onUpdateOnCallDuration(pos.id, val);
+            }}
+          />
+        </div>
+      )}
+
       {/* People count / single-role assign button */}
       <button
         onClick={() => onAssign(pos)}
@@ -122,7 +142,7 @@ function SortablePositionRow({ pos, qualifiedCount, lang, onUpdate, onDelete, on
   );
 }
 
-export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onToggleQualification, onReorder, positionSets, onAddPositionSet, onDeletePositionSet, onLoadPositionSet, isLoggedIn }: Props) {
+export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall, onUpdateOnCallDuration, onToggleQualification, onReorder, positionSets, onAddPositionSet, onDeletePositionSet, onLoadPositionSet, isLoggedIn }: Props) {
   const [name, setName] = useState('');
   const [assigningPosition, setAssigningPosition] = useState<Position | null>(null);
   const [showBulkAssign, setShowBulkAssign] = useState(false);
@@ -272,6 +292,7 @@ export function PositionsTab({ state, onAdd, onUpdate, onDelete, onToggleOnCall,
                         onUpdate={onUpdate}
                         onDelete={handleRequestDeletePosition}
                         onToggleOnCall={onToggleOnCall}
+                        onUpdateOnCallDuration={onUpdateOnCallDuration}
                         onAssign={setAssigningPosition}
                       />
                     );

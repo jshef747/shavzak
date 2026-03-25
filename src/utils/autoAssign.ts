@@ -27,7 +27,9 @@ function onCallHours(personId: string, assignments: Assignment[], positionMap: M
     .reduce((sum, a) => {
       const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
-      return sum + (a.half !== undefined ? shift.durationHours / 2 : shift.durationHours);
+      const pos = positionMap.get(a.positionId);
+      const base = (pos?.isOnCall && pos.onCallDurationHours != null) ? pos.onCallDurationHours : shift.durationHours;
+      return sum + (a.half !== undefined ? base / 2 : base);
     }, 0);
 }
 
@@ -43,15 +45,17 @@ function regularHours(personId: string, assignments: Assignment[], positionMap: 
 }
 
 /** Returns total shift hours a person has in the given assignments array.
- *  Half-shift assignments count as half the shift's duration. */
-function totalHours(personId: string, assignments: Assignment[], shiftMap: Map<string, Shift>): number {
+ *  Half-shift assignments count as half the shift's duration.
+ *  Uses onCallDurationHours for on-call positions when defined. */
+function totalHours(personId: string, assignments: Assignment[], shiftMap: Map<string, Shift>, positionMap: Map<string, Position>): number {
   return assignments
     .filter(a => a.personId === personId)
     .reduce((sum, a) => {
       const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
-      const hours = a.half !== undefined ? shift.durationHours / 2 : shift.durationHours;
-      return sum + hours;
+      const pos = positionMap.get(a.positionId);
+      const base = (pos?.isOnCall && pos.onCallDurationHours != null) ? pos.onCallDurationHours : shift.durationHours;
+      return sum + (a.half !== undefined ? base / 2 : base);
     }, 0);
 }
 
@@ -112,6 +116,30 @@ function departurePenalty(
 }
 
 /**
+ * Returns how many consecutive prior days a person had the same shiftId.
+ * Looks back up to maxLookback days. Stops as soon as the streak is broken.
+ * Used as a soft penalty to encourage shift variety across days.
+ */
+function consecutiveShiftPenalty(
+  cell: CellAddress,
+  personId: string,
+  assignments: Assignment[],
+  maxLookback = 3,
+): number {
+  let penalty = 0;
+  const cellDate = parseISO(cell.date);
+  for (let i = 1; i <= maxLookback; i++) {
+    const prevDate = format(addDays(cellDate, -i), 'yyyy-MM-dd');
+    const found = assignments.some(
+      a => a.personId === personId && a.date === prevDate && a.shiftId === cell.shiftId,
+    );
+    if (found) penalty++;
+    else break;
+  }
+  return penalty;
+}
+
+/**
  * Auto-assigns people to all empty cells in the schedule.
  *
  * Strategy: fairness — always pick the qualified candidate with the fewest
@@ -135,6 +163,7 @@ export function autoAssign(
   reassign = false,
   homeGroupPeriods: HomeGroupPeriod[] = [],
   ignoreOnCallConstraints = false,
+  avoidHalfShifts = false,
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
@@ -180,21 +209,36 @@ export function autoAssign(
   const fullByDate: SlotList[] = dates.map(() => []);
   const halfByDate: SlotList[] = dates.map(() => []);
 
+  // Track which on-call positions (with onCallDurationHours) have already been
+  // slotted for each date — they cover the whole day so only one slot per day.
   for (let di = 0; di < dates.length; di++) {
     const date = dates[di];
+    const onCallPositionsSlottedToday = new Set<string>();
     for (const shift of sortedShifts) {
       const halves: Array<1 | 2 | undefined> = shift.isHalfShift ? [1, 2] : [undefined];
       for (const half of halves) {
+        // When avoidHalfShifts is on, skip half-shift cells entirely
+        if (avoidHalfShifts && half !== undefined) continue;
         for (const position of positions) {
+          // On-call positions with a day-long duration: only one slot per day.
+          // If this position already has a cell (or an existing assignment) for today, skip.
+          const isOnCallDay = position.isOnCall && position.onCallDurationHours != null;
+          if (isOnCallDay) {
+            const alreadyAssigned = working.some(a => a.positionId === position.id && a.date === date);
+            if (alreadyAssigned || onCallPositionsSlottedToday.has(position.id)) continue;
+            onCallPositionsSlottedToday.add(position.id);
+          }
+          // On-call day positions always store without half (they span the whole day)
+          const cellHalf = isOnCallDay ? undefined : half;
           const cell: CellAddress = {
             date,
             shiftId: shift.id,
             positionId: position.id,
-            ...(half !== undefined ? { half } : {}),
+            ...(cellHalf !== undefined ? { half: cellHalf } : {}),
           };
           const occupied = working.some(a => assignmentMatchesCell(a, cell));
           if (!occupied) {
-            if (half !== undefined) halfByDate[di].push(cell);
+            if (cellHalf !== undefined) halfByDate[di].push(cell);
             else fullByDate[di].push(cell);
           }
         }
@@ -267,10 +311,11 @@ export function autoAssign(
     // Step 3: Sort candidates by priority:
     //   1. forceMinimum persons first (higher duty priority tier)
     //   2. Departure proximity penalty (asc) — avoid assigning close to home-group departure
-    //   3. Primary hours for this cell type (asc) — balance on-call vs regular separately
-    //   4. Total hours normalized by number of qualified positions (asc) — fair share load
-    //   5. Times assigned to THIS specific position (asc) — rotation across positions
-    //   6. Random — avoids alphabetical bias
+    //   3. Consecutive same-shift penalty (asc) — encourage shift variety across days
+    //   4. Primary hours for this cell type (asc) — balance on-call vs regular separately
+    //   5. Total hours normalized by number of qualified positions (asc) — fair share load
+    //   6. Times assigned to THIS specific position (asc) — rotation across positions
+    //   7. Random — avoids alphabetical bias
     const cellShift = shiftMap.get(cell.shiftId)!;
     const withRand = candidates.map(c => ({ ...c, rand: Math.random() }));
     withRand.sort((a, b) => {
@@ -280,6 +325,9 @@ export function autoAssign(
       const penA = departurePenalty(cell, a.person, cellShift, homeGroupPeriods);
       const penB = departurePenalty(cell, b.person, cellShift, homeGroupPeriods);
       if (penA !== penB) return penA - penB;
+      const cspA = consecutiveShiftPenalty(cell, a.person.id, working);
+      const cspB = consecutiveShiftPenalty(cell, b.person.id, working);
+      if (cspA !== cspB) return cspA - cspB;
       // Balance by the relevant hour type first: on-call hours for on-call cells,
       // regular hours for regular cells. This prevents stacking one type on the same person.
       const primaryA = isOnCallPosition
@@ -293,8 +341,8 @@ export function autoAssign(
       // so people with fewer qualified positions aren't unfairly over-assigned.
       const qualA = Math.max(1, a.person.qualifiedPositions.length);
       const qualB = Math.max(1, b.person.qualifiedPositions.length);
-      const normA = totalHours(a.person.id, working, shiftMap) / qualA;
-      const normB = totalHours(b.person.id, working, shiftMap) / qualB;
+      const normA = totalHours(a.person.id, working, shiftMap, positionMap) / qualA;
+      const normB = totalHours(b.person.id, working, shiftMap, positionMap) / qualB;
       if (Math.abs(normA - normB) > 0.01) return normA - normB;
       const posA = positionCount(a.person.id, cell.positionId, working);
       const posB = positionCount(b.person.id, cell.positionId, working);

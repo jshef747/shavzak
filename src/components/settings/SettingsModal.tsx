@@ -19,10 +19,12 @@ interface Props {
   onReorderShifts: (orderedIds: string[]) => void;
   onUpdateMinBreakHours: (hours: number) => void;
   onUpdateIgnoreOnCallConstraints: (value: boolean) => void;
+  onUpdateAvoidHalfShifts: (value: boolean) => void;
   onAddPosition: (name: string) => void;
   onUpdatePosition: (id: string, name: string) => void;
   onDeletePosition: (id: string) => void;
   onToggleOnCall: (id: string) => void;
+  onUpdateOnCallDuration: (id: string, hours: number | undefined) => void;
   onReorderPositions: (orderedIds: string[]) => void;
   onAddPerson: (name: string) => void;
   onDeletePerson: (id: string) => void;
@@ -86,6 +88,7 @@ export function SettingsModal({
           onReorder={handlers.onReorderShifts}
           onUpdateMinBreakHours={handlers.onUpdateMinBreakHours}
           onUpdateIgnoreOnCallConstraints={handlers.onUpdateIgnoreOnCallConstraints}
+          onUpdateAvoidHalfShifts={handlers.onUpdateAvoidHalfShifts}
           shiftSets={shiftSets}
           onAddShiftSet={onAddShiftSet}
           onDeleteShiftSet={onDeleteShiftSet}
@@ -100,6 +103,7 @@ export function SettingsModal({
           onUpdate={handlers.onUpdatePosition}
           onDelete={handlers.onDeletePosition}
           onToggleOnCall={handlers.onToggleOnCall}
+          onUpdateOnCallDuration={handlers.onUpdateOnCallDuration}
           onReorder={handlers.onReorderPositions}
           onToggleQualification={handlers.onToggleQualification}
           positionSets={positionSets}

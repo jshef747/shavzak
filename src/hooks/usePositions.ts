@@ -21,6 +21,13 @@ export function usePositions(_state: AppState, setState: Dispatch<SetStateAction
     }));
   }
 
+  function updateOnCallDuration(id: string, hours: number | undefined) {
+    setState(prev => ({
+      ...prev,
+      positions: prev.positions.map(p => p.id === id ? { ...p, onCallDurationHours: hours } : p),
+    }));
+  }
+
   function deletePosition(id: string) {
     setState(prev => ({
       ...prev,
@@ -44,5 +51,5 @@ export function usePositions(_state: AppState, setState: Dispatch<SetStateAction
     });
   }
 
-  return { addPosition, updatePosition, deletePosition, toggleOnCall, reorderPositions };
+  return { addPosition, updatePosition, deletePosition, toggleOnCall, updateOnCallDuration, reorderPositions };
 }

@@ -57,10 +57,11 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssig
                   {format(parseISO(date), 'EEE, MMM d', { locale })}
                 </td>
               </tr>
-              {state.shifts.map(shift => {
+              {state.shifts.map((shift, shiftIndex) => {
                 const rowBg = dayIndex % 2 === 0
                   ? 'bg-slate-50/40 dark:bg-slate-800/60'
                   : 'bg-white dark:bg-slate-800';
+                const firstShiftId = state.shifts[0]?.id;
                 return (
                   <tr key={`${date}-${shift.id}`} className={`border-b border-slate-200 dark:border-slate-700 ${rowBg}`}>
                     <td className={`px-3 py-2 text-xs text-gray-600 dark:text-slate-300 border-e border-slate-200 dark:border-slate-700 whitespace-nowrap font-medium ${rowBg}`}>
@@ -69,18 +70,38 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssig
                         {formatShiftTime(shift.startHour)}–{formatShiftTime(shift.startHour + shift.durationHours)}
                       </div>
                     </td>
-                    {positions.map(pos => (
-                      <PreviewCell
-                        key={pos.id}
-                        cell={{ date, shiftId: shift.id, positionId: pos.id }}
-                        state={state}
-                        mergedAssignments={mergedAssignments}
-                        baseAssignments={baseAssignments}
-                        skippedCells={skippedCells}
-                        refDate={refDate}
-                        homeGroupPeriods={homeGroupPeriods}
-                      />
-                    ))}
+                    {positions.map(pos => {
+                      if (pos.isOnCall && pos.onCallDurationHours != null) {
+                        if (shiftIndex > 0) return null;
+                        const onCallAssignment = mergedAssignments.find(a => a.date === date && a.positionId === pos.id);
+                        const onCallShiftId = onCallAssignment?.shiftId ?? firstShiftId ?? shift.id;
+                        return (
+                          <PreviewCell
+                            key={pos.id}
+                            cell={{ date, shiftId: onCallShiftId, positionId: pos.id }}
+                            state={state}
+                            mergedAssignments={mergedAssignments}
+                            baseAssignments={baseAssignments}
+                            skippedCells={skippedCells}
+                            refDate={refDate}
+                            homeGroupPeriods={homeGroupPeriods}
+                            rowSpan={state.shifts.length > 1 ? state.shifts.length : undefined}
+                          />
+                        );
+                      }
+                      return (
+                        <PreviewCell
+                          key={pos.id}
+                          cell={{ date, shiftId: shift.id, positionId: pos.id }}
+                          state={state}
+                          mergedAssignments={mergedAssignments}
+                          baseAssignments={baseAssignments}
+                          skippedCells={skippedCells}
+                          refDate={refDate}
+                          homeGroupPeriods={homeGroupPeriods}
+                        />
+                      );
+                    })}
                   </tr>
                 );
               })}
