@@ -12,9 +12,10 @@ interface Props {
   onDeletePerson: (personId: string) => void;
   open: boolean;
   onClose: () => void;
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
 }
 
-function SidebarContent({ state, assignments, onEditPerson, onDeletePerson }: Omit<Props, 'open' | 'onClose'>) {
+function SidebarContent({ state, assignments, onEditPerson, onDeletePerson, onCallDurationOverrides }: Omit<Props, 'open' | 'onClose'>) {
   const assignedPersonIds = new Set(assignments.map(a => a.personId));
   return (
     <>
@@ -22,20 +23,20 @@ function SidebarContent({ state, assignments, onEditPerson, onDeletePerson }: Om
         <PeoplePool state={state} assignedPersonIds={assignedPersonIds} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
       </div>
       <div className="border-t border-gray-200 dark:border-slate-700">
-        <HoursTracker state={state} assignments={assignments} />
+        <HoursTracker state={state} assignments={assignments} onCallDurationOverrides={onCallDurationOverrides} />
       </div>
     </>
   );
 }
 
-export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open, onClose }: Props) {
+export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open, onClose, onCallDurationOverrides }: Props) {
   const isMobile = useIsMobile();
 
   if (!isMobile) {
     return (
       <aside className="no-print flex flex-col w-[260px] overflow-y-auto bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm border-e border-gray-200/60 dark:border-slate-800 relative z-10 shadow-[2px_0_8px_-4px_rgba(0,0,0,0.05)]">
         <div className="flex-1 pt-2">
-          <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+          <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} onCallDurationOverrides={onCallDurationOverrides} />
         </div>
       </aside>
     );
@@ -66,7 +67,7 @@ export function Sidebar({ state, assignments, onEditPerson, onDeletePerson, open
             size="sm"
           />
         </div>
-        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} />
+        <SidebarContent state={state} assignments={assignments} onEditPerson={onEditPerson} onDeletePerson={onDeletePerson} onCallDurationOverrides={onCallDurationOverrides} />
       </aside>
     </>
   );

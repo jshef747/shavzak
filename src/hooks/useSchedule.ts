@@ -34,5 +34,25 @@ export function useSchedule(state: AppState, setState: Dispatch<SetStateAction<A
     setState(prev => ({ ...prev, activeScheduleId: id }));
   }
 
-  return { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule };
+  function setOnCallDurationOverride(date: string, positionId: string, hours: number | undefined) {
+    setState(prev => ({
+      ...prev,
+      schedules: prev.schedules.map(s => {
+        if (s.id !== prev.activeScheduleId) return s;
+        const existing = s.onCallDurationOverrides ?? {};
+        let dayOverrides = { ...(existing[date] ?? {}) };
+        if (hours == null) {
+          delete dayOverrides[positionId];
+        } else {
+          dayOverrides = { ...dayOverrides, [positionId]: hours };
+        }
+        const newOverrides = { ...existing, [date]: dayOverrides };
+        // Clean up empty day entries
+        if (Object.keys(newOverrides[date]).length === 0) delete newOverrides[date];
+        return { ...s, onCallDurationOverrides: newOverrides, updatedAt: new Date().toISOString() };
+      }),
+    }));
+  }
+
+  return { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule, setOnCallDurationOverride };
 }

@@ -21,14 +21,14 @@ export interface AutoAssignResult {
 }
 
 /** Returns total hours of on-call assignments for a person. */
-function onCallHours(personId: string, assignments: Assignment[], positionMap: Map<string, Position>, shiftMap: Map<string, Shift>): number {
+function onCallHours(personId: string, assignments: Assignment[], positionMap: Map<string, Position>, shiftMap: Map<string, Shift>, onCallDurationOverrides?: Record<string, Record<string, number>>): number {
   return assignments
     .filter(a => a.personId === personId && (positionMap.get(a.positionId)?.isOnCall ?? false))
     .reduce((sum, a) => {
       const pos = positionMap.get(a.positionId);
-      // On-call positions with virtual shiftIds: use position's onCallDurationHours directly
       if (pos?.isOnCall && pos.onCallDurationHours != null) {
-        return sum + (a.half !== undefined ? pos.onCallDurationHours / 2 : pos.onCallDurationHours);
+        const effectiveDuration = onCallDurationOverrides?.[a.date]?.[a.positionId] ?? pos.onCallDurationHours;
+        return sum + (a.half !== undefined ? effectiveDuration / 2 : effectiveDuration);
       }
       const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
@@ -50,13 +50,14 @@ function regularHours(personId: string, assignments: Assignment[], positionMap: 
 /** Returns total shift hours a person has in the given assignments array.
  *  Half-shift assignments count as half the shift's duration.
  *  Uses onCallDurationHours for on-call positions when defined. */
-function totalHours(personId: string, assignments: Assignment[], shiftMap: Map<string, Shift>, positionMap: Map<string, Position>): number {
+function totalHours(personId: string, assignments: Assignment[], shiftMap: Map<string, Shift>, positionMap: Map<string, Position>, onCallDurationOverrides?: Record<string, Record<string, number>>): number {
   return assignments
     .filter(a => a.personId === personId)
     .reduce((sum, a) => {
       const pos = positionMap.get(a.positionId);
       if (pos?.isOnCall && pos.onCallDurationHours != null) {
-        return sum + (a.half !== undefined ? pos.onCallDurationHours / 2 : pos.onCallDurationHours);
+        const effectiveDuration = onCallDurationOverrides?.[a.date]?.[a.positionId] ?? pos.onCallDurationHours;
+        return sum + (a.half !== undefined ? effectiveDuration / 2 : effectiveDuration);
       }
       const shift = shiftMap.get(a.shiftId);
       if (!shift) return sum;
@@ -171,6 +172,7 @@ export function autoAssign(
   homeGroupPeriods: HomeGroupPeriod[] = [],
   ignoreOnCallConstraints = false,
   avoidHalfShifts = false,
+  onCallDurationOverrides?: Record<string, Record<string, number>>,
 ): AutoAssignResult {
   const proposed: Assignment[] = [];
   const skipped: SkippedCell[] = [];
@@ -218,14 +220,6 @@ export function autoAssign(
     ? Math.min(...shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour)) % 24
     : 0;
 
-  // Populate on-call slot start hours now that dayStartHour is known.
-  for (const position of positions) {
-    if (!position.isOnCall || position.onCallDurationHours == null) continue;
-    for (const slot of getOnCallSlots(position, dayStartHour)) {
-      onCallSlotStartHour.set(slot.shiftId, slot.startHour % 24);
-    }
-  }
-
   // Build per-date slot lists first, then interleave across dates.
   type SlotList = CellAddress[];
   const fullByDate: SlotList[] = dates.map(() => []);
@@ -234,10 +228,18 @@ export function autoAssign(
   for (let di = 0; di < dates.length; di++) {
     const date = dates[di];
 
-    // On-call positions: generate one cell per slot (based on onCallDurationHours)
+    // On-call positions: generate cells only for days with an explicit per-day duration override.
+    // The global position.onCallDurationHours is NOT used as a fallback — each day that needs
+    // on-call coverage must have its duration configured explicitly via the clock button.
+    const dayOverrides = onCallDurationOverrides?.[date];
     for (const position of positions) {
-      if (!position.isOnCall || position.onCallDurationHours == null) continue;
-      const slots = getOnCallSlots(position, dayStartHour);
+      if (!position.isOnCall) continue;
+      const explicitDuration = dayOverrides?.[position.id];
+      if (explicitDuration == null) continue; // no per-day override → skip this day
+      const slotPosition = { ...position, onCallDurationHours: explicitDuration };
+      const slots = getOnCallSlots(slotPosition, dayStartHour);
+      // Populate start-hour map so departure-penalty scoring uses correct times per day
+      for (const slot of slots) onCallSlotStartHour.set(slot.shiftId, slot.startHour % 24);
       for (const slot of slots) {
         const cell: CellAddress = { date, shiftId: slot.shiftId, positionId: position.id };
         const occupied = working.some(a => assignmentMatchesCell(a, cell));
@@ -297,9 +299,16 @@ export function autoAssign(
     }
 
     // Step 2: Check each qualified person's status.
+    // Build positions with the explicit per-day override applied (same logic used when building cells).
+    const cellDayOverrides = onCallDurationOverrides?.[cell.date];
+    const cellPositions = positions.map(p =>
+      p.isOnCall && cellDayOverrides?.[p.id] != null
+        ? { ...p, onCallDurationHours: cellDayOverrides[p.id] }
+        : p
+    );
     const statuses = qualified.map(person => ({
       person,
-      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints),
+      status: computeCellStatus(cell, person.id, working, person, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, cellPositions, ignoreOnCallConstraints, onCallDurationOverrides),
     }));
 
     const isOnCallPosition = positionMap.get(cell.positionId)?.isOnCall ?? false;
@@ -355,18 +364,18 @@ export function autoAssign(
       // Balance by the relevant hour type first: on-call hours for on-call cells,
       // regular hours for regular cells. This prevents stacking one type on the same person.
       const primaryA = isOnCallPosition
-        ? onCallHours(a.person.id, working, positionMap, shiftMap)
+        ? onCallHours(a.person.id, working, positionMap, shiftMap, onCallDurationOverrides)
         : regularHours(a.person.id, working, positionMap, shiftMap);
       const primaryB = isOnCallPosition
-        ? onCallHours(b.person.id, working, positionMap, shiftMap)
+        ? onCallHours(b.person.id, working, positionMap, shiftMap, onCallDurationOverrides)
         : regularHours(b.person.id, working, positionMap, shiftMap);
       if (Math.abs(primaryA - primaryB) > 0.01) return primaryA - primaryB;
       // Normalize total hours by number of positions the person qualifies for,
       // so people with fewer qualified positions aren't unfairly over-assigned.
       const qualA = Math.max(1, a.person.qualifiedPositions.length);
       const qualB = Math.max(1, b.person.qualifiedPositions.length);
-      const normA = totalHours(a.person.id, working, shiftMap, positionMap) / qualA;
-      const normB = totalHours(b.person.id, working, shiftMap, positionMap) / qualB;
+      const normA = totalHours(a.person.id, working, shiftMap, positionMap, onCallDurationOverrides) / qualA;
+      const normB = totalHours(b.person.id, working, shiftMap, positionMap, onCallDurationOverrides) / qualB;
       if (Math.abs(normA - normB) > 0.01) return normA - normB;
       const posA = positionCount(a.person.id, cell.positionId, working);
       const posB = positionCount(b.person.id, cell.positionId, working);
@@ -392,7 +401,7 @@ export function autoAssign(
       const half2Cell: CellAddress = { date: cell.date, shiftId: cell.shiftId, positionId: cell.positionId, half: 2 };
       const alreadyFilled = working.some(a => assignmentMatchesCell(a, half2Cell));
       if (!alreadyFilled) {
-        const status2 = computeCellStatus(half2Cell, chosen.id, working, chosen, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints);
+        const status2 = computeCellStatus(half2Cell, chosen.id, working, chosen, shifts, refDate, minBreakHours, homeGroups, homeGroupPeriods, positions, ignoreOnCallConstraints, onCallDurationOverrides);
         if (status2 === 'valid' || status2 === 'oncall-short-break' || status2 === 'oncall-override') {
           const a2: Assignment = { personId: chosen.id, date: cell.date, shiftId: cell.shiftId, positionId: cell.positionId, half: 2 };
           proposed.push(a2);

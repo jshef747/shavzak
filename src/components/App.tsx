@@ -37,7 +37,7 @@ import { WHATS_NEW_VERSION } from '../constants';
 
 export function App() {
   const { state, setState } = useAppState();
-  const { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule } = useSchedule(state, setState);
+  const { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule, setOnCallDurationOverride } = useSchedule(state, setState);
   const { addShift, updateShift, deleteShift, reorderShifts } = useShifts(state, setState);
   const { addPosition, updatePosition, deletePosition, toggleOnCall, updateOnCallDuration, reorderPositions } = usePositions(state, setState);
   const {
@@ -179,7 +179,7 @@ export function App() {
     if (!activeSchedule) return;
     // Always run with reassign=false — existing assignments are skipped automatically.
     // The reassign dialog (clear & redo) is only triggered from the preview modal itself.
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts, activeSchedule.onCallDurationOverrides);
     setAutoAssignResult(result);
     setAutoAssignReassign(null);
     setAutoAssignOpen(true);
@@ -187,7 +187,7 @@ export function App() {
 
   function handleConfirmReassign() {
     if (!activeSchedule) return;
-    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts);
+    const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, true, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts, activeSchedule.onCallDurationOverrides);
     setAutoAssignResult(result);
   }
 
@@ -259,6 +259,7 @@ export function App() {
               onDeletePerson={(id) => deletePerson(id)}
               open={sidebarOpen}
               onClose={() => setSidebarOpen(false)}
+              onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
             />
           )}
 
@@ -305,6 +306,7 @@ export function App() {
                 homeGroupPeriods={homeGroupPeriods}
                 onAssign={(cell, personId) => assign(cell, personId)}
                 onUnassign={(cell) => unassign(cell)}
+                onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
               />
             ) : (
               <ScheduleView
@@ -313,6 +315,8 @@ export function App() {
                 dates={dates}
                 assignments={assignments}
                 homeGroupPeriods={homeGroupPeriods}
+                onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
+                onSetOnCallDuration={setOnCallDurationOverride}
               />
             )}
             <StatusLegend dir={state.dir} />
@@ -452,6 +456,7 @@ export function App() {
         onConfirmReassign={handleConfirmReassign}
         onRequestReassign={(mode) => { setAutoAssignReassign(mode); setAutoAssignResult(null); }}
         onApply={handleApplyAutoAssign}
+        onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
       />
 
       {homePeriodsOpen && (

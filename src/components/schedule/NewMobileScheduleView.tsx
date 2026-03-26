@@ -4,7 +4,7 @@ import { he as heLocale } from 'date-fns/locale';
 import { ChevronDown, UserPlus, Check, X } from 'lucide-react';
 import type { AppState, Assignment, CellAddress, CellStatus, HomeGroupPeriod } from '../../types';
 import { computeCellStatus, computeConstraintReason } from '../../utils/validation';
-import { assignmentMatchesCell } from '../../utils/cellKey';
+import { assignmentMatchesCell, getOnCallSlots, resolvePositionsForDate } from '../../utils/cellKey';
 import { langFromDir, t } from '../../utils/i18n';
 import { BottomSheet } from '../ui/BottomSheet';
 
@@ -15,32 +15,33 @@ interface Props {
   homeGroupPeriods: HomeGroupPeriod[];
   onAssign: (cell: CellAddress, personId: string) => void;
   onUnassign: (cell: CellAddress) => void;
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
 }
 
 const STATUS_OUTLINE: Record<CellStatus, string | null> = {
-  empty:                  null,
-  valid:                  null,
-  unavailable:            '#ef4444',
-  'home-group':           '#3b82f6',
-  'double-booked':        '#f97316',
-  unqualified:            '#eab308',
-  'insufficient-break':   '#0ea5e9',
+  empty: null,
+  valid: null,
+  unavailable: '#ef4444',
+  'home-group': '#3b82f6',
+  'double-booked': '#f97316',
+  unqualified: '#eab308',
+  'insufficient-break': '#0ea5e9',
   'constraint-violation': '#a855f7',
-  'oncall-short-break':   null,
-  'oncall-override':      '#65a30d',
+  'oncall-short-break': null,
+  'oncall-override': '#65a30d',
 };
 
 const STATUS_BADGE: Record<CellStatus, string | null> = {
-  empty:                  null,
-  valid:                  null,
-  unavailable:            'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
-  'home-group':           'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
-  'double-booked':        'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400',
-  unqualified:            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
-  'insufficient-break':   'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400',
+  empty: null,
+  valid: null,
+  unavailable: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
+  'home-group': 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400',
+  'double-booked': 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400',
+  unqualified: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+  'insufficient-break': 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400',
   'constraint-violation': 'bg-purple-100 text-purple-600 dark:bg-purple-900/40 dark:text-purple-400',
-  'oncall-short-break':   'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400',
-  'oncall-override':      'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-400',
+  'oncall-short-break': 'bg-sky-100 text-sky-600 dark:bg-sky-900/40 dark:text-sky-400',
+  'oncall-override': 'bg-lime-100 text-lime-700 dark:bg-lime-900/40 dark:text-lime-400',
 };
 
 const STATUS_SORT_ORDER: Record<CellStatus, number> = {
@@ -70,7 +71,7 @@ interface ActiveCell {
   dateLabel: string;
 }
 
-export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeriods, onAssign, onUnassign }: Props) {
+export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeriods, onAssign, onUnassign, onCallDurationOverrides }: Props) {
   const [dayIndex, setDayIndex] = useState(0);
   const [expandedShifts, setExpandedShifts] = useState<Set<string>>(() => new Set());
   const [expandedOnCall, setExpandedOnCall] = useState<Set<string>>(() => new Set());
@@ -83,12 +84,17 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
 
   const refDate = dates[0] ?? '';
   const regularPositions = useMemo(() => state.positions.filter(p => !p.isOnCall), [state.positions]);
-  const onCallPositions  = useMemo(() => state.positions.filter(p => p.isOnCall),  [state.positions]);
+  const onCallPositions = useMemo(() => state.positions.filter(p => p.isOnCall), [state.positions]);
 
   const currentDate = dates[dayIndex] ?? '';
   const dateLabel = currentDate
     ? format(parseISO(currentDate), isRtl ? 'EEE, d MMM yyyy' : 'EEE, MMM d, yyyy', { locale })
     : '';
+
+  const dayStartHour = useMemo(() => {
+    if (state.shifts.length === 0) return 0;
+    return Math.min(...state.shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour)) % 24;
+  }, [state.shifts]);
 
   // Scroll active date pill into view when dayIndex changes
   useEffect(() => {
@@ -137,10 +143,10 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
 
   const activeCellOccupant = activeCell
     ? assignments.find(a =>
-        a.date === activeCell.cell.date &&
-        a.shiftId === activeCell.cell.shiftId &&
-        a.positionId === activeCell.cell.positionId
-      )
+      a.date === activeCell.cell.date &&
+      a.shiftId === activeCell.cell.shiftId &&
+      a.positionId === activeCell.cell.positionId
+    )
     : null;
 
   function handleAssign(personId: string) {
@@ -155,8 +161,8 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
     setActiveCell(null);
   }
 
-  function renderPositionRow(pos: typeof state.positions[0], shift: typeof state.shifts[0], isOnCall: boolean, half?: 1 | 2) {
-    const cell: CellAddress = { date: currentDate, shiftId: shift.id, positionId: pos.id, ...(half !== undefined ? { half } : {}) };
+  function renderPositionRow(pos: typeof state.positions[0], shiftId: string, shiftName: string, isOnCall: boolean, half?: 1 | 2, timeRange?: string) {
+    const cell: CellAddress = { date: currentDate, shiftId, positionId: pos.id, ...(half !== undefined ? { half } : {}) };
     const assignment = assignments.find(a => assignmentMatchesCell(a, cell));
     const person = assignment ? state.people.find(p => p.id === assignment.personId) : null;
     const status: CellStatus = person
@@ -168,8 +174,8 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
 
     return (
       <button
-        key={pos.id}
-        onClick={() => setActiveCell({ cell, shiftName: shift.name, positionName: pos.name, dateLabel })}
+        key={`${pos.id}-${shiftId}-${half ?? ''}`}
+        onClick={() => setActiveCell({ cell, shiftName, positionName: pos.name, dateLabel })}
         className="w-full flex items-center gap-3 px-4 py-3.5 border-b border-gray-100 dark:border-slate-700/50 last:border-b-0 text-start active:bg-gray-50 dark:active:bg-slate-700/30 transition-colors"
         style={{
           backgroundColor: personBg ?? (isOnCall ? 'rgba(255,247,237,0.5)' : undefined),
@@ -200,12 +206,18 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
 
         {/* Text */}
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] text-gray-400 dark:text-slate-500 leading-none mb-1 uppercase tracking-wide font-semibold">
-            {pos.name}
-          </p>
-          <p className={`text-sm font-semibold leading-tight truncate ${
-            person ? 'text-gray-800 dark:text-slate-100' : 'text-gray-300 dark:text-slate-600'
-          }`}>
+          <div className="flex justify-between items-center mb-1">
+            <p className="text-[10px] text-gray-400 dark:text-slate-500 leading-none uppercase tracking-wide font-semibold">
+              {pos.name}
+            </p>
+            {timeRange && (
+              <span className="text-[10px] text-gray-400 dark:text-slate-500 font-medium" dir="ltr">
+                {timeRange}
+              </span>
+            )}
+          </div>
+          <p className={`text-sm font-semibold leading-tight truncate ${person ? 'text-gray-800 dark:text-slate-100' : 'text-gray-300 dark:text-slate-600'
+            }`}>
             {person ? person.name : t('tapToAssign', lang)}
           </p>
         </div>
@@ -232,27 +244,24 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
           {dates.map((date, idx) => {
             const d = parseISO(date);
             const dayAbbr = format(d, 'EEE', { locale });
-            const dayNum  = format(d, 'd');
+            const dayNum = format(d, 'd');
             const isActive = idx === dayIndex;
             return (
               <button
                 key={date}
                 ref={isActive ? activeDateRef : undefined}
                 onClick={() => goToDay(idx)}
-                className={`shrink-0 flex flex-col items-center rounded-2xl px-3 py-2 min-w-[52px] transition-all duration-200 ${
-                  isActive
+                className={`shrink-0 flex flex-col items-center rounded-2xl px-3 py-2 min-w-[52px] transition-all duration-200 ${isActive
                     ? 'bg-gradient-to-b from-blue-500 to-blue-600 text-white shadow-md shadow-blue-500/30 scale-105'
                     : 'bg-white/60 dark:bg-slate-800/60 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700/60 active:scale-95'
-                }`}
+                  }`}
               >
-                <span className={`text-[10px] font-bold uppercase tracking-wider leading-none mb-1 ${
-                  isActive ? 'text-blue-100' : 'text-gray-400 dark:text-slate-500'
-                }`}>
+                <span className={`text-[10px] font-bold uppercase tracking-wider leading-none mb-1 ${isActive ? 'text-blue-100' : 'text-gray-400 dark:text-slate-500'
+                  }`}>
                   {dayAbbr}
                 </span>
-                <span className={`text-base font-bold leading-none ${
-                  isActive ? 'text-white' : 'text-gray-800 dark:text-slate-100'
-                }`}>
+                <span className={`text-base font-bold leading-none ${isActive ? 'text-white' : 'text-gray-800 dark:text-slate-100'
+                  }`}>
                   {dayNum}
                 </span>
               </button>
@@ -268,21 +277,89 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
               <p className="text-xs text-gray-300 dark:text-slate-600">{t('noPositionsHint', lang)}</p>
             </div>
           ) : (
-            state.shifts.map(shift => {
-              const endHour = shift.startHour + shift.durationHours;
-              const isExpanded = expandedShifts.has(shift.id);
-              const totalCells = state.positions.length;
-              const filledCells = state.positions.filter(pos =>
-                assignments.some(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id)
-              ).length;
-              const isFullyFilled = filledCells === totalCells && totalCells > 0;
-              const isPartial = filledCells > 0 && !isFullyFilled;
-              const midHour = shift.startHour + shift.durationHours / 2;
+            <>
+              {/* On Call Cards */}
+              {resolvePositionsForDate(onCallPositions, currentDate, onCallDurationOverrides).map(pos => {
+                const slots = getOnCallSlots(pos, dayStartHour);
+                if (slots.length === 0) return null;
 
-              // For half-shifts: determine which regular positions need two separate rows
-              // (different person per half, or only one half filled). Same logic as desktop ShiftRow.
-              const splitRegularIds: Set<string> = shift.isHalfShift
-                ? new Set(
+                const shiftId = `oncall-${pos.id}`;
+                const isExpanded = expandedOnCall.has(shiftId);
+                const filledCells = slots.filter(s => assignments.some(a => a.date === currentDate && a.shiftId === s.shiftId && a.positionId === pos.id)).length;
+                const isFullyFilled = filledCells === slots.length;
+                const isPartial = filledCells > 0 && !isFullyFilled;
+
+                return (
+                  <div
+                    key={shiftId}
+                    className="shrink-0 bg-orange-50/90 dark:bg-orange-900/20 backdrop-blur-sm rounded-2xl border border-orange-200/60 dark:border-orange-800/40 overflow-hidden shadow-sm"
+                  >
+                    <button
+                      className="w-full px-4 py-3.5 bg-gradient-to-r from-orange-400 to-orange-500 dark:from-orange-700 dark:to-orange-800 flex items-center justify-between gap-3 text-start active:from-orange-500 active:to-orange-600 transition-colors"
+                      onClick={() => toggleOnCall(shiftId)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300 rounded-md px-1.5 py-0.5 leading-none shrink-0 uppercase tracking-widest">
+                            {t('onCall', lang)}
+                          </span>
+                          <p className="text-sm font-bold text-white leading-tight tracking-tight">
+                            {pos.name}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 transition-colors ${isFullyFilled
+                            ? 'bg-emerald-500 text-white'
+                            : isPartial
+                              ? 'bg-orange-200 text-orange-800 dark:bg-orange-900 dark:text-orange-300'
+                              : 'bg-orange-300/50 text-orange-100 dark:bg-orange-900/50 dark:text-orange-200'
+                          }`}
+                        dir="ltr"
+                      >
+                        {filledCells}/{slots.length}
+                      </span>
+
+                      <ChevronDown
+                        className={`w-5 h-5 text-orange-100 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        strokeWidth={2}
+                      />
+                    </button>
+
+                    <div className={`accordion-grid ${isExpanded ? 'open' : 'closed'}`}>
+                      <div className="overflow-hidden">
+                        {slots.map(slot =>
+                          renderPositionRow(
+                            pos,
+                            slot.shiftId,
+                            t('onCall', lang),
+                            true,
+                            undefined,
+                            `${formatTime(slot.startHour)}–${formatTime(slot.endHour)}`
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {state.shifts.map(shift => {
+                const endHour = shift.startHour + shift.durationHours;
+                const isExpanded = expandedShifts.has(shift.id);
+                const totalCells = state.positions.length;
+                const filledCells = state.positions.filter(pos =>
+                  assignments.some(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id)
+                ).length;
+                const isFullyFilled = filledCells === totalCells && totalCells > 0;
+                const isPartial = filledCells > 0 && !isFullyFilled;
+                const midHour = shift.startHour + shift.durationHours / 2;
+
+                // For half-shifts: determine which regular positions need two separate rows
+                // (different person per half, or only one half filled). Same logic as desktop ShiftRow.
+                const splitRegularIds: Set<string> = shift.isHalfShift
+                  ? new Set(
                     regularPositions
                       .filter(pos => {
                         const h1 = assignments.find(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
@@ -293,147 +370,121 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
                       })
                       .map(p => p.id)
                   )
-                : new Set<string>();
+                  : new Set<string>();
 
-              // On-call section (rendered once regardless of halves)
-              const onCallSection = onCallPositions.length > 0 ? (
-                <div className="border-t border-orange-100 dark:border-orange-900/30">
-                  <button
-                    className="w-full px-4 py-2.5 bg-orange-50/60 dark:bg-orange-900/20 flex items-center justify-between text-start active:bg-orange-100 dark:active:bg-orange-900/30 transition-colors"
-                    onClick={() => toggleOnCall(shift.id)}
-                  >
-                    <span className="text-xs font-bold text-orange-500 dark:text-orange-400 uppercase tracking-widest">
-                      {t('onCall', lang)}
-                    </span>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 text-orange-400 shrink-0 transition-transform duration-200 ${
-                        expandedOnCall.has(shift.id) ? 'rotate-180' : ''
-                      }`}
-                      strokeWidth={2}
-                    />
-                  </button>
-                  {expandedOnCall.has(shift.id) && (
-                    <div className="bg-orange-50/40 dark:bg-orange-900/10">
-                      {onCallPositions.map(pos => renderPositionRow(pos, shift, true, undefined))}
+
+
+                // Half-label banner helper
+                function halfBanner(n: 1 | 2) {
+                  const label = n === 1
+                    ? `${t('half1', lang)} · ${formatTime(shift.startHour)}–${formatTime(midHour)}`
+                    : `${t('half2', lang)} · ${formatTime(midHour)}–${formatTime(endHour)}`;
+                  return (
+                    <div className="px-4 py-2 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-100 dark:border-orange-900/30 flex items-center gap-2">
+                      <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-400 text-white rounded px-1 py-0.5 leading-none">
+                        {n === 1 ? '½1' : '½2'}
+                      </span>
+                      <span className="text-xs font-semibold text-orange-700 dark:text-orange-400" dir="ltr">
+                        {label}
+                      </span>
                     </div>
-                  )}
-                </div>
-              ) : null;
+                  );
+                }
 
-              // Half-label banner helper
-              function halfBanner(n: 1 | 2) {
-                const label = n === 1
-                  ? `${t('half1', lang)} · ${formatTime(shift.startHour)}–${formatTime(midHour)}`
-                  : `${t('half2', lang)} · ${formatTime(midHour)}–${formatTime(endHour)}`;
                 return (
-                  <div className="px-4 py-2 bg-orange-50 dark:bg-orange-900/20 border-t border-orange-100 dark:border-orange-900/30 flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-400 text-white rounded px-1 py-0.5 leading-none">
-                      {n === 1 ? '½1' : '½2'}
-                    </span>
-                    <span className="text-xs font-semibold text-orange-700 dark:text-orange-400" dir="ltr">
-                      {label}
-                    </span>
-                  </div>
-                );
-              }
-
-              return (
-                <div
-                  key={shift.id}
-                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-slate-700/40 overflow-hidden shadow-sm"
-                >
-                  {/* Shift header */}
-                  <button
-                    className="w-full px-4 py-3.5 bg-gradient-to-r from-slate-800 to-slate-700 dark:from-slate-700 dark:to-slate-600 flex items-center justify-between gap-3 text-start active:from-slate-700 active:to-slate-600 transition-colors"
-                    onClick={() => toggleShift(shift.id)}
+                  <div
+                    key={shift.id}
+                    className="shrink-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 dark:border-slate-700/40 overflow-hidden shadow-sm"
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-white leading-tight tracking-tight">
-                          {shift.name}
+                    {/* Shift header */}
+                    <button
+                      className="w-full px-4 py-3.5 bg-gradient-to-r from-slate-800 to-slate-700 dark:from-slate-700 dark:to-slate-600 flex items-center justify-between gap-3 text-start active:from-slate-700 active:to-slate-600 transition-colors"
+                      onClick={() => toggleShift(shift.id)}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold text-white leading-tight tracking-tight">
+                            {shift.name}
+                          </p>
+                          {shift.isHalfShift && (
+                            <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-400 text-white rounded-md px-1.5 py-0.5 leading-none shrink-0">
+                              ½
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5 font-medium" dir="ltr">
+                          {formatTime(shift.startHour)}–{formatTime(endHour)}
                         </p>
-                        {shift.isHalfShift && (
-                          <span className="inline-flex items-center justify-center text-[9px] font-bold bg-orange-400 text-white rounded-md px-1.5 py-0.5 leading-none shrink-0">
-                            ½
-                          </span>
+                      </div>
+
+                      {/* Fill badge */}
+                      <span
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 transition-colors ${isFullyFilled
+                            ? 'bg-emerald-500 text-white'
+                            : isPartial
+                              ? 'bg-amber-400 text-white'
+                              : 'bg-slate-600 text-slate-300'
+                          }`}
+                        dir="ltr"
+                      >
+                        {filledCells}/{totalCells}
+                      </span>
+
+                      <ChevronDown
+                        className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        strokeWidth={2}
+                      />
+                    </button>
+
+                    {/* Accordion body — grid-rows trick for smooth height transition */}
+                    <div className={`accordion-grid ${isExpanded ? 'open' : 'closed'}`}>
+                      <div className="overflow-hidden">
+                        {shift.isHalfShift && splitRegularIds.size === 0 ? (
+                          // All same-person (or empty) both halves — single merged row per position
+                          <div>
+                            {regularPositions.length > 0 && (
+                              <div>
+                                {regularPositions.map(pos => {
+                                  const h1 = assignments.find(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
+                                  const h2 = assignments.find(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
+                                  const displayHalf: 1 | 2 = (h2 && !h1) ? 2 : 1;
+                                  return renderPositionRow(pos, shift.id, shift.name, false, displayHalf);
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        ) : shift.isHalfShift ? (
+                          // Some positions are split across halves
+                          <div>
+                            {/* Half 1 — all regular positions */}
+                            {halfBanner(1)}
+                            {regularPositions.length > 0 && (
+                              <div>
+                                {regularPositions.map(pos => renderPositionRow(pos, shift.id, shift.name, false, 1))}
+                              </div>
+                            )}
+                            {/* Half 2 — only split positions */}
+                            {halfBanner(2)}
+                            {regularPositions.filter(pos => splitRegularIds.has(pos.id)).map(pos =>
+                              renderPositionRow(pos, shift.id, shift.name, false, 2)
+                            )}
+                          </div>
+                        ) : (
+                          // Normal (non-half) shift
+                          <div>
+                            {regularPositions.length > 0 && (
+                              <div>
+                                {regularPositions.map(pos => renderPositionRow(pos, shift.id, shift.name, false, undefined))}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
-                      <p className="text-xs text-slate-400 mt-0.5 font-medium" dir="ltr">
-                        {formatTime(shift.startHour)}–{formatTime(endHour)}
-                      </p>
-                    </div>
-
-                    {/* Fill badge */}
-                    <span
-                      className={`text-xs font-bold px-2.5 py-1 rounded-full shrink-0 transition-colors ${
-                        isFullyFilled
-                          ? 'bg-emerald-500 text-white'
-                          : isPartial
-                            ? 'bg-amber-400 text-white'
-                            : 'bg-slate-600 text-slate-300'
-                      }`}
-                      dir="ltr"
-                    >
-                      {filledCells}/{totalCells}
-                    </span>
-
-                    <ChevronDown
-                      className={`w-5 h-5 text-slate-400 shrink-0 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                      strokeWidth={2}
-                    />
-                  </button>
-
-                  {/* Accordion body — grid-rows trick for smooth height transition */}
-                  <div className={`accordion-grid ${isExpanded ? 'open' : 'closed'}`}>
-                    <div className="overflow-hidden">
-                      {shift.isHalfShift && splitRegularIds.size === 0 ? (
-                        // All same-person (or empty) both halves — single merged row per position
-                        <div>
-                          {regularPositions.length > 0 && (
-                            <div>
-                              {regularPositions.map(pos => {
-                                const h1 = assignments.find(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
-                                const h2 = assignments.find(a => a.date === currentDate && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
-                                const displayHalf: 1 | 2 = (h2 && !h1) ? 2 : 1;
-                                return renderPositionRow(pos, shift, false, displayHalf);
-                              })}
-                            </div>
-                          )}
-                          {onCallSection}
-                        </div>
-                      ) : shift.isHalfShift ? (
-                        // Some positions are split across halves
-                        <div>
-                          {/* Half 1 — all regular positions */}
-                          {halfBanner(1)}
-                          {regularPositions.length > 0 && (
-                            <div>
-                              {regularPositions.map(pos => renderPositionRow(pos, shift, false, 1))}
-                            </div>
-                          )}
-                          {/* Half 2 — only split positions */}
-                          {halfBanner(2)}
-                          {regularPositions.filter(pos => splitRegularIds.has(pos.id)).map(pos =>
-                            renderPositionRow(pos, shift, false, 2)
-                          )}
-                          {onCallSection}
-                        </div>
-                      ) : (
-                        // Normal (non-half) shift
-                        <div>
-                          {regularPositions.length > 0 && (
-                            <div>
-                              {regularPositions.map(pos => renderPositionRow(pos, shift, false, undefined))}
-                            </div>
-                          )}
-                          {onCallSection}
-                        </div>
-                      )}
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </>
           )}
         </div>
       </div>
@@ -475,13 +526,13 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
               const isBlocked = status === 'double-booked';
 
               const statusLabels: Partial<Record<CellStatus, string>> = {
-                unavailable:            t('tooltipUnavailable', lang),
-                'home-group':           t('tooltipHomeGroup', lang),
-                'double-booked':        t('tooltipDoubleBooked', lang),
-                unqualified:            t('tooltipUnqualified', lang),
-                'insufficient-break':   t('tooltipBreak', lang),
-                'oncall-short-break':   t('tooltipOncallShortBreak', lang),
-                'oncall-override':      t('tooltipOncallOverride', lang),
+                unavailable: t('tooltipUnavailable', lang),
+                'home-group': t('tooltipHomeGroup', lang),
+                'double-booked': t('tooltipDoubleBooked', lang),
+                unqualified: t('tooltipUnqualified', lang),
+                'insufficient-break': t('tooltipBreak', lang),
+                'oncall-short-break': t('tooltipOncallShortBreak', lang),
+                'oncall-override': t('tooltipOncallOverride', lang),
                 'constraint-violation': status === 'constraint-violation'
                   ? (computeConstraintReason(activeCell!.cell, person.id, assignments, person, state.shifts, lang) ?? t('tooltipConstraint', lang))
                   : '',

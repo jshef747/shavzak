@@ -1,7 +1,7 @@
 import { getDay, parseISO, differenceInCalendarDays, addDays, format } from 'date-fns';
 import type { Assignment, CellAddress, CellStatus, HomeGroup, HomeGroupPeriod, Person, Position, Shift, DayOfWeek } from '../types';
 import { type Lang, tf, DAY_LABELS_HE } from './i18n';
-import { isOnCallSlotShiftId, getOnCallSlots } from './cellKey';
+import { isOnCallSlotShiftId, getOnCallSlots, resolvePositionsForDate } from './cellKey';
 
 /**
  * Returns true if the person (by homeGroupIds) is blocked for the given date+shift
@@ -57,6 +57,10 @@ export function isHomeGroupBlocked(
 // For half-shift assignments (half=1 or half=2), the effective start is offset by
 // half the duration for the second half.
 function effectiveShiftDuration(shift: Shift, position: Position | undefined): number {
+  // Virtual on-call slot shifts already have the correct per-slot durationHours set by
+  // resolveShift — never override with the position's global onCallDurationHours, which
+  // may differ from the per-day override that was active when the slot was generated.
+  if (isOnCallSlotShiftId(shift.id)) return shift.durationHours;
   return (position?.isOnCall && position.onCallDurationHours != null) ? position.onCallDurationHours : shift.durationHours;
 }
 function shiftStartMins(date: string, shift: Shift, refDate: string, position: Position | undefined, half?: 1 | 2): number {
@@ -195,12 +199,24 @@ function checkConstraints(
   return null;
 }
 
-/** Resolve a Shift-like object for both regular and on-call virtual shiftIds. */
-function resolveShift(shiftId: string, shifts: Shift[], positions: Position[], positionId?: string): Shift | undefined {
+/** Resolve a Shift-like object for both regular and on-call virtual shiftIds.
+ *  When `date` and `onCallDurationOverrides` are provided, resolves the position's
+ *  effective duration for that specific date before computing slot timing. */
+function resolveShift(
+  shiftId: string,
+  shifts: Shift[],
+  positions: Position[],
+  positionId?: string,
+  date?: string,
+  onCallDurationOverrides?: Record<string, Record<string, number>>,
+): Shift | undefined {
   const regular = shifts.find(s => s.id === shiftId);
   if (regular) return regular;
   if (!isOnCallSlotShiftId(shiftId) || !positionId) return undefined;
-  const position = positions.find(p => p.id === positionId);
+  const effectivePositions = (date && onCallDurationOverrides)
+    ? resolvePositionsForDate(positions, date, onCallDurationOverrides)
+    : positions;
+  const position = effectivePositions.find(p => p.id === positionId);
   if (!position?.isOnCall || position.onCallDurationHours == null) return undefined;
   const dayStartHour = shifts.length > 0
     ? Math.min(...shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour)) % 24
@@ -230,8 +246,9 @@ export function computeCellStatus(
   homeGroupPeriods: HomeGroupPeriod[] = [],
   positions: Position[] = [],
   ignoreOnCallConstraints = false,
+  onCallDurationOverrides?: Record<string, Record<string, number>>,
 ): CellStatus {
-  const targetShift = resolveShift(cell.shiftId, shifts, positions, cell.positionId);
+  const targetShift = resolveShift(cell.shiftId, shifts, positions, cell.positionId, cell.date, onCallDurationOverrides);
   if (!targetShift) return 'empty';
 
   const targetPosition = positions.find(p => p.id === cell.positionId);
@@ -278,9 +295,12 @@ export function computeCellStatus(
     // Skip any assignment to the same shift on the same date — both halves form
     // one continuous block, so no break is required between them.
     if (a.date === cell.date && a.shiftId === cell.shiftId) continue;
-    const existingShift = resolveShift(a.shiftId, shifts, positions, a.positionId);
+    const existingShift = resolveShift(a.shiftId, shifts, positions, a.positionId, a.date, onCallDurationOverrides);
     if (!existingShift) continue;
-    const existingPosition = positions.find(p => p.id === a.positionId);
+    const existingPositions = (onCallDurationOverrides && a.date)
+      ? resolvePositionsForDate(positions, a.date, onCallDurationOverrides)
+      : positions;
+    const existingPosition = existingPositions.find(p => p.id === a.positionId);
     const existingStart = shiftStartMins(a.date, existingShift, refDate, existingPosition, a.half);
     const existingEnd = shiftEndMins(a.date, existingShift, refDate, existingPosition, a.half);
 

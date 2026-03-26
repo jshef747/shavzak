@@ -17,9 +17,10 @@ interface Props {
   onConfirmReassign: () => void;
   onRequestReassign: (mode: 'partial' | 'full') => void;
   onApply: () => void;
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
 }
 
-export function AutoAssignModal({ open, onClose, result, reassign, state, dates, baseAssignments, homeGroupPeriods, onConfirmReassign, onRequestReassign, onApply }: Props) {
+export function AutoAssignModal({ open, onClose, result, reassign, state, dates, baseAssignments, homeGroupPeriods, onConfirmReassign, onRequestReassign, onApply, onCallDurationOverrides }: Props) {
   const lang = langFromDir(state.dir);
 
   if (!open) return null;
@@ -142,6 +143,7 @@ export function AutoAssignModal({ open, onClose, result, reassign, state, dates,
               baseAssignments={baseForPreview}
               skippedCells={skipped}
               homeGroupPeriods={homeGroupPeriods}
+              onCallDurationOverrides={onCallDurationOverrides}
             />
           </>
         )}

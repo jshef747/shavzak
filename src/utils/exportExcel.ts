@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns';
 import { he as heLocale } from 'date-fns/locale';
 import type { AppState, Schedule } from '../types';
 import { langFromDir, t } from './i18n';
+import { getOnCallSlots, resolvePositionsForDate } from './cellKey';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -86,6 +87,45 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
     return positionIndex === 'shift' ? 0 : (positionIndex as number) + 1;
   }
 
+  // On-call slot layout helpers
+  const dayStartHour = shifts.length > 0
+    ? Math.min(...shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour)) % 24
+    : 0;
+  const normShiftStart = shifts.map(s => s.startHour < 6 ? s.startHour + 24 : s.startHour);
+  // In Excel, half-shifts always produce 2 rows (merged when same person)
+  const excelRowsPerShift = shifts.map(s => s.isHalfShift ? 2 : 1);
+
+  type OnCallCellData = { type: 'start'; slotShiftId: string; excelRows: number } | { type: 'covered' };
+
+  function buildOnCallCellMap(date: string): Map<string, OnCallCellData> {
+    const map = new Map<string, OnCallCellData>();
+    const resolvedPositions = resolvePositionsForDate(positions, date, schedule.onCallDurationOverrides);
+    for (const pos of resolvedPositions) {
+      if (!pos.isOnCall) continue;
+      for (const slot of getOnCallSlots(pos, dayStartHour)) {
+        const overlapping: number[] = [];
+        for (let i = 0; i < shifts.length; i++) {
+          const sEnd = normShiftStart[i] + shifts[i].durationHours;
+          if (normShiftStart[i] < slot.endHour && sEnd > slot.startHour) overlapping.push(i);
+        }
+        if (overlapping.length === 0) continue;
+        overlapping.sort((a, b) => normShiftStart[a] - normShiftStart[b]);
+        const firstIdx = overlapping[0];
+        const startKey = `${pos.id}-${firstIdx}`;
+        if (!map.has(startKey)) {
+          const totalExcelRows = overlapping.reduce((sum, i) => sum + excelRowsPerShift[i], 0);
+          map.set(startKey, { type: 'start', slotShiftId: slot.shiftId, excelRows: totalExcelRows });
+          let seen = excelRowsPerShift[firstIdx];
+          for (let i = firstIdx + 1; i < shifts.length && seen < totalExcelRows; i++) {
+            map.set(`${pos.id}-${i}`, { type: 'covered' });
+            seen += excelRowsPerShift[i];
+          }
+        }
+      }
+    }
+    return map;
+  }
+
   const ws: XLSX.WorkSheet = {};
   const merges: XLSX.Range[] = [];
 
@@ -108,8 +148,31 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
     merges.push({ s: { r: rowIndex, c: 0 }, e: { r: rowIndex, c: totalCols - 1 } });
     rowIndex++;
 
+    // Build on-call slot → shift-index mapping for this date
+    const onCallCellMap = buildOnCallCellMap(date);
+
+    // Helper: write an on-call position cell at `r` for shift index `si`, position index `ci`
+    function writeOnCallCell(r: number, si: number, ci: number) {
+      const pos = positions[ci];
+      const cellData = onCallCellMap.get(`${pos.id}-${si}`);
+      if (cellData?.type === 'start') {
+        const asgn = assignments.find(a => a.date === date && a.shiftId === cellData.slotShiftId && a.positionId === pos.id);
+        const person = asgn ? people.find(p => p.id === asgn.personId) : null;
+        ws[XLSX.utils.encode_cell({ r, c: colIndex(ci) })] = cell(
+          person?.name ?? '', person ? personStyle(person.colorHex ?? '#e2e8f0') : STYLE_EMPTY_CELL
+        );
+        if (cellData.excelRows > 1) {
+          merges.push({ s: { r, c: colIndex(ci) }, e: { r: r + cellData.excelRows - 1, c: colIndex(ci) } });
+        }
+      } else {
+        // covered by a merge from an earlier slot, or no slot overlaps this shift
+        ws[XLSX.utils.encode_cell({ r, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
+      }
+    }
+
     // Shift rows
-    for (const shift of shifts) {
+    for (let si = 0; si < shifts.length; si++) {
+      const shift = shifts[si];
       const endHour = shift.startHour + shift.durationHours;
 
       if (shift.isHalfShift) {
@@ -118,20 +181,27 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
         const half2Label = `${shift.name} (½ב)\n${formatTime(shift.startHour + halfDur)}–${formatTime(endHour)}`;
         const fullLabel = `${shift.name}\n${formatTime(shift.startHour)}–${formatTime(endHour)}`;
 
-        // Pre-compute per-position: same person for both halves?
+        // Pre-compute per regular-position: same person for both halves?
         const posPersons = positions.map(pos => {
+          if (pos.isOnCall) return { a1: undefined, a2: undefined, sameFullPerson: false };
           const a1 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 1);
           const a2 = assignments.find(a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id && a.half === 2);
-          return { a1, a2, sameFullPerson: a1 && a2 && a1.personId === a2.personId };
+          return { a1, a2, sameFullPerson: !!(a1 && a2 && a1.personId === a2.personId) };
         });
 
-        const allSame = posPersons.every(p => p.sameFullPerson || (!p.a1 && !p.a2));
+        const allSame = posPersons.every((p, i) => positions[i].isOnCall || p.sameFullPerson || (!p.a1 && !p.a2));
 
         // Write both rows
         for (const [halfNum, halfLabel] of [[1, half1Label], [2, half2Label]] as [1 | 2, string][]) {
           const labelToWrite = allSame ? (halfNum === 1 ? fullLabel : '') : halfLabel;
           ws[XLSX.utils.encode_cell({ r: rowIndex + halfNum - 1, c: colIndex('shift') })] = cell(labelToWrite, styleShiftLabel(isRtl));
           for (let ci = 0; ci < positions.length; ci++) {
+            if (positions[ci].isOnCall) {
+              // On-call columns: only write at the first half row; the merge handles spanning
+              if (halfNum === 1) writeOnCallCell(rowIndex, si, ci);
+              else ws[XLSX.utils.encode_cell({ r: rowIndex + 1, c: colIndex(ci) })] = cell('', STYLE_EMPTY_CELL);
+              continue;
+            }
             const { a1, a2, sameFullPerson } = posPersons[ci];
             if (sameFullPerson) {
               // Write name only in first row; second row left blank (will be merged)
@@ -153,12 +223,12 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
           }
         }
 
-        // Merge cells for same-person positions (and shift label if all same)
+        // Merge cells for same-person regular positions (and shift label if all same)
         if (allSame) {
           merges.push({ s: { r: rowIndex, c: colIndex('shift') }, e: { r: rowIndex + 1, c: colIndex('shift') } });
         }
         for (let ci = 0; ci < positions.length; ci++) {
-          if (posPersons[ci].sameFullPerson) {
+          if (!positions[ci].isOnCall && posPersons[ci].sameFullPerson) {
             merges.push({ s: { r: rowIndex, c: colIndex(ci) }, e: { r: rowIndex + 1, c: colIndex(ci) } });
           }
         }
@@ -170,6 +240,10 @@ export function exportToExcel(state: AppState, schedule: Schedule, dates: string
 
         for (let ci = 0; ci < positions.length; ci++) {
           const pos = positions[ci];
+          if (pos.isOnCall) {
+            writeOnCallCell(rowIndex, si, ci);
+            continue;
+          }
           const assignment = assignments.find(
             a => a.date === date && a.shiftId === shift.id && a.positionId === pos.id
           );
