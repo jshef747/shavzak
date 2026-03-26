@@ -6,9 +6,10 @@ import { personInitials } from '../../utils/personColor';
 interface Props {
   state: AppState;
   assignments: Assignment[];
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
 }
 
-export function HoursTracker({ state, assignments }: Props) {
+export function HoursTracker({ state, assignments, onCallDurationOverrides }: Props) {
   const lang = langFromDir(state.dir);
 
   const hoursPerPerson = useMemo(() => state.people.map(person => {
@@ -19,12 +20,14 @@ export function HoursTracker({ state, assignments }: Props) {
       const shift = state.shifts.find(s => s.id === a.shiftId);
       const pos = state.positions.find(p => p.id === a.positionId);
       const isOnCall = pos?.isOnCall ?? false;
-      // On-call positions use the slot duration (onCallDurationHours or the slot itself)
-      // Virtual on-call shiftIds won't be found in state.shifts — fall back to position's onCallDurationHours
-      const baseDuration = isOnCall && pos?.onCallDurationHours != null
-        ? pos.onCallDurationHours
+      // Use per-day override if present, otherwise fall back to position's global onCallDurationHours
+      const effectiveDuration = isOnCall
+        ? (onCallDurationOverrides?.[a.date]?.[a.positionId] ?? pos?.onCallDurationHours)
+        : undefined;
+      const baseDuration = effectiveDuration != null
+        ? effectiveDuration
         : shift ? shift.durationHours : 0;
-      const duration = (shift || (isOnCall && pos?.onCallDurationHours != null))
+      const duration = (shift || (isOnCall && effectiveDuration != null))
         ? (a.half !== undefined ? baseDuration / 2 : baseDuration)
         : 0;
       if (isOnCall) onCallHours += duration;

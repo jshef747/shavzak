@@ -9,10 +9,12 @@ interface Props {
   dates: string[];
   assignments: Assignment[];
   homeGroupPeriods: HomeGroupPeriod[];
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
+  onSetOnCallDuration: (date: string, positionId: string, hours: number | undefined) => void;
 }
 
 export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleView(
-  { state, dates, assignments, homeGroupPeriods },
+  { state, dates, assignments, homeGroupPeriods, onCallDurationOverrides, onSetOnCallDuration },
   ref
 ) {
   const lang = langFromDir(state.dir);
@@ -66,6 +68,8 @@ export const ScheduleView = forwardRef<HTMLDivElement, Props>(function ScheduleV
                   homeGroupPeriods={homeGroupPeriods}
                   dayStartHour={dayStartHour}
                   totalColumnCount={totalColumnCount}
+                  onCallDurationOverrides={onCallDurationOverrides}
+                  onSetOnCallDuration={onSetOnCallDuration}
                 />
               ))}
             </tbody>

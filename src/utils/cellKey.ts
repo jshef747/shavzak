@@ -112,6 +112,22 @@ export function computeOnCallSlotMapping(
   return result;
 }
 
+/** Returns a copy of each on-call position with its `onCallDurationHours` overridden
+ *  by the schedule's per-day override for the given date, if one exists. */
+export function resolvePositionsForDate(
+  positions: Position[],
+  date: string,
+  overrides?: Record<string, Record<string, number>>,
+): Position[] {
+  const dayOverrides = overrides?.[date];
+  if (!dayOverrides) return positions;
+  return positions.map(pos =>
+    pos.isOnCall && dayOverrides[pos.id] != null
+      ? { ...pos, onCallDurationHours: dayOverrides[pos.id] }
+      : pos
+  );
+}
+
 /** Returns true if an assignment matches a cell address (including half). */
 export function assignmentMatchesCell(
   a: { date: string; shiftId: string; positionId: string; half?: 1 | 2 },

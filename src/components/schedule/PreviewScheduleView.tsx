@@ -5,7 +5,7 @@ import type { AppState, Assignment, HomeGroupPeriod } from '../../types';
 import type { SkippedCell } from '../../utils/autoAssign';
 import { langFromDir, t } from '../../utils/i18n';
 import { PreviewCell } from './PreviewCell';
-import { computeOnCallSlotMapping } from '../../utils/cellKey';
+import { computeOnCallSlotMapping, resolvePositionsForDate } from '../../utils/cellKey';
 
 interface Props {
   state: AppState;
@@ -14,6 +14,7 @@ interface Props {
   baseAssignments: Assignment[];
   skippedCells: SkippedCell[];
   homeGroupPeriods: HomeGroupPeriod[];
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
 }
 
 function formatShiftTime(h: number) {
@@ -23,7 +24,7 @@ function formatShiftTime(h: number) {
   return `${hh.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
 }
 
-export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssignments, skippedCells, homeGroupPeriods }: Props) {
+export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssignments, skippedCells, homeGroupPeriods, onCallDurationOverrides }: Props) {
   if (dates.length === 0) return null;
   const refDate = dates[0];
   const lang = langFromDir(state.dir);
@@ -62,9 +63,10 @@ export function PreviewScheduleView({ state, dates, mergedAssignments, baseAssig
         <tbody>
           {dates.map((date, dayIndex) => {
             const rowBg = dayIndex % 2 === 0 ? 'bg-slate-50/40 dark:bg-slate-800/60' : 'bg-white dark:bg-slate-800';
+            const resolvedOnCallPositions = resolvePositionsForDate(onCallPositions, date, onCallDurationOverrides);
             const slotMapping = computeOnCallSlotMapping(
               state.shifts,
-              onCallPositions,
+              resolvedOnCallPositions,
               dayStartHour,
               date,
               mergedAssignments,

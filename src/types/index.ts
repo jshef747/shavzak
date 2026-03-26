@@ -61,6 +61,8 @@ export interface Schedule {
   startDate: string;
   endDate: string;
   assignments: Assignment[];
+  /** Per-day on-call duration overrides: date (ISO) → positionId → durationHours */
+  onCallDurationOverrides?: Record<string, Record<string, number>>;
   createdAt: string;
   updatedAt: string;
 }
