@@ -223,7 +223,7 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
 
   return (
     <>
-      <div className="flex flex-col flex-1 min-h-0 overflow-hidden animate-fade-in" dir={state.dir}>
+      <div className="flex flex-col flex-1 min-h-0 overflow-x-hidden animate-fade-in" dir={state.dir}>
 
         {/* Date carousel */}
         <div
@@ -261,7 +261,7 @@ export function NewMobileScheduleView({ state, dates, assignments, homeGroupPeri
         </div>
 
         {/* Shift cards */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3 pb-28">
+        <div className="flex-1 min-h-0 overflow-y-auto p-3 flex flex-col gap-3" style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}>
           {state.positions.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-40 text-center gap-2">
               <p className="text-sm text-gray-400 dark:text-slate-500">{t('noPositions', lang)}</p>
