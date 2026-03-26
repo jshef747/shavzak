@@ -54,6 +54,7 @@ const STEPS_EN = [
         <ul className="space-y-1.5">
           <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Shift variety</span> — auto-assign avoids giving someone the same shift on consecutive days (soft penalty).</span></li>
           <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Half-shifts</span> — controlled by the Avoid Half-Shifts toggle in Settings → Shifts.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">On mobile</span> — tap any position row to assign. Swipe through dates using the carousel at the top, and tap a shift card to expand its positions.</span></li>
         </ul>
       </div>
     ),
@@ -161,6 +162,7 @@ const STEPS_HE = [
         <ul className="space-y-1.5">
           <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">מגוון משמרות</span> — השיבוץ האוטומטי מרתיע רצפים של אותה משמרת בימים עוקבים.</span></li>
           <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">משמרות חצי</span> — נשלט על ידי מתג "הימנע ממשמרות חצי" בהגדרות ← משמרות.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">במובייל</span> — הקש על שורת תפקיד לשיבוץ. גלול בין תאריכים בקרוסלה בראש המסך, והקש על כרטיס משמרת להרחבתו.</span></li>
         </ul>
       </div>
     ),

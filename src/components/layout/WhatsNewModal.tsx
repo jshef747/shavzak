@@ -1,4 +1,4 @@
-import { Clock, Shuffle, Ban, PhoneCall } from 'lucide-react';
+import { Clock, Shuffle, Ban, PhoneCall, Smartphone } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { langFromDir, t } from '../../utils/i18n';
 
@@ -9,6 +9,11 @@ interface Props {
 }
 
 const FEATURES_EN = [
+  {
+    icon: <Smartphone className="w-5 h-5" />,
+    title: 'Premium Mobile UI',
+    desc: 'Completely redesigned mobile experience: scrollable date carousel, glassmorphic shift cards with smooth accordion animations, richer assignment rows with status badges, and a floating bottom action bar.',
+  },
   {
     icon: <PhoneCall className="w-5 h-5" />,
     title: 'On-Call Duration per Position',
@@ -34,21 +39,26 @@ const FEATURES_EN = [
 const FEATURES_HE = [
   {
     icon: FEATURES_EN[0].icon,
+    title: 'ממשק מובייל חדש',
+    desc: 'עיצוב מחדש מלא של חוויית המובייל: קרוסלה תאריכים גלילה, כרטיסי משמרת שקופים עם אנימציות חלקות, שורות שיבוץ עשירות עם תגי סטטוס, וסרגל פעולות צף בתחתית המסך.',
+  },
+  {
+    icon: FEATURES_EN[1].icon,
     title: 'משך כוננות לפי תפקיד',
     desc: 'ניתן לקבוע מספר שעות מותאם לכל תפקיד כוננות (למשל 24 שעות). התא ממוזג על פני כל שורות המשמרת לאותו יום, ומעקב השעות משתמש במשך הכוננות.',
   },
   {
-    icon: FEATURES_EN[1].icon,
+    icon: FEATURES_EN[2].icon,
     title: 'מגוון משמרות בשיבוץ אוטומטי',
     desc: 'השיבוץ האוטומטי מנסה עכשיו למנוע רצף של אותה משמרת לאותו אדם בימים עוקבים. עונש רך מרתיע רצפים (כגון שלושה בקרים ברצף) תוך מילוי כל המשבצות.',
   },
   {
-    icon: FEATURES_EN[2].icon,
+    icon: FEATURES_EN[3].icon,
     title: 'מתג "הימנע ממשמרות חצי"',
     desc: 'מתג חדש בהגדרות ← משמרות מאפשר לשיבוץ האוטומטי לדלג לגמרי על משמרות חצי, או להשתמש בהן רק כמוצא אחרון.',
   },
   {
-    icon: FEATURES_EN[3].icon,
+    icon: FEATURES_EN[4].icon,
     title: 'תאי כוננות ממוזגים',
     desc: 'תפקידי כוננות מוצגים עכשיו כתא אחד ממוזג על פני כל שורות המשמרת לכל יום — נקי יותר וקל יותר לשיבוץ.',
   },

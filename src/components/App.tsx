@@ -18,7 +18,7 @@ import type { Shift, Position, AppState } from '../types';
 import { TopBar } from './layout/TopBar';
 import { Sidebar } from './layout/Sidebar';
 import { ScheduleView } from './schedule/ScheduleView';
-import { MobileScheduleView } from './schedule/MobileScheduleView';
+import { NewMobileScheduleView } from './schedule/NewMobileScheduleView';
 import { StatusLegend } from './schedule/StatusLegend';
 import { DndProvider } from './dnd/DndProvider';
 import { useIsMobile } from '../hooks/useIsMobile';
@@ -298,7 +298,7 @@ export function App() {
                 </div>
               </div>
             ) : isMobile ? (
-              <MobileScheduleView
+              <NewMobileScheduleView
                 state={state}
                 dates={dates}
                 assignments={assignments}
@@ -320,33 +320,35 @@ export function App() {
         </div>
       </DndProvider>
 
-      {/* Mobile bottom action bar */}
+      {/* Mobile floating bottom action bar */}
       {activeSchedule && (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] flex gap-1.5 z-30">
-          <Button
-            variant="primary"
-            size="sm"
-            className="flex-1 justify-center"
-            onClick={handleOpenAutoAssign}
-          >
-            {t('autoAssign', lang)}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1 justify-center !bg-emerald-600 !border-emerald-600 !text-white"
-            onClick={() => setHomePeriodsOpen(true)}
-          >
-            {t('homePeriods', lang)}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="flex-1 justify-center"
-            onClick={handleExportExcel}
-          >
-            {t('excel', lang)}
-          </Button>
+        <div className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-end pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-3 pointer-events-none">
+          <div className="w-full pointer-events-auto bg-white/85 dark:bg-slate-800/85 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-gray-200/60 dark:border-slate-700/40 px-2 py-2 flex gap-1.5">
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-1 justify-center"
+              onClick={handleOpenAutoAssign}
+            >
+              {t('autoAssign', lang)}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1 justify-center !bg-emerald-600 !border-emerald-600 !text-white"
+              onClick={() => setHomePeriodsOpen(true)}
+            >
+              {t('homePeriods', lang)}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="flex-1 justify-center"
+              onClick={handleExportExcel}
+            >
+              {t('excel', lang)}
+            </Button>
+          </div>
         </div>
       )}
 
