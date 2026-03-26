@@ -1,4 +1,4 @@
-import { Clock, Shuffle, Ban, PhoneCall, Smartphone, CalendarClock } from 'lucide-react';
+import { Clock, Shuffle, Ban, PhoneCall, Smartphone, CalendarClock, Users, ArrowLeftRight } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { langFromDir, t } from '../../utils/i18n';
 
@@ -39,6 +39,16 @@ const FEATURES_EN = [
     title: 'Per-Day On-Call Duration',
     desc: 'Click the clock icon next to any date header to override the on-call slot duration for that day only (e.g. 12h on Monday, 6h on Tuesday, 24h on Wednesday). Auto-assign, Excel export, and hours tracking all respect the per-day setting.',
   },
+  {
+    icon: <Users className="w-5 h-5" />,
+    title: 'Worker Workspaces',
+    desc: 'Admins can now generate an invite link and share it with their team. Workers join the board, view the schedule, and enter their own availability constraints — without touching admin settings.',
+  },
+  {
+    icon: <ArrowLeftRight className="w-5 h-5" />,
+    title: 'Shift Swap Requests',
+    desc: 'Workers can request a shift swap with any teammate. The target worker receives the request and can accept or reject it. Admins see all pending swaps in one place.',
+  },
 ];
 
 const FEATURES_HE = [
@@ -71,6 +81,16 @@ const FEATURES_HE = [
     icon: FEATURES_EN[5].icon,
     title: 'משך כוננות לפי יום',
     desc: 'לחץ על סמל השעון ליד כותרת כל יום כדי לקבוע משך כוננות שונה לאותו יום בלבד (למשל 12 שעות ביום ראשון, 6 שעות ביום שני, 24 שעות ביום שלישי). שיבוץ אוטומטי, ייצוא אקסל ומעקב שעות מתחשבים בהגדרה לפי יום.',
+  },
+  {
+    icon: FEATURES_EN[6].icon,
+    title: 'סביבות עבודה לעובדים',
+    desc: 'מנהלים יכולים עכשיו ליצור קישור הזמנה ולשתף אותו עם הצוות. עובדים מצטרפים ללוח, רואים את הלוח ומזינים את האילוצים שלהם — מבלי לגעת בהגדרות המנהל.',
+  },
+  {
+    icon: FEATURES_EN[7].icon,
+    title: 'בקשות החלפת משמרות',
+    desc: 'עובדים יכולים לבקש החלפת משמרת עם כל חבר צוות. חבר הצוות הנבחר מקבל את הבקשה ויכול לאשר או לדחות אותה. מנהלים רואים את כל הבקשות הפתוחות במקום אחד.',
   },
 ];
 

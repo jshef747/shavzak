@@ -10,16 +10,26 @@ interface Props {
   onLogin: (email: string, password: string) => Promise<void>;
   onRegister: (email: string, password: string) => Promise<void>;
   lang: Lang;
+  /** If the user arrived via an invite link, this is the token. */
+  inviteToken?: string;
+  /** Called after the user registers/logs in to accept an invite. */
+  onAcceptInvite?: (token: string, name: string) => Promise<{ boardId: string; personId: string }>;
+  /** Called after the invite was accepted so the parent can refresh board list. */
+  onInviteAccepted?: () => Promise<void>;
 }
 
-export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+export function AuthModal({ open, onClose, onLogin, onRegister, lang, inviteToken, onAcceptInvite, onInviteAccepted }: Props) {
+  const [mode, setMode] = useState<'login' | 'register'>('register');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showWhy, setShowWhy] = useState(false);
+
+  // If an invite token is present, default mode to 'register' and show a banner
+  const hasInvite = !!inviteToken;
 
   const pwChecks = {
     length: password.length >= 8,
@@ -51,9 +61,18 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
         }
         await onRegister(email.trim(), password);
       }
+
+      // After successful auth, accept the invite if one is present
+      if (hasInvite && inviteToken && onAcceptInvite) {
+        const name = displayName.trim() || email.split('@')[0];
+        await onAcceptInvite(inviteToken, name);
+        await onInviteAccepted?.();
+      }
+
       setEmail('');
       setPassword('');
       setConfirmPassword('');
+      setDisplayName('');
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('authFailed', lang));
@@ -68,6 +87,8 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
     setConfirmPassword('');
   }
 
+  const isHe = lang === 'he';
+
   return (
     <Modal
       open={open}
@@ -76,41 +97,65 @@ export function AuthModal({ open, onClose, onLogin, onRegister, lang }: Props) {
       size="sm"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowWhy(w => !w)}
-            className="text-xs text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition-colors"
-          >
-            <span className="w-4 h-4 rounded-full border border-current flex items-center justify-center font-bold leading-none">?</span>
-            {lang === 'he' ? 'למה להירשם?' : 'Why sign up?'}
-          </button>
-          {showWhy && (
-            <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-1.5 text-xs text-gray-600">
-              <p className="text-gray-400 text-[11px] mb-2">
-                {lang === 'he'
-                  ? 'כרגע הנתונים שלך נשמרים רק בדפדפן הזה — ניקוי הדפדפן ימחק הכל.'
-                  : 'Right now your data lives only in this browser — clearing it means losing everything.'}
-              </p>
-              {[
-                lang === 'he'
-                  ? ['גיבוי לענן', 'לוחות נשמרים אוטומטית, ללא אובדן נתונים']
-                  : ['Cloud backup', 'Schedules saved automatically, never lost'],
-                lang === 'he'
-                  ? ['גישה מכל מקום', 'טלפון, טאבלט, כל מחשב']
-                  : ['Access anywhere', 'Phone, tablet, any computer'],
-                lang === 'he'
-                  ? ['תבניות מסונכרנות', 'משמרות ותפקידים קשורים לחשבון שלך']
-                  : ['Synced presets', 'Your shifts & positions follow your account'],
-              ].map(([title, desc]) => (
-                <div key={title} className="flex items-start gap-2">
-                  <span className="text-indigo-400 font-bold mt-0.5">·</span>
-                  <span><span className="font-semibold text-gray-700">{title}</span> — {desc}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Invite banner */}
+        {hasInvite && (
+          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-sm text-blue-700 dark:text-blue-300">
+            {isHe
+              ? 'הוזמנת להצטרף ללוח שבצק. הירשם או התחבר כדי להמשיך.'
+              : "You've been invited to join a Shavzak board. Register or log in to continue."}
+          </div>
+        )}
+
+        {!hasInvite && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowWhy(w => !w)}
+              className="text-xs text-gray-400 hover:text-indigo-500 flex items-center gap-1 transition-colors"
+            >
+              <span className="w-4 h-4 rounded-full border border-current flex items-center justify-center font-bold leading-none">?</span>
+              {isHe ? 'למה להירשם?' : 'Why sign up?'}
+            </button>
+            {showWhy && (
+              <div className="mt-2 p-3 bg-indigo-50 border border-indigo-100 rounded-lg space-y-1.5 text-xs text-gray-600">
+                <p className="text-gray-400 text-[11px] mb-2">
+                  {isHe
+                    ? 'כרגע הנתונים שלך נשמרים רק בדפדפן הזה — ניקוי הדפדפן ימחק הכל.'
+                    : 'Right now your data lives only in this browser — clearing it means losing everything.'}
+                </p>
+                {[
+                  isHe
+                    ? ['גיבוי לענן', 'לוחות נשמרים אוטומטית, ללא אובדן נתונים']
+                    : ['Cloud backup', 'Schedules saved automatically, never lost'],
+                  isHe
+                    ? ['גישה מכל מקום', 'טלפון, טאבלט, כל מחשב']
+                    : ['Access anywhere', 'Phone, tablet, any computer'],
+                  isHe
+                    ? ['תבניות מסונכרנות', 'משמרות ותפקידים קשורים לחשבון שלך']
+                    : ['Synced presets', 'Your shifts & positions follow your account'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="flex items-start gap-2">
+                    <span className="text-indigo-400 font-bold mt-0.5">·</span>
+                    <span><span className="font-semibold text-gray-700">{title}</span> — {desc}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Display name — only shown for invite registration */}
+        {hasInvite && mode === 'register' && (
+          <Input
+            label={isHe ? 'שמך המלא' : 'Your name'}
+            type="text"
+            value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            placeholder={isHe ? 'ישראל ישראלי' : 'Jane Smith'}
+            autoComplete="name"
+          />
+        )}
+
         <Input
           label={t('emailLabel', lang)}
           type="email"

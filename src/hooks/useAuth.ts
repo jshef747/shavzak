@@ -24,10 +24,15 @@ export function useAuth() {
     if (error) throw error;
   }
 
+  /**
+   * Register a new user. If an invite token is provided (from ?invite=TOKEN in
+   * the URL), the caller is responsible for calling `acceptInvite` after this
+   * resolves to link them to the correct board.
+   */
   async function register(email: string, password: string): Promise<void> {
     const { data, error } = await supabase.auth.signUp({ email, password });
     if (error) throw error;
-    
+
     if (!data.session) {
       const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
       if (loginError) throw loginError;

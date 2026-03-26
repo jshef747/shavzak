@@ -94,4 +94,42 @@ export interface AppState {
   ignoreOnCallConstraints: boolean;
   avoidHalfShifts: boolean;
   seenWhatsNewVersion?: string;
+  constraintDeadline: string | null; // ISO date after which workers can no longer edit constraints
+}
+
+// ─── Role / workspace types ───────────────────────────────────────────────────
+
+export type WorkspaceRole = 'admin' | 'worker';
+
+/** The active workspace context for the current session. */
+export interface RoleContext {
+  /** The board's Supabase row id (== owner's user_id for admin boards). */
+  boardId: string;
+  role: WorkspaceRole;
+  /** person_id inside AppState.people that belongs to this worker (null for admins). */
+  personId: string | null;
+}
+
+/** A lightweight descriptor for a board the user has access to. */
+export interface BoardDescriptor {
+  boardId: string;
+  role: WorkspaceRole;
+  /** board_data.schedules[0].name or a fallback label */
+  label: string;
+  personId: string | null;
+}
+
+/** A shift-swap request row from the `shift_swaps` Supabase table. */
+export interface ShiftSwap {
+  id: string;
+  boardId: string;
+  scheduleId: string;
+  shiftId: string;
+  date: string;
+  positionId: string;
+  requesterPersonId: string;
+  targetPersonId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
 }

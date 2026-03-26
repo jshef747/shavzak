@@ -41,5 +41,6 @@ export function normalizeState(raw: unknown): AppState {
   merged.minBreakHours = merged.minBreakHours ?? 12;
   merged.ignoreOnCallConstraints = merged.ignoreOnCallConstraints ?? false;
   merged.avoidHalfShifts = merged.avoidHalfShifts ?? false;
+  merged.constraintDeadline = merged.constraintDeadline ?? null;
   return merged;
 }

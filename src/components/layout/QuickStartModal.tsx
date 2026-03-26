@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Settings, Users, Wand2, Zap, Home, Palette, Download, Cloud } from 'lucide-react';
+import { Calendar, Settings, Users, Wand2, Zap, Home, Palette, Download, Cloud, ArrowLeftRight } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { langFromDir, t } from '../../utils/i18n';
 
@@ -101,8 +101,22 @@ const STEPS_EN = [
     description: 'Use the top bar buttons to export the schedule to Excel (includes a Constraints sheet) or print to PDF.',
   },
   {
+    icon: <ArrowLeftRight className="w-8 h-8" strokeWidth={1.5} />,
+    title: '9. Worker Workspaces & Swaps',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+        <p>Sign in, then share an invite link (<strong>🔗</strong> icon in the top bar) with your team members.</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Workers</span> — join via the invite link, see the schedule, and edit their own unavailability &amp; constraints.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Shift Swaps</span> — workers request swaps with teammates using the ⇄ icon. The target worker accepts or rejects.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">Workspace Switcher</span> — if a user belongs to multiple boards (e.g. their own + a shared one), a switcher appears in the top bar.</span></li>
+        </ul>
+      </div>
+    ),
+  },
+  {
     icon: <Cloud className="w-8 h-8" strokeWidth={1.5} />,
-    title: '9. Sign In — It\'s Worth It',
+    title: '10. Sign In — It\'s Worth It',
     description: (
       <div className="space-y-3 text-gray-600 dark:text-slate-300 leading-relaxed">
         <p className="text-sm">Right now your data lives only in this browser — clear it and it's gone. Signing in takes 10 seconds and gives you:</p>
@@ -210,7 +224,21 @@ const STEPS_HE = [
   },
   {
     icon: STEPS_EN[8].icon,
-    title: '9. התחברות — שווה את זה',
+    title: '9. סביבות עבודה לעובדים והחלפות',
+    description: (
+      <div className="space-y-2 text-sm text-gray-600 dark:text-slate-300">
+        <p>התחבר, ולאחר מכן שתף קישור הזמנה (סמל <strong>🔗</strong> בסרגל העליון) עם חברי הצוות שלך.</p>
+        <ul className="space-y-1.5">
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">עובדים</span> — מצטרפים דרך קישור ההזמנה, רואים את הלוח ועורכים את חוסר הזמינות והאילוצים שלהם.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">החלפות משמרות</span> — עובדים מבקשים החלפות עם חברי צוות דרך סמל ⇄. חבר הצוות הנבחר מאשר או דוחה.</span></li>
+          <li className="flex items-start gap-2"><span className="text-indigo-400 font-bold mt-0.5">·</span><span><span className="font-semibold text-gray-800 dark:text-slate-100">מחליף סביבת עבודה</span> — אם משתמש שייך לכמה לוחות, מופיע מחליף בסרגל העליון.</span></li>
+        </ul>
+      </div>
+    ),
+  },
+  {
+    icon: STEPS_EN[9].icon,
+    title: '10. התחברות — שווה את זה',
     description: (
       <div className="space-y-3 text-gray-600 dark:text-slate-300 leading-relaxed">
         <p className="text-sm">כרגע המידע שלך נשמר רק בדפדפן הזה — ניקוי הדפדפן ימחק הכל. התחברות לוקחת 10 שניות ונותנת לך:</p>

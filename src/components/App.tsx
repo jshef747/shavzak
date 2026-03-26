@@ -31,11 +31,15 @@ import { AutoAssignModal } from './layout/AutoAssignModal';
 import { HomePeriodsModal } from './layout/HomePeriodsModal';
 import { AuthModal } from './auth/AuthModal';
 import { WhatsNewModal } from './layout/WhatsNewModal';
+import { SwapRequests } from './worker/SwapRequests';
 import { exportToExcel } from '../utils/exportExcel';
 import { autoAssign, type AutoAssignResult } from '../utils/autoAssign';
 import { WHATS_NEW_VERSION } from '../constants';
+import { RoleContextProvider, useRoleContext } from '../contexts/RoleContext';
 
-export function App() {
+// ─── Inner App (has access to RoleContext) ────────────────────────────────────
+
+function AppInner() {
   const { state, setState } = useAppState();
   const { activeSchedule, createSchedule, deleteSchedule, setActiveSchedule, setOnCallDurationOverride } = useSchedule(state, setState);
   const { addShift, updateShift, deleteShift, reorderShifts } = useShifts(state, setState);
@@ -65,18 +69,28 @@ export function App() {
   const [homePeriodsOpen, setHomePeriodsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [swapsOpen, setSwapsOpen] = useState(false);
+  const [inviteLinkOpen, setInviteLinkOpen] = useState(false);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   // Auth + cloud sync
   const { user, loading: authLoading, login, register, logout } = useAuth();
-  const { loadBoard, saveBoard } = useCloudSync();
+  const {
+    loadBoard, loadBoardById, saveBoard,
+    fetchUserBoards, updateWorkerConstraints,
+    createInvite, acceptInvite,
+  } = useCloudSync();
   const {
     shiftSets, positionSets,
     addShiftSet, deleteShiftSet,
     addPositionSet, deletePositionSet,
   } = usePresets(user?.id ?? null);
 
+  // Role context
+  const { isAdmin, isWorker, current: currentRole, boards, setBoards, switchBoard, workerPersonId } = useRoleContext();
+
   function handleLoadShiftSet(shifts: Omit<Shift, 'id'>[]) {
-    // Keep minBreakHours etc, just replace shifts entirely
     setState((prev: AppState) => ({
       ...prev,
       shifts: shifts.map(s => ({ ...s, id: crypto.randomUUID() })) as Shift[]
@@ -90,6 +104,9 @@ export function App() {
     }));
   }
 
+  // Check URL for invite token on first load
+  const inviteTokenFromUrl = new URLSearchParams(window.location.search).get('invite');
+
   // Load board from Supabase when user logs in
   const loadedUserRef = useRef<string | null>(null);
   const cloudLoadingRef = useRef(false);
@@ -101,7 +118,39 @@ export function App() {
     if (loadedUserRef.current === user.id) return;
     loadedUserRef.current = user.id;
     cloudLoadingRef.current = true;
-    loadBoard(user.id).then(saved => {
+
+    fetchUserBoards(user.id).then(async (allBoards) => {
+      setBoards(allBoards);
+
+      // If the user arrived via an invite link and has no worker boards yet, accept it
+      if (inviteTokenFromUrl && !allBoards.some(b => b.role === 'worker')) {
+        try {
+          const person = state.people.find(p => p.id) ?? null;
+          const displayName = person?.name ?? user.email?.split('@')[0] ?? 'Worker';
+          await acceptInvite(inviteTokenFromUrl, displayName);
+          // Reload boards after accepting
+          const refreshed = await fetchUserBoards(user.id);
+          setBoards(refreshed);
+          // Strip the token from the URL without a reload
+          const url = new URL(window.location.href);
+          url.searchParams.delete('invite');
+          window.history.replaceState({}, '', url.toString());
+        } catch {
+          // Non-critical; user can always retry
+        }
+      }
+
+      // Determine which board to load (prefer worker board if arrived via invite)
+      const defaultBoard = allBoards[0];
+      if (!defaultBoard) return;
+
+      let saved: AppState | null;
+      if (defaultBoard.role === 'admin') {
+        saved = await loadBoard(user.id);
+      } else {
+        saved = await loadBoardById(defaultBoard.boardId);
+      }
+
       if (saved) setState(normalizeState(saved));
     }).finally(() => {
       cloudLoadingRef.current = false;
@@ -109,10 +158,30 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Auto-save board to Supabase (debounced 1s) when logged in
+  // When user switches board, load the new board's data
+  const prevBoardIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!currentRole || !user) return;
+    if (prevBoardIdRef.current === currentRole.boardId) return;
+    prevBoardIdRef.current = currentRole.boardId;
+
+    cloudLoadingRef.current = true;
+    const load = currentRole.role === 'admin'
+      ? loadBoard(user.id)
+      : loadBoardById(currentRole.boardId);
+
+    load.then(saved => {
+      if (saved) setState(normalizeState(saved));
+    }).finally(() => {
+      cloudLoadingRef.current = false;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentRole?.boardId]);
+
+  // Auto-save board to Supabase (debounced 1s) when logged in as admin
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isAdmin) return;
     if (cloudLoadingRef.current) return;
     clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
@@ -120,7 +189,7 @@ export function App() {
     }, 1000);
     return () => clearTimeout(saveTimerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, user]);
+  }, [state, user, isAdmin]);
 
   // Dark mode: track system preference
   const [systemDark, setSystemDark] = useState(() =>
@@ -134,8 +203,6 @@ export function App() {
   }, []);
   const isDark = state.theme === 'dark' || (state.theme === 'system' && systemDark);
 
-  // Keep <html> in sync synchronously (not via useEffect) so CSS variables
-  // like --person-cell-alpha on .dark are always correct before paint.
   document.documentElement.classList.toggle('dark', isDark);
 
   const toggleTheme = useCallback(() => {
@@ -177,8 +244,6 @@ export function App() {
 
   function handleOpenAutoAssign() {
     if (!activeSchedule) return;
-    // Always run with reassign=false — existing assignments are skipped automatically.
-    // The reassign dialog (clear & redo) is only triggered from the preview modal itself.
     const result = autoAssign(activeSchedule, state.people, state.shifts, state.positions, state.minBreakHours, state.homeGroups, false, homeGroupPeriods, state.ignoreOnCallConstraints, state.avoidHalfShifts, activeSchedule.onCallDurationOverrides);
     setAutoAssignResult(result);
     setAutoAssignReassign(null);
@@ -204,6 +269,42 @@ export function App() {
     setAutoAssignReassign(null);
   }
 
+  // Worker: save own constraints via the atomic RPC (no full-board overwrite)
+  async function handleWorkerSaveConstraints(personId: string) {
+    if (!currentRole || !workerPersonId) return;
+    const person = state.people.find(p => p.id === personId);
+    if (!person) return;
+    const err = await updateWorkerConstraints(
+      currentRole.boardId,
+      personId,
+      person.constraints,
+      person.unavailability,
+    );
+    if (err) toast.error(err);
+  }
+  void handleWorkerSaveConstraints; // suppress unused warning — called by PersonEditor in worker mode
+
+  // Admin: generate / copy invite link
+  async function handleOpenInviteLink() {
+    if (!currentRole) return;
+    setInviteLinkOpen(true);
+    if (!inviteToken) {
+      const token = await createInvite(currentRole.boardId);
+      setInviteToken(token);
+    }
+  }
+
+  const inviteUrl = inviteToken
+    ? `${window.location.origin}${window.location.pathname}?invite=${inviteToken}`
+    : null;
+
+  async function handleCopyInvite() {
+    if (!inviteUrl) return;
+    await navigator.clipboard.writeText(inviteUrl);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
+
   // Show a minimal spinner while Supabase resolves the session
   if (authLoading) {
     return (
@@ -212,6 +313,8 @@ export function App() {
       </div>
     );
   }
+
+  const isHe = lang === 'he';
 
   return (
     <div
@@ -238,6 +341,14 @@ export function App() {
         syncError={syncError}
         onOpenAuthModal={() => setAuthModalOpen(true)}
         onLogout={logout}
+        // Role props
+        isAdmin={isAdmin}
+        isWorker={isWorker}
+        boards={boards}
+        currentBoardId={currentRole?.boardId ?? null}
+        onSwitchBoard={switchBoard}
+        onOpenInviteLink={isAdmin && user ? handleOpenInviteLink : undefined}
+        onOpenSwaps={user ? () => setSwapsOpen(true) : undefined}
       />
 
       <DndProvider
@@ -255,8 +366,11 @@ export function App() {
             <Sidebar
               state={state}
               assignments={assignments}
-              onEditPerson={(id) => setSidebarEditPersonId(id)}
-              onDeletePerson={(id) => deletePerson(id)}
+              onEditPerson={(id) => {
+                // Workers can only open their own person editor
+                if (isAdmin || id === workerPersonId) setSidebarEditPersonId(id);
+              }}
+              onDeletePerson={(id) => { if (isAdmin) deletePerson(id); }}
               open={sidebarOpen}
               onClose={() => setSidebarOpen(false)}
               onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
@@ -272,13 +386,15 @@ export function App() {
                   </div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2 tracking-tight">{t('noSchedule', lang)}</h2>
                   <p className="text-sm text-gray-500 dark:text-slate-400 mb-8 leading-relaxed">{t('noScheduleHint', lang)}</p>
-                  <Button
-                    onClick={() => setNewScheduleOpen(true)}
-                    variant="primary"
-                    className="w-full sm:w-auto px-8 py-2.5 text-base shadow-md hover:shadow-lg transition-all"
-                  >
-                    {t('newScheduleBtn', lang)}
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => setNewScheduleOpen(true)}
+                      variant="primary"
+                      className="w-full sm:w-auto px-8 py-2.5 text-base shadow-md hover:shadow-lg transition-all"
+                    >
+                      {t('newScheduleBtn', lang)}
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : state.positions.length === 0 ? (
@@ -289,13 +405,15 @@ export function App() {
                   </div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-2 tracking-tight">{t('noPositions', lang)}</h2>
                   <p className="text-sm text-gray-500 dark:text-slate-400 mb-8 leading-relaxed">{t('noPositionsHint', lang)}</p>
-                  <Button
-                    onClick={() => openSettings('Positions')}
-                    variant="primary"
-                    className="w-full sm:w-auto px-8 py-2.5 text-base shadow-md hover:shadow-lg transition-all"
-                  >
-                    {t('openSettings', lang)}
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      onClick={() => openSettings('Positions')}
+                      variant="primary"
+                      className="w-full sm:w-auto px-8 py-2.5 text-base shadow-md hover:shadow-lg transition-all"
+                    >
+                      {t('openSettings', lang)}
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : isMobile ? (
@@ -304,8 +422,8 @@ export function App() {
                 dates={dates}
                 assignments={assignments}
                 homeGroupPeriods={homeGroupPeriods}
-                onAssign={(cell, personId) => assign(cell, personId)}
-                onUnassign={(cell) => unassign(cell)}
+                onAssign={(cell, personId) => { if (isAdmin) assign(cell, personId); }}
+                onUnassign={(cell) => { if (isAdmin) unassign(cell); }}
                 onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
               />
             ) : (
@@ -316,7 +434,7 @@ export function App() {
                 assignments={assignments}
                 homeGroupPeriods={homeGroupPeriods}
                 onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
-                onSetOnCallDuration={setOnCallDurationOverride}
+                onSetOnCallDuration={(date, posId, hours) => { if (isAdmin) setOnCallDurationOverride(date, posId, hours); }}
               />
             )}
             <StatusLegend dir={state.dir} />
@@ -325,7 +443,7 @@ export function App() {
       </DndProvider>
 
       {/* Mobile floating bottom action bar */}
-      {activeSchedule && (
+      {activeSchedule && isAdmin && (
         <div className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-end pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] px-3 pointer-events-none">
           <div className="w-full pointer-events-auto bg-white/85 dark:bg-slate-800/85 backdrop-blur-xl rounded-2xl shadow-xl shadow-black/10 border border-gray-200/60 dark:border-slate-700/40 px-2 py-2 flex gap-1.5">
             <Button
@@ -356,58 +474,64 @@ export function App() {
         </div>
       )}
 
-      <SettingsModal
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        state={state}
-        dates={dates}
-        initialTab={settingsInitialTab}
-        onAddShift={addShift}
-        onUpdateShift={updateShift}
-        onDeleteShift={deleteShift}
-        onReorderShifts={reorderShifts}
-        onUpdateMinBreakHours={updateMinBreakHours}
-        onUpdateIgnoreOnCallConstraints={updateIgnoreOnCallConstraints}
-        onUpdateAvoidHalfShifts={updateAvoidHalfShifts}
-        onAddPosition={addPosition}
-        onUpdatePosition={updatePosition}
-        onDeletePosition={deletePosition}
-        onToggleOnCall={toggleOnCall}
-        onUpdateOnCallDuration={updateOnCallDuration}
-        onReorderPositions={reorderPositions}
-        onAddPerson={addPerson}
-        onDeletePerson={deletePerson}
-        onUpdatePersonName={updatePersonName}
-        onToggleQualification={toggleQualification}
-        onToggleUnavailability={toggleUnavailability}
-        onToggleConstraintShift={toggleConstraintShift}
-        onToggleConstraintBlockedShift={toggleConstraintBlockedShift}
-        onToggleConstraintDay={toggleConstraintDay}
-        onToggleConstraintBlockedDay={toggleConstraintBlockedDay}
-        onUpdateConstraintMaxWeek={updateConstraintMaxWeek}
-        onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
-        onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
-        onUpdateConstraintMinRest={updateConstraintMinRest}
-        onUpdateForceMinimum={updateForceMinimum}
-        onUpdateNeverAutoAssign={updateNeverAutoAssign}
-        onAddHomeGroup={addHomeGroup}
-        onUpdateHomeGroup={updateHomeGroup}
-        onDeleteHomeGroup={deleteHomeGroup}
-        onTogglePersonHomeGroup={togglePersonHomeGroup}
-        shiftSets={shiftSets}
-        positionSets={positionSets}
-        onAddShiftSet={addShiftSet}
-        onDeleteShiftSet={deleteShiftSet}
-        onLoadShiftSet={handleLoadShiftSet}
-        onAddPositionSet={addPositionSet}
-        onDeletePositionSet={deletePositionSet}
-        onLoadPositionSet={handleLoadPositionSet}
-        isLoggedIn={!!user}
-      />
+      {/* Settings — admin only */}
+      {isAdmin && (
+        <SettingsModal
+          open={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          state={state}
+          dates={dates}
+          initialTab={settingsInitialTab}
+          onAddShift={addShift}
+          onUpdateShift={updateShift}
+          onDeleteShift={deleteShift}
+          onReorderShifts={reorderShifts}
+          onUpdateMinBreakHours={updateMinBreakHours}
+          onUpdateIgnoreOnCallConstraints={updateIgnoreOnCallConstraints}
+          onUpdateAvoidHalfShifts={updateAvoidHalfShifts}
+          onAddPosition={addPosition}
+          onUpdatePosition={updatePosition}
+          onDeletePosition={deletePosition}
+          onToggleOnCall={toggleOnCall}
+          onUpdateOnCallDuration={updateOnCallDuration}
+          onReorderPositions={reorderPositions}
+          onAddPerson={addPerson}
+          onDeletePerson={deletePerson}
+          onUpdatePersonName={updatePersonName}
+          onToggleQualification={toggleQualification}
+          onToggleUnavailability={toggleUnavailability}
+          onToggleConstraintShift={toggleConstraintShift}
+          onToggleConstraintBlockedShift={toggleConstraintBlockedShift}
+          onToggleConstraintDay={toggleConstraintDay}
+          onToggleConstraintBlockedDay={toggleConstraintBlockedDay}
+          onUpdateConstraintMaxWeek={updateConstraintMaxWeek}
+          onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
+          onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
+          onUpdateConstraintMinRest={updateConstraintMinRest}
+          onUpdateForceMinimum={updateForceMinimum}
+          onUpdateNeverAutoAssign={updateNeverAutoAssign}
+          onAddHomeGroup={addHomeGroup}
+          onUpdateHomeGroup={updateHomeGroup}
+          onDeleteHomeGroup={deleteHomeGroup}
+          onTogglePersonHomeGroup={togglePersonHomeGroup}
+          shiftSets={shiftSets}
+          positionSets={positionSets}
+          onAddShiftSet={addShiftSet}
+          onDeleteShiftSet={deleteShiftSet}
+          onLoadShiftSet={handleLoadShiftSet}
+          onAddPositionSet={addPositionSet}
+          onDeletePositionSet={deletePositionSet}
+          onLoadPositionSet={handleLoadPositionSet}
+          isLoggedIn={!!user}
+        />
+      )}
 
+      {/* Worker can edit their own person's constraints from the sidebar */}
       {sidebarEditPersonId && (() => {
         const person = state.people.find(p => p.id === sidebarEditPersonId);
-        return person ? (
+        // Workers can only edit their own person
+        const canEdit = isAdmin || (isWorker && sidebarEditPersonId === workerPersonId);
+        return person && canEdit ? (
           <Modal
             open
             onClose={() => setSidebarEditPersonId(null)}
@@ -418,48 +542,52 @@ export function App() {
               person={person}
               state={state}
               dates={dates}
-              onToggleQualification={toggleQualification}
+              onToggleQualification={isAdmin ? toggleQualification : () => {}}
               onToggleUnavailability={toggleUnavailability}
-              onToggleConstraintShift={toggleConstraintShift}
-              onToggleConstraintBlockedShift={toggleConstraintBlockedShift}
-              onToggleConstraintDay={toggleConstraintDay}
-              onToggleConstraintBlockedDay={toggleConstraintBlockedDay}
-              onUpdateConstraintMaxWeek={updateConstraintMaxWeek}
-              onUpdateConstraintMaxTotal={updateConstraintMaxTotal}
-              onUpdateConstraintMaxConsecutive={updateConstraintMaxConsecutive}
-              onUpdateConstraintMinRest={updateConstraintMinRest}
-              onUpdateForceMinimum={updateForceMinimum}
-              onUpdateNeverAutoAssign={updateNeverAutoAssign}
-              onDelete={(id) => { deletePerson(id); setSidebarEditPersonId(null); }}
+              onToggleConstraintShift={isAdmin ? toggleConstraintShift : () => {}}
+              onToggleConstraintBlockedShift={isAdmin ? toggleConstraintBlockedShift : () => {}}
+              onToggleConstraintDay={isAdmin ? toggleConstraintDay : () => {}}
+              onToggleConstraintBlockedDay={isAdmin ? toggleConstraintBlockedDay : () => {}}
+              onUpdateConstraintMaxWeek={isAdmin ? updateConstraintMaxWeek : () => {}}
+              onUpdateConstraintMaxTotal={isAdmin ? updateConstraintMaxTotal : () => {}}
+              onUpdateConstraintMaxConsecutive={isAdmin ? updateConstraintMaxConsecutive : () => {}}
+              onUpdateConstraintMinRest={isAdmin ? updateConstraintMinRest : () => {}}
+              onUpdateForceMinimum={isAdmin ? updateForceMinimum : () => {}}
+              onUpdateNeverAutoAssign={isAdmin ? updateNeverAutoAssign : () => {}}
+              onDelete={isAdmin ? (id) => { deletePerson(id); setSidebarEditPersonId(null); } : () => {}}
               onClose={() => setSidebarEditPersonId(null)}
             />
           </Modal>
         ) : null;
       })()}
 
-      <NewScheduleModal
-        open={newScheduleOpen}
-        onClose={() => setNewScheduleOpen(false)}
-        onCreateSchedule={createSchedule}
-        dir={state.dir}
-      />
+      {isAdmin && (
+        <NewScheduleModal
+          open={newScheduleOpen}
+          onClose={() => setNewScheduleOpen(false)}
+          onCreateSchedule={createSchedule}
+          dir={state.dir}
+        />
+      )}
 
-      <AutoAssignModal
-        open={autoAssignOpen}
-        onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); setAutoAssignReassign(null); }}
-        result={autoAssignResult}
-        reassign={autoAssignReassign}
-        state={state}
-        dates={dates}
-        baseAssignments={activeSchedule?.assignments ?? []}
-        homeGroupPeriods={homeGroupPeriods}
-        onConfirmReassign={handleConfirmReassign}
-        onRequestReassign={(mode) => { setAutoAssignReassign(mode); setAutoAssignResult(null); }}
-        onApply={handleApplyAutoAssign}
-        onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
-      />
+      {isAdmin && (
+        <AutoAssignModal
+          open={autoAssignOpen}
+          onClose={() => { setAutoAssignOpen(false); setAutoAssignResult(null); setAutoAssignReassign(null); }}
+          result={autoAssignResult}
+          reassign={autoAssignReassign}
+          state={state}
+          dates={dates}
+          baseAssignments={activeSchedule?.assignments ?? []}
+          homeGroupPeriods={homeGroupPeriods}
+          onConfirmReassign={handleConfirmReassign}
+          onRequestReassign={(mode) => { setAutoAssignReassign(mode); setAutoAssignResult(null); }}
+          onApply={handleApplyAutoAssign}
+          onCallDurationOverrides={activeSchedule?.onCallDurationOverrides}
+        />
+      )}
 
-      {homePeriodsOpen && (
+      {homePeriodsOpen && isAdmin && (
         <HomePeriodsModal
           open={homePeriodsOpen}
           onClose={() => setHomePeriodsOpen(false)}
@@ -477,6 +605,16 @@ export function App() {
         onLogin={login}
         onRegister={register}
         lang={lang}
+        inviteToken={inviteTokenFromUrl ?? undefined}
+        onAcceptInvite={acceptInvite}
+        onInviteAccepted={async () => {
+          if (!user) return;
+          const refreshed = await fetchUserBoards(user.id);
+          setBoards(refreshed);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('invite');
+          window.history.replaceState({}, '', url.toString());
+        }}
       />
 
       <WhatsNewModal
@@ -485,7 +623,64 @@ export function App() {
         dir={state.dir}
       />
 
+      {/* Shift swaps modal */}
+      {user && currentRole && (
+        <SwapRequests
+          open={swapsOpen}
+          onClose={() => setSwapsOpen(false)}
+          boardId={currentRole.boardId}
+          workerPersonId={workerPersonId}
+          state={state}
+          activeScheduleId={activeSchedule?.id ?? null}
+          lang={lang}
+        />
+      )}
+
+      {/* Invite link modal (admin only) */}
+      {inviteLinkOpen && (
+        <Modal
+          open={inviteLinkOpen}
+          onClose={() => { setInviteLinkOpen(false); setInviteCopied(false); }}
+          title={isHe ? 'קישור הזמנה לעובדים' : 'Worker Invite Link'}
+          size="sm"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-slate-300">
+              {isHe
+                ? 'שתף קישור זה עם עובדים כדי שיוכלו להצטרף ללוח שלך. הם יוכלו לראות את הלוח ולהכניס אילוצים.'
+                : 'Share this link with workers so they can join your board. They can view the schedule and enter their constraints.'}
+            </p>
+            {inviteUrl ? (
+              <div className="flex gap-2">
+                <input
+                  readOnly
+                  value={inviteUrl}
+                  className="flex-1 text-xs rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 px-3 py-2 text-gray-700 dark:text-slate-300 focus:outline-none"
+                />
+                <Button variant="primary" size="sm" onClick={handleCopyInvite}>
+                  {inviteCopied ? (isHe ? 'הועתק!' : 'Copied!') : (isHe ? 'העתק' : 'Copy')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex justify-center py-4">
+                <div className="w-5 h-5 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+
       <Toaster position="bottom-right" />
     </div>
+  );
+}
+
+// ─── Root App: wraps with RoleContextProvider ─────────────────────────────────
+
+export function App() {
+  return (
+    <RoleContextProvider>
+      <AppInner />
+    </RoleContextProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { RefObject } from 'react';
-import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut, Eraser, CloudOff } from 'lucide-react';
-import type { AppState, Schedule } from '../../types';
+import { Menu, Settings, Moon, Sun, Monitor, HelpCircle, Trash2, LogIn, LogOut, Eraser, CloudOff, Link, ArrowLeftRight, ChevronDown } from 'lucide-react';
+import type { AppState, Schedule, BoardDescriptor } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { Button } from '../ui/Button';
 import { Select } from '../ui/Select';
@@ -30,6 +30,14 @@ interface Props {
   onOpenAuthModal?: () => void;
   onLogout?: () => void;
   hideSidebar?: boolean;
+  // Role / workspace
+  isAdmin?: boolean;
+  isWorker?: boolean;
+  boards?: BoardDescriptor[];
+  currentBoardId?: string | null;
+  onSwitchBoard?: (boardId: string) => void;
+  onOpenInviteLink?: () => void;
+  onOpenSwaps?: () => void;
 }
 
 export function TopBar({
@@ -50,12 +58,20 @@ export function TopBar({
   onOpenAuthModal,
   onLogout,
   hideSidebar = false,
+  isAdmin = true,
+  isWorker = false,
+  boards = [],
+  currentBoardId,
+  onSwitchBoard,
+  onOpenInviteLink,
+  onOpenSwaps,
 }: Props) {
   const [newModalOpen, setNewModalOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const lang = langFromDir(state.dir);
+  const isHe = lang === 'he';
 
   // Auto-show Quick Start on first ever visit (no schedules yet)
   useEffect(() => {
@@ -75,6 +91,8 @@ export function TopBar({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, []);
+
+  const hasMultipleBoards = boards.length > 1;
 
   return (
     <>
@@ -96,6 +114,26 @@ export function TopBar({
         </div>
         <div className="hidden md:block w-px h-6 bg-gray-200 dark:bg-slate-700 shrink-0 mx-2" />
 
+        {/* Workspace switcher (only when user has multiple boards) */}
+        {hasMultipleBoards && onSwitchBoard && (
+          <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+            <div className="relative">
+              <select
+                value={currentBoardId ?? ''}
+                onChange={e => onSwitchBoard(e.target.value)}
+                className="appearance-none text-xs font-semibold pl-2.5 pr-6 py-1 rounded-full border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                {boards.map(b => (
+                  <option key={b.boardId} value={b.boardId}>
+                    {b.role === 'worker' ? `${isHe ? 'חבר' : 'Worker'}: ` : `${isHe ? 'מנהל' : 'Admin'}: `}{b.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3 h-3 absolute end-1.5 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none" />
+            </div>
+          </div>
+        )}
+
         {/* Zone 2: Schedule selector */}
         <div className="flex gap-2.5 items-center flex-1 md:flex-none">
           <Select
@@ -109,15 +147,17 @@ export function TopBar({
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </Select>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setNewModalOpen(true)}
-            className="hidden sm:inline-flex text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-          >
-            {t('newBtn', lang)}
-          </Button>
-          {activeSchedule && (
+          {isAdmin && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setNewModalOpen(true)}
+              className="hidden sm:inline-flex text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+            >
+              {t('newBtn', lang)}
+            </Button>
+          )}
+          {isAdmin && activeSchedule && (
             <IconButton
               icon={<Trash2 className="w-4 h-4" strokeWidth={2} />}
               onClick={() => setDeleteConfirmOpen(true)}
@@ -129,7 +169,7 @@ export function TopBar({
 
         {/* Zone 3: Right actions */}
         <div className="ms-auto flex items-center gap-2 shrink-0">
-          {activeSchedule && (
+          {activeSchedule && isAdmin && (
             <div className="hidden lg:flex items-center gap-2 me-4 p-1 bg-gray-50 dark:bg-slate-800/50 rounded-lg border border-gray-100 dark:border-slate-700/50">
               <Button variant="ghost" size="sm" onClick={onAutoAssign} className="text-gray-600 hover:text-gray-900">
                 {t('autoAssign', lang)}
@@ -141,6 +181,26 @@ export function TopBar({
                 {t('excel', lang)}
               </Button>
             </div>
+          )}
+
+          {/* Swap requests button (visible for workers + admins viewing a worker board) */}
+          {onOpenSwaps && (
+            <IconButton
+              icon={<ArrowLeftRight className="w-4 h-4" strokeWidth={2} />}
+              onClick={onOpenSwaps}
+              title={isHe ? 'החלפות משמרת' : 'Shift Swaps'}
+              className="text-gray-500 hover:text-gray-700 dark:hover:text-slate-200"
+            />
+          )}
+
+          {/* Invite link button (admin only) */}
+          {isAdmin && userEmail && onOpenInviteLink && (
+            <IconButton
+              icon={<Link className="w-4 h-4" strokeWidth={2} />}
+              onClick={onOpenInviteLink}
+              title={isHe ? 'קישור הזמנה לעובדים' : 'Worker invite link'}
+              className="text-gray-500 hover:text-gray-700 dark:hover:text-slate-200"
+            />
           )}
 
           {/* User Section */}
@@ -158,6 +218,11 @@ export function TopBar({
                 )}
                 <div className="hidden sm:flex items-center gap-3 bg-gray-50 dark:bg-slate-800/50 rounded-full pe-2 ps-3 py-1 border border-gray-100 dark:border-slate-700/50">
                   <span className="text-xs font-medium text-gray-600 dark:text-slate-300 truncate max-w-[140px]">{userEmail}</span>
+                  {isWorker && (
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-blue-500 dark:text-blue-400">
+                      {isHe ? 'עובד' : 'Worker'}
+                    </span>
+                  )}
                   <button
                     onClick={onLogout}
                     className="text-[10px] uppercase tracking-wider font-bold text-gray-400 hover:text-gray-700 dark:hover:text-slate-200 transition-colors"
@@ -207,11 +272,13 @@ export function TopBar({
                 onClick={() => setGuideOpen(true)}
                 title={t('quickStartTitle', lang)}
               />
-              <IconButton
-                icon={<Settings className="w-4 h-4" strokeWidth={2} />}
-                onClick={onOpenSettings}
-                title={t('settingsTitle', lang)}
-              />
+              {isAdmin && (
+                <IconButton
+                  icon={<Settings className="w-4 h-4" strokeWidth={2} />}
+                  onClick={onOpenSettings}
+                  title={t('settingsTitle', lang)}
+                />
+              )}
             </div>
           </div>
 
