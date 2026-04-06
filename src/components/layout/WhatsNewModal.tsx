@@ -1,4 +1,4 @@
-import { Scale, PhoneCall, Calendar } from 'lucide-react';
+import { Scale, PhoneCall, Calendar, Ghost } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { langFromDir, t } from '../../utils/i18n';
 
@@ -11,36 +11,46 @@ interface Props {
 const FEATURES_EN = [
   {
     icon: <Scale className="w-5 h-5" />,
-    title: 'Smarter Workload Balancing',
-    desc: 'Auto-assign now uses raw total hours (not a normalized estimate) as the primary fairness metric, and tracks shift-type distribution so each person gets a balanced mix of morning, noon, evening, and night shifts.',
+    title: 'Fairer shifts, finally',
+    desc: "Auto-assign now looks at actual hours worked — not some normalised estimate — and makes sure each person gets a healthy mix of morning, noon, evening, and night shifts instead of the same one on repeat.",
   },
   {
     icon: <PhoneCall className="w-5 h-5" />,
-    title: 'On-Call Weighted as 1/3 Active Duty',
-    desc: 'On-call hours now count as 1/3 toward the balancing calculation (24h on-call ≈ 8h active). People who do on-call will receive more regular shifts to compensate, keeping total workload fair.',
+    title: 'On-call counts as a third of a real shift',
+    desc: "Being on-call is not the same as actually working. So now 24h on-call only counts as ~8h toward the balance. People who pull on-call duty will automatically get more regular shifts to make up the difference.",
+  },
+  {
+    icon: <Ghost className="w-5 h-5" />,
+    title: 'Ghost mode — skip someone in auto-assign',
+    desc: "Toggle \"Never Auto-Assign\" on any person in Settings → People and auto-assign will completely ignore them. Great for commanders, trainees, or anyone who handles their own scheduling.",
   },
   {
     icon: <Calendar className="w-5 h-5" />,
-    title: 'Home Groups Table & Period Cleanup',
-    desc: 'The home groups table now shows only dates within the current schedule range. Expired home-group periods (past their return date) are automatically removed on app load.',
+    title: 'Cleaner home groups table',
+    desc: "The home groups table now only shows dates that are actually in your current schedule — no more columns stretching into the past or future. And once a home period's return date passes, it disappears automatically.",
   },
 ];
 
 const FEATURES_HE = [
   {
     icon: FEATURES_EN[0].icon,
-    title: 'איזון עומסים חכם יותר',
-    desc: 'השיבוץ האוטומטי משתמש עכשיו בסך שעות גולמי (ולא הערכה מנורמלת) כמדד הוגנות ראשי, ועוקב אחרי פיזור סוגי משמרות כך שכל אדם מקבל תמהיל מאוזן של בוקר, צהריים, ערב ולילה.',
+    title: 'חלוקת משמרות הוגנת, סוף סוף',
+    desc: 'השיבוץ האוטומטי עכשיו מסתכל על שעות אמיתיות שנעשו — לא על הערכה ממוצעת — ודואג שכל אחד יקבל תמהיל של בוקר, צהריים, ערב ולילה, במקום אותה משמרת שוב ושוב.',
   },
   {
     icon: FEATURES_EN[1].icon,
-    title: 'כוננות שקולה כ-⅓ משמרת פעילה',
-    desc: 'שעות כוננות נחשבות עכשיו כ-⅓ בלבד לצורך חישוב האיזון (24 שעות כוננות ≈ 8 שעות פעילות). מי שמבצע כוננות יקבל יותר משמרות רגילות בתמורה, כדי לשמור על עומס כולל הוגן.',
+    title: 'כוננות שווה שליש ממשמרת רגילה',
+    desc: 'כוננות זה לא אותו דבר כמו לעבוד. אז עכשיו 24 שעות כוננות נחשבות רק כ-8 שעות באיזון. מי שנמצא בכוננות יקבל יותר משמרות רגילות כפיצוי.',
   },
   {
     icon: FEATURES_EN[2].icon,
-    title: 'טבלת קבוצות בית וניקוי תקופות',
-    desc: 'טבלת קבוצות הבית מציגה עכשיו רק תאריכים בטווח הלוח הנוכחי. תקופות בית שפג תוקפן (עברו את תאריך החזרה) מוסרות אוטומטית בטעינת האפליקציה.',
+    title: 'מצב רוח — לדלג על מישהו בשיבוץ',
+    desc: 'הפעל "לא לשבץ אוטומטית" על כל אדם בהגדרות ← אנשים והשיבוץ האוטומטי יתעלם ממנו לחלוטין. מעולה למפקדים, מתגייסים, או כל מי שמנהל את הלוח שלו בעצמו.',
+  },
+  {
+    icon: FEATURES_EN[3].icon,
+    title: 'טבלת קבוצות בית מסודרת יותר',
+    desc: 'טבלת קבוצות הבית מציגה עכשיו רק תאריכים שנמצאים בלוח הנוכחי — לא עמודות שמתפרסות לעבר או לעתיד. ותקופות שפגה תוקפן נעלמות לבד.',
   },
 ];
 
