@@ -7,7 +7,12 @@ function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return normalizeState(JSON.parse(raw));
+      const s = normalizeState(JSON.parse(raw));
+      const today = new Date().toISOString().slice(0, 10);
+      return {
+        ...s,
+        homeGroupPeriods: (s.homeGroupPeriods ?? []).filter(p => p.endDate >= today),
+      };
     }
   } catch {}
   return INITIAL_STATE;

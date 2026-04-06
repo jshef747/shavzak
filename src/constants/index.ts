@@ -2,7 +2,7 @@ import type { AppState } from '../types';
 
 export const STORAGE_KEY = 'shift-manager-v1';
 export const MIN_BREAK_HOURS = 12;
-export const WHATS_NEW_VERSION = '2026-03-26';
+export const WHATS_NEW_VERSION = '2026-04-06';
 
 export const DEFAULT_SHIFTS = [
   { id: 'morning', name: 'Morning', startHour: 8, durationHours: 8 },

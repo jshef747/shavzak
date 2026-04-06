@@ -1,6 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Users } from 'lucide-react';
-import { eachDayOfInterval, parseISO, format, max, min } from 'date-fns';
 import type { AppState, HomeGroup, HomeGroupPeriod, Shift } from '../../types';
 import { langFromDir, t } from '../../utils/i18n';
 import { isHomeGroupBlocked } from '../../utils/validation';
@@ -45,18 +44,6 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
     homeGroupPeriods.some(p => p.groupId === g.id)
   );
 
-  // Extend the date range to cover any home group periods that go beyond the schedule end date
-  const extendedDates = useMemo(() => {
-    if (dates.length === 0) return dates;
-    const scheduleStart = parseISO(dates[0]);
-    const scheduleEnd = parseISO(dates[dates.length - 1]);
-    const periodDates = homeGroupPeriods.flatMap(p => [parseISO(p.startDate), parseISO(p.endDate)]);
-    if (periodDates.length === 0) return dates;
-    const rangeStart = min([scheduleStart, ...periodDates]);
-    const rangeEnd = max([scheduleEnd, ...periodDates]);
-    if (rangeStart >= scheduleStart && rangeEnd <= scheduleEnd) return dates;
-    return eachDayOfInterval({ start: rangeStart, end: rangeEnd }).map(d => format(d, 'yyyy-MM-dd'));
-  }, [dates, homeGroupPeriods]);
 
   if (state.homeGroups.length === 0) return null;
   if (activeGroups.length === 0) return null;
@@ -70,7 +57,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
               <th className="sticky start-0 z-20 bg-blue-700 dark:bg-blue-900 px-3 py-2 text-start text-xs font-semibold uppercase tracking-wide w-28 shrink-0">
                 {t('homeGroupsSection', lang)}
               </th>
-              {extendedDates.map(date => {
+              {dates.map(date => {
                 const d = new Date(date + 'T12:00:00');
                 return (
                   <th key={date} className="px-2 py-2 text-center text-xs font-semibold whitespace-nowrap">
@@ -109,7 +96,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                         </button>
                       </div>
                     </td>
-                    {extendedDates.map(date => {
+                    {dates.map(date => {
                       const status = getGroupDayStatus(date, group.id, state.homeGroups, homeGroupPeriods, state.shifts);
 
                       let cellClass = '';
@@ -150,7 +137,7 @@ export function HomeGroupsSection({ state, dates, homeGroupPeriods }: Props) {
                   </tr>
                   {isExpanded && (
                     <tr className="bg-blue-50 dark:bg-blue-950/30 border-b border-slate-100 dark:border-slate-700/60">
-                      <td colSpan={extendedDates.length + 1} className="px-4 py-2.5">
+                      <td colSpan={dates.length + 1} className="px-4 py-2.5">
                         {members.length === 0 ? (
                           <p className="text-[11px] text-slate-400 dark:text-slate-500 italic">
                             {lang === 'he' ? 'אין חברים בקבוצה' : 'No members in this group'}

@@ -1,4 +1,4 @@
-import { Clock, Shuffle, Ban, PhoneCall, Smartphone, CalendarClock } from 'lucide-react';
+import { Scale, PhoneCall, Calendar } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { langFromDir, t } from '../../utils/i18n';
 
@@ -10,67 +10,37 @@ interface Props {
 
 const FEATURES_EN = [
   {
-    icon: <Smartphone className="w-5 h-5" />,
-    title: 'Premium Mobile UI',
-    desc: 'Completely redesigned mobile experience: scrollable date carousel, glassmorphic shift cards with smooth accordion animations, richer assignment rows with status badges, and a floating bottom action bar.',
+    icon: <Scale className="w-5 h-5" />,
+    title: 'Smarter Workload Balancing',
+    desc: 'Auto-assign now uses raw total hours (not a normalized estimate) as the primary fairness metric, and tracks shift-type distribution so each person gets a balanced mix of morning, noon, evening, and night shifts.',
   },
   {
     icon: <PhoneCall className="w-5 h-5" />,
-    title: 'On-Call Duration per Position',
-    desc: 'Set a custom hour count for each on-call position (e.g. 24h). The cell spans all shift rows for that day, and hours tracking uses the on-call duration instead of the shift duration.',
+    title: 'On-Call Weighted as 1/3 Active Duty',
+    desc: 'On-call hours now count as 1/3 toward the balancing calculation (24h on-call ≈ 8h active). People who do on-call will receive more regular shifts to compensate, keeping total workload fair.',
   },
   {
-    icon: <Shuffle className="w-5 h-5" />,
-    title: 'Shift Variety in Auto-Assign',
-    desc: 'Auto-assign now avoids giving someone the same shift on consecutive days. A soft penalty discourages streaks (e.g. three mornings in a row) while still filling all slots.',
-  },
-  {
-    icon: <Ban className="w-5 h-5" />,
-    title: 'Avoid Half-Shifts Toggle',
-    desc: 'A new toggle in Settings → Shifts lets you tell auto-assign to skip half-shift slots entirely, or use them only as a last resort.',
-  },
-  {
-    icon: <Clock className="w-5 h-5" />,
-    title: 'Merged On-Call Cells',
-    desc: 'On-call positions now display as a single merged cell spanning all shift rows for each day — cleaner and easier to assign.',
-  },
-  {
-    icon: <CalendarClock className="w-5 h-5" />,
-    title: 'Per-Day On-Call Duration',
-    desc: 'Click the clock icon next to any date header to override the on-call slot duration for that day only (e.g. 12h on Monday, 6h on Tuesday, 24h on Wednesday). Auto-assign, Excel export, and hours tracking all respect the per-day setting.',
+    icon: <Calendar className="w-5 h-5" />,
+    title: 'Home Groups Table & Period Cleanup',
+    desc: 'The home groups table now shows only dates within the current schedule range. Expired home-group periods (past their return date) are automatically removed on app load.',
   },
 ];
 
 const FEATURES_HE = [
   {
     icon: FEATURES_EN[0].icon,
-    title: 'ממשק מובייל חדש',
-    desc: 'עיצוב מחדש מלא של חוויית המובייל: קרוסלה תאריכים גלילה, כרטיסי משמרת שקופים עם אנימציות חלקות, שורות שיבוץ עשירות עם תגי סטטוס, וסרגל פעולות צף בתחתית המסך.',
+    title: 'איזון עומסים חכם יותר',
+    desc: 'השיבוץ האוטומטי משתמש עכשיו בסך שעות גולמי (ולא הערכה מנורמלת) כמדד הוגנות ראשי, ועוקב אחרי פיזור סוגי משמרות כך שכל אדם מקבל תמהיל מאוזן של בוקר, צהריים, ערב ולילה.',
   },
   {
     icon: FEATURES_EN[1].icon,
-    title: 'משך כוננות לפי תפקיד',
-    desc: 'ניתן לקבוע מספר שעות מותאם לכל תפקיד כוננות (למשל 24 שעות). התא ממוזג על פני כל שורות המשמרת לאותו יום, ומעקב השעות משתמש במשך הכוננות.',
+    title: 'כוננות שקולה כ-⅓ משמרת פעילה',
+    desc: 'שעות כוננות נחשבות עכשיו כ-⅓ בלבד לצורך חישוב האיזון (24 שעות כוננות ≈ 8 שעות פעילות). מי שמבצע כוננות יקבל יותר משמרות רגילות בתמורה, כדי לשמור על עומס כולל הוגן.',
   },
   {
     icon: FEATURES_EN[2].icon,
-    title: 'מגוון משמרות בשיבוץ אוטומטי',
-    desc: 'השיבוץ האוטומטי מנסה עכשיו למנוע רצף של אותה משמרת לאותו אדם בימים עוקבים. עונש רך מרתיע רצפים (כגון שלושה בקרים ברצף) תוך מילוי כל המשבצות.',
-  },
-  {
-    icon: FEATURES_EN[3].icon,
-    title: 'מתג "הימנע ממשמרות חצי"',
-    desc: 'מתג חדש בהגדרות ← משמרות מאפשר לשיבוץ האוטומטי לדלג לגמרי על משמרות חצי, או להשתמש בהן רק כמוצא אחרון.',
-  },
-  {
-    icon: FEATURES_EN[4].icon,
-    title: 'תאי כוננות ממוזגים',
-    desc: 'תפקידי כוננות מוצגים עכשיו כתא אחד ממוזג על פני כל שורות המשמרת לכל יום — נקי יותר וקל יותר לשיבוץ.',
-  },
-  {
-    icon: FEATURES_EN[5].icon,
-    title: 'משך כוננות לפי יום',
-    desc: 'לחץ על סמל השעון ליד כותרת כל יום כדי לקבוע משך כוננות שונה לאותו יום בלבד (למשל 12 שעות ביום ראשון, 6 שעות ביום שני, 24 שעות ביום שלישי). שיבוץ אוטומטי, ייצוא אקסל ומעקב שעות מתחשבים בהגדרה לפי יום.',
+    title: 'טבלת קבוצות בית וניקוי תקופות',
+    desc: 'טבלת קבוצות הבית מציגה עכשיו רק תאריכים בטווח הלוח הנוכחי. תקופות בית שפג תוקפן (עברו את תאריך החזרה) מוסרות אוטומטית בטעינת האפליקציה.',
   },
 ];
 
